@@ -1,0 +1,27 @@
+#ifndef _QCD_HPP_
+#define _QCD_HPP_
+
+// Basic constants and structures
+
+const double ALPHA_EM = 1.0/137.035999084; // Fine-structure constant
+
+struct Quark
+{
+    enum Type
+    {
+        U,
+        D,
+        S,
+        C,
+        B,
+        T
+    } type;
+    double mass; // in GeV
+    double charge;
+};
+
+double QuarkCharge(Quark q);
+
+const int NC = 3; 
+
+#endif 
