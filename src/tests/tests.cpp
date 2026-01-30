@@ -2,6 +2,7 @@
 #include <cmath>
 #include <string>
 #include "../nlodis.hpp"
+#include "../integration.hpp"
 
 #include <amplitudelib.hpp>
 

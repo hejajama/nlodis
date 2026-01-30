@@ -11,6 +11,7 @@
 #include "qcd.hpp"
 #include <vector>
 #include <string>
+#include <gsl/gsl_integration.h>
 
 enum Polarization
 {
@@ -30,6 +31,7 @@ enum Order
 };
 
 
+
 class NLODIS
 {
     public:
@@ -39,8 +41,15 @@ class NLODIS
         double F2(double Q2, double xbj);
         double Photon_proton_cross_section(double Q2, double xbj, Polarization pol);
 
+         double Photon_proton_cross_section_LO(double Q2, double xbj, Polarization pol);
+
+
     
         void SetOrder(Order o) { order = o; }
+        double GetMaxR() { return maxr; }
+        
+        double Alphas(double r);
+        AmplitudeLib& GetDipole() { return dipole; }
 
     private:
     
@@ -56,8 +65,26 @@ class NLODIS
         Scheme scheme = UNSUB;
         std::vector<Quark> quarks;
         Order order = LO;
+        double maxr = 99;
       
 };
 
+// Data structure used to store integration parameters
+struct IntegrationParams {
+        NLODIS* nlodis;
+        double Q2;
+        double xbj;
+        double z;
+        Polarization pol;
+        gsl_integration_workspace* w_r;
+        Quark quark;
+    };
 
+inline double SQR(double x) { return x*x; }
+
+
+// Helper functions in nlodishelper.cpp that need to be accessed outside
+// e.g. for unit tests
+int integrand_ILdip_massive_Icd(const int *ndim, const double x[], const int *ncomp, double *f, void *userdata);
+double ILdip_massive_Icd(double Q2, double z1, double x01sq, double mf, double xi, double x); 
 #endif 

@@ -23,5 +23,6 @@ struct Quark
 double QuarkCharge(Quark q);
 
 const int NC = 3; 
+const double CF = (NC*NC - 1.0)/(2.0*NC);  
 
 #endif 

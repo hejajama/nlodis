@@ -14,7 +14,7 @@
 
 using namespace std;
 
-inline double SQR(double x) { return x*x; }
+
 
 const double INTRELACC = 1e-3;
 
@@ -36,8 +36,40 @@ double NLODIS::F2(double Q2, double xbj)
 
 
 
-
+/*
+ * Photon-proton cross section [GeV^-2]
+ *
+ * To get the cross section, this has to be integrated over d^2r and multiplied by sigma_0 [in GeV^-2]
+ * i.e. we replace 2\int d^2b -> sigma_0
+ * 
+ * */
 double NLODIS::Photon_proton_cross_section(double Q2, double xbj, Polarization pol)
+{
+    if (scheme != UNSUB)
+    {
+        throw std::runtime_error("Only UNSUB scheme is implemented.");
+    }
+
+    if (order==LO)
+    {
+        return Photon_proton_cross_section_LO(Q2, xbj, pol);
+    }
+    else
+    {
+        throw std::runtime_error("Only LO order is implemented.");
+    }   
+
+}
+
+
+/*
+ * LO Photon-proton cross section
+    * Q2 [GeV^2]: photon virtuality
+    * xbj: Bjorken-x
+    * pol: photon polarization (T or L)
+    * 
+ */
+double NLODIS::Photon_proton_cross_section_LO(double Q2, double xbj, Polarization pol)
 {
     if (scheme != UNSUB)
     {
@@ -57,14 +89,7 @@ double NLODIS::Photon_proton_cross_section(double Q2, double xbj, Polarization p
     // For z: integrate from 0 to 1
     
     // Create a struct to hold the integration parameters (must survive the integration)
-    struct IntegrationParams {
-        NLODIS* nlodis;
-        double Q2;
-        double xbj;
-        double z;
-        Polarization pol;
-        gsl_integration_workspace* w_r;
-    } params_struct = {this, Q2, xbj, 0, pol, nullptr};
+    IntegrationParams params_struct = {this, Q2, xbj, 0, pol, nullptr};
 
     // z integrand
     F.function = [](double z, void* params) {
@@ -115,8 +140,6 @@ double NLODIS::Photon_proton_cross_section(double Q2, double xbj, Polarization p
  * This is |\Psi|^2 N(r), no Jacobian of r included
  * Reference: 1708.07328 (1-3), this is K_L, K_T
  * 
- * To get the cross section, this has to be integrated over d^2r and multiplied by sigma_0 [in GeV^-2]
- * i.e. we replace 2\int d^2b -> sigma_0
 */
 double NLODIS::Integrand_photon_target_LO(double r, double z, double x, double Q2, Polarization pol )
 {
@@ -180,4 +203,21 @@ double NLODIS::Integrand_photon_target_LO(double r, double z, double x, double Q
 
     dipole.SetOutOfRangeErrors(false);
 
+ }
+ 
+ /*
+  * Coordinate space coupling
+  * TODO: implement flavor thresholds
+  */
+ double NLODIS::Alphas(double r)
+ {
+    const double LambdaQCD = 0.241; // GeV
+    const double b0 = (11.0*NC - 2.0*quarks.size())/(12.0*M_PI);
+    double mu2 = 4.0/(r*r) + LambdaQCD*LambdaQCD;
+    double as = 1.0/(b0*log(mu2/(LambdaQCD*LambdaQCD)));
+    if (as > 0.7)
+    {
+        as = 0.7; // Freeze coupling
+    }
+    return as;
  }

@@ -4,7 +4,9 @@ add_library(
 	nlodisframework
     STATIC	
 	nlodis.cpp
+    nlodishelper.cpp
 	qcd.cpp
+    integration.cpp
 	${CMAKE_CURRENT_BINARY_DIR}/gitsha1.cpp
 )
 
@@ -18,6 +20,7 @@ add_executable(
 add_executable(
     test
     tests/tests.cpp
+    tests/test_massivedishelpers.cpp
     )
 	
 include_directories(.)
