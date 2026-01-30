@@ -78,6 +78,7 @@ struct IntegrationParams {
         Polarization pol;
         gsl_integration_workspace* w_r;
         Quark quark;
+        std::string contribution;
     };
 
 inline double SQR(double x) { return x*x; }
@@ -85,6 +86,8 @@ inline double SQR(double x) { return x*x; }
 
 // Helper functions in nlodishelper.cpp that need to be accessed outside
 // e.g. for unit tests
-int integrand_ILdip_massive_Icd(const int *ndim, const double x[], const int *ncomp, double *f, void *userdata);
+int integrand_ILdip_massive(const int *ndim, const double x[], const int *ncomp, double *f, void *userdata);
 double ILdip_massive_Icd(double Q2, double z1, double x01sq, double mf, double xi, double x); 
+double ILdip_massive_Iab(double Q2, double z1, double r, double mf, double xi);
+
 #endif 

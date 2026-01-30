@@ -23,17 +23,22 @@
 double ILdip_massive_Icd(double Q, double z1, double x01sq, double mf, double xi, double x);
 
 /*
- * Integrand for Cuba
+ * Integrand wrapper for Cuba
+ * To be used to evaluated ab and cd contributions to NLO DIP
  * Integration variables are
  * x[0] = z1
  * x[1] = [0,1] mapped to r = x[1]*maxr
  * x[2] = xi (integration variable xi in (114))
- * x[3] = x (integration variable x in (114))
+ * x[3] = x (integration variable x in (114)) [when computing the "cd" contribution]
  */
-int integrand_ILdip_massive_Icd(const int *ndim, const double x[], const int *ncomp, double *f, void *userdata) {
-     throw std::invalid_argument("integrand_ILdip_massive_Icd: ndim must equal 4");
-    
+int integrand_ILdip_massive(const int *ndim, const double x[], const int *ncomp, double *f, void *userdata) {
     auto* p = static_cast<IntegrationParams*>(userdata);
+
+    if (!( (*ndim ==4 and p->contribution=="cd") or (*ndim == 3 and p->contribution =="ab") ))
+    {
+     throw std::invalid_argument("integrand_ILdip_massive: ndim " + std::to_string(*ndim) + " and contribution " + p->contribution + " do not match" );
+    }   
+    
     double Q2=p->Q2;
     double xbj=p->xbj;
     double mf=p->quark.mass;
@@ -42,7 +47,7 @@ int integrand_ILdip_massive_Icd(const int *ndim, const double x[], const int *nc
     double x01=p->nlodis->GetMaxR()*x[1];
     double x01sq=SQR(x01);
     double xi=x[2]; 
-    double intx=x[3]; 
+    ; 
 
     double alphabar=p->nlodis->Alphas(x01)*CF/M_PI;
 
@@ -51,7 +56,16 @@ int integrand_ILdip_massive_Icd(const int *ndim, const double x[], const int *nc
     double dipole = p->nlodis->GetDipole().DipoleAmplitude(x01,evolution_rapidity);
     double res;
 
-    res = dipole*(ILdip_massive_Icd(Q2,z1,x01,mf,xi,intx))*x01*alphabar;
+    if (p->contribution=="ab" ) {
+        // "ab" contribution does not have the x integration variable
+        res = dipole*(ILdip_massive_Iab(Q2,z1,x01,mf,xi));
+    } else if (p->contribution=="cd") {
+        double intx=x[3];
+        res = dipole*(ILdip_massive_Icd(Q2,z1,x01,mf,xi,intx));
+    }
+
+    res *= x01*alphabar; // Jacobian from r= x[1]*maxr
+
     if(gsl_finite(res)==1){
         *f=res;
     }else{
@@ -88,5 +102,28 @@ double ILdip_massive_Icd(double Q2, double z1, double r, double mf, double xi, d
     }   
 
     double dip_res = front_factor * Icd_integrand;
+    return dip_res;
+}
+
+/*
+ * https://arxiv.org/pdf/2103.14549 (113) 
+*/
+double ILdip_massive_Iab(double Q2, double z1, double r, double mf, double xi) {
+
+    double front_factor = 4.0*Q2*SQR(z1*(1.0-z1));
+
+
+    double kappa_z = sqrt( z1*(1.0-z1)*Q2 + SQR(mf) );
+    double bessel_inner_fun = kappa_z * r;
+    double Iab_integrand = 0;
+    if (bessel_inner_fun < 1e-7){
+        Iab_integrand = 0;
+    }else{
+        Iab_integrand = gsl_sf_bessel_K0( bessel_inner_fun ) * 1.0/xi * ( -2.0*log(xi)/(1.0-xi) + (1.0+xi)/2.0 ) *
+                        (2.0*gsl_sf_bessel_K0( bessel_inner_fun ) - gsl_sf_bessel_K0( sqrt( SQR(kappa_z) + (1.0-z1)*xi/(1.0-xi) *SQR(mf) ) * r ) 
+                        - gsl_sf_bessel_K0( sqrt( SQR(kappa_z) + z1*xi/(1.0-xi) *SQR(mf) ) * r )  );
+    }   
+
+    double dip_res = front_factor * Iab_integrand;
     return dip_res;
 }
