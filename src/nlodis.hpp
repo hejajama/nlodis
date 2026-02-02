@@ -30,6 +30,17 @@ enum Order
     NLO
 };
 
+enum NcScheme
+{
+    FiniteNC,
+    LargeNC
+};
+
+enum RunningCouplingScheme
+{
+    SMALLEST,
+    PARENT
+};
 
 
 class NLODIS
@@ -45,6 +56,7 @@ class NLODIS
 
          /// NLO caluclation ingredients 
         double Sigma_dip(double Q2, double xbj, Polarization pol);
+        double Sigma_qg(double Q2, double xbj, Polarization pol);
 
          ////
 
@@ -56,6 +68,15 @@ class NLODIS
         double Alphas(double r);
         AmplitudeLib& GetDipole() { return dipole; }
 
+        double z2_lower_bound(double xbj, double Q2, double mf) { return 1e-4; } // TODO: implement proper lower bound for z2 integration
+
+        double TripoleAmplitude(double x01, double x02, double x21, double Y); // TODO : implement tripole amplitude
+
+        double EvolutionRapidity(double xbj, double Q2, double z2);
+
+        void SetNcScheme(NcScheme scheme_) { nc_scheme = scheme_; }
+        void SetRunningCouplingScheme(RunningCouplingScheme rc_) { rc_scheme = rc_; }
+        double RunningCouplinScale(double x01, double x02, double x21);
     private:
     
         /* Integrand for LO cross section
@@ -71,6 +92,9 @@ class NLODIS
         std::vector<Quark> quarks;
         Order order = LO;
         double maxr = 99;
+        NcScheme nc_scheme = LargeNC;
+        RunningCouplingScheme rc_scheme = SMALLEST;
+        const double Q0sqr = 1; // Non-perturbative target scale, should match the one used in the NLO DIS fit!
       
 };
 
@@ -96,4 +120,8 @@ double ILdip_massive_Icd(double Q2, double z1, double x01sq, double mf, double x
 double ILdip_massive_Iab(double Q2, double z1, double r, double mf, double xi);
 double ILdip_massive_Omega_L_Const(double Q2, double z1, double r, double mf);
 
+// Sigma_qg longitudinal part helper
+int integrand_ILqgunsub_massive(const int *ndim, const double x[], const int *ncomp,double *f, void *userdata);
+double ILNLOqg_massive_tripole_part_I2_fast(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);
+double G_integrand_simplified(int a, int b, double Qbar, double mf, double x2, double x3, double omega, double lambda, double y);
 #endif 

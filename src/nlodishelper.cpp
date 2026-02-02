@@ -31,6 +31,8 @@ double ILdip_massive_Icd(double Q, double z1, double x01sq, double mf, double xi
  * x[1] = [0,1] mapped to r = x[1]*maxr
  * x[2] = xi (integration variable xi in (114))
  * x[3] = x (integration variable x in (114)) [when computing the "cd" contribution]
+ * 
+ * Note: 2pi from the overall angular integration of x01 in NLODIS::Sigma_dip
  */
 int integrand_ILdip_massive(const int *ndim, const double x[], const int *ncomp, double *f, void *userdata) {
     auto* p = static_cast<IntegrationParams*>(userdata);
@@ -53,7 +55,7 @@ int integrand_ILdip_massive(const int *ndim, const double x[], const int *ncomp,
     double alphabar=p->nlodis->Alphas(x01)*CF/M_PI;
 
     // TODO: add more user control for evolution rapidity
-    double evolution_rapidity = std::log(1/xbj); //Optr->Xrpdty_DIP(xbj, Sq(Q), x01sq);
+    double evolution_rapidity = std::log(1/xbj); 
     double dipole = p->nlodis->GetDipole().DipoleAmplitude(x01,evolution_rapidity);
     double res;
 
@@ -76,7 +78,8 @@ int integrand_ILdip_massive(const int *ndim, const double x[], const int *ncomp,
         throw std::invalid_argument("integrand_ILdip_massive: unknown contribution " + p->contribution );
     }
 
-    res *= x01*alphabar; // Jacobian from r= x[1]*maxr
+    double jacobian = x01 * p->nlodis->GetMaxR() * 2.0 * M_PI; // Jacobian from d^2r and r = u*MAXR
+    res *= jacobian*alphabar; // Jacobian from d^2r
 
     if(gsl_finite(res)==1){
         *f=res;
@@ -182,3 +185,130 @@ double L_dip( double Q2, double z, double mf ) {
 
     return res;
 }
+
+
+/***********************************************************
+ * Longitudinal photon, qqg contribution
+ */
+
+ 
+
+
+/*
+* Integrand wrapper for Cuba
+* To be used to evaluate I2 part of NLO qg unsubtracted contribution
+* Integration variables are
+* x[0] = z1
+* x[1] = z2
+* x[2] = x01 
+* x[3] = x02 
+* x[4] = phi_x0102 (angle between x01 and x02)
+* x[5] = y_t 
+* 
+* Note: overall 2pi integral is included in NLODIS::Sigma_qg
+*/
+ int integrand_ILqgunsub_massive(const int *ndim, const double x[], const int *ncomp,double *f, void *userdata) {
+    auto* p = static_cast<IntegrationParams*>(userdata);
+    double Q2=p->Q2;
+    double xbj=p->xbj;
+    double mf=p->quark.mass;
+
+   
+    double z2min = p->nlodis->z2_lower_bound(xbj,Q2,mf); // TODO
+    if (z2min > 1.0){ // Check that z2min is not too large. IF it is too large, return *f=0.
+        *f=0;
+        return 0;
+    }
+
+    double z1=(1.0-z2min)*x[0];
+    double z2=((1.0-z1)-z2min)*x[1]+z2min;
+    double x01=p->nlodis->GetMaxR()*x[2];
+    double x02=p->nlodis->GetMaxR()*x[3];
+    double phix0102=2.0*M_PI*x[4];
+    double y_t1 = x[5];
+    double x01sq=SQR(x01);
+    double x02sq=SQR(x02);
+    double x21sq=x01sq+x02sq-2.0*sqrt(x01sq*x02sq)*cos(phix0102);
+
+    // Jacobians from Cuba variable changes (z's, 2 distances, 1 angle) and d^2x_01 d^2x_02
+    // Note: one overall 2pi from angular integral is included in NLODIS::Sigma_qg
+    double jac=(1.0-z2min)*(1.0-z1-z2min)*x01*x02 * p->nlodis->GetMaxR()*p->nlodis->GetMaxR()*2.0*M_PI;
+
+    //double Xrpdt= Optr->Xrpdty_NLO(Q2, z2, z2min, X0, x01sq, x02sq, x21sq); //z2min * X0/z2;
+    double evolution_rapidity=0; // TODO: implement evolution rapidity choice
+    double SKernel_tripole = 1.0 - p->nlodis->TripoleAmplitude(x01,x02, std::sqrt(x21sq), evolution_rapidity);
+
+    double alphafac=p->nlodis->Alphas(p->nlodis->RunningCouplinScale(x01,x02,std::sqrt(x21sq)))*CF/Nc;
+
+    double res=0;
+
+    if (p->contribution == "I2") {
+       res = SKernel_tripole * ILNLOqg_massive_tripole_part_I2_fast(Q2,mf,z1,z2,x01sq,x02sq,x21sq,y_t1); 
+    }
+
+    res *=  jac*alphafac/z2;
+
+    if(gsl_finite(res)==1){
+        *f=res;
+    }else{
+        *f=0;
+    }
+    return 0;
+}
+
+/*
+ * (23) in the note docs/NLO_DIS_cross_section_with_massive_quarks.pdf
+ * But with one integral performed analytically, only y_t integral remaining
+*/ 
+double ILNLOqg_massive_tripole_part_I2_fast(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t) {
+    // sigma_qg divided into three parts. This part has one additional integral.
+
+    double front_factor = 4.0*Q2;
+
+    double z0 = 1-z1-z2;
+    double x20x21 = -0.5*(x01sq - x21sq - x02sq);
+    double Q = std::sqrt(Q2);
+    double Qbar_k = Q*sqrt(z1*(1.0-z1));
+    double Qbar_l = Q*sqrt(z0*(1.0-z0));
+    double omega_k = z0*z2/(z1*SQR(z0+z2));
+    double omega_l = z1*z2/(z0*SQR(z1+z2));
+    double lambda_k = z1*z2/z0;
+    double lambda_l = z0*z2/z1;
+    double x2_k = sqrt( x02sq );
+    double x2_l = sqrt( x21sq );
+
+    double x3_k = sqrt( SQR(z0) / SQR(z0+z2) * x02sq + x21sq - 2.0 * z0/(z0+z2) *x20x21 );
+    double x3_l = sqrt( SQR(z1) / SQR(z1+z2) * x21sq + x02sq - 2.0 * z1/(z1+z2) *x20x21 );
+
+    double int_12_bar_k = G_integrand_simplified( 1, 2, Qbar_k, mf, x2_k, x3_k, omega_k, lambda_k, y_t)-G_integrand_simplified( 1, 2, Qbar_k, mf, x2_k, x3_k, omega_k, 0.0, y_t);
+    double int_12_bar_l = G_integrand_simplified( 1, 2, Qbar_l, mf, x2_l, x3_l, omega_l, lambda_l, y_t)-G_integrand_simplified( 1, 2, Qbar_l, mf, x2_l, x3_l, omega_l, 0.0, y_t);
+
+    double term_k = SQR(z1) * ( 2.0*z0*(z0+z2) +SQR(z2) ) * 1.0/4.0 * int_12_bar_k
+                    * gsl_sf_bessel_K0( sqrt( SQR(Qbar_k) + SQR(mf) ) *sqrt( SQR(x3_k) + omega_k * x02sq )   );
+    double term_l = SQR(z0) * ( 2.0*z1*(z1+z2) +SQR(z2) ) * 1.0/4.0 * int_12_bar_l 
+                    * gsl_sf_bessel_K0( sqrt( SQR(Qbar_l) + SQR(mf) ) *sqrt( SQR(x3_l) + omega_l * x21sq )   );
+    double term_kl = -1.0/4.0 * z0*z1 * ( z0*(1.0-z0) + z1*(1.0-z1) ) * x20x21  * (
+        1.0/( x21sq ) * int_12_bar_k * gsl_sf_bessel_K0( sqrt( SQR(Qbar_l) + SQR(mf) ) *sqrt( SQR(x3_l) + omega_l * x21sq ))
+        + 1.0/( x02sq ) * int_12_bar_l * gsl_sf_bessel_K0( sqrt( SQR(Qbar_k) + SQR(mf) ) *sqrt( SQR(x3_k) + omega_k * x02sq ))
+    );
+
+    double res = front_factor * ( term_k + term_l + term_kl );
+    return res;
+}
+
+/*
+ * G_(x)^{a,b) with u integrated analytically
+ * See doc/NLO_DIS_cross_section_with_massive_quarks.pdf (69)
+ * Unintegrated form is (163) in 2103.14549
+*/
+double G_integrand_simplified(int a, int b, double Qbar, double mf, double x2, double x3, double omega, double lambda, double y) {
+    // Integrands of the functions G^(a;b)_(x) that appear in the qqg-part. Here the u-integral has been done, and only one integral remains.
+    // The integration variable is y = omega * t
+
+    double value = 1.0/pow( y, 0.5*(2.0-a+b) ) * pow( 2.0, a+b-1.0 ) * pow(omega, b-1.0) 
+                    * pow(( y*lambda * SQR(mf) + SQR(Qbar) + SQR(mf) ) / ( y*SQR(x3) + omega*SQR(x2) ), 0.5*(a+b-2.0) )
+                    * gsl_sf_bessel_Kn( a+b-2, sqrt(1.0/y * ( y*lambda * SQR(mf) + SQR(Qbar) + SQR(mf) ) * ( y*SQR(x3) + omega*SQR(x2) )) ) ;
+
+    return value;
+}
+

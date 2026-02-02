@@ -30,7 +30,32 @@ const std::string gbw_datafile = "gbw.dat";
     ASSERT_ALMOST_EQUAL(f2, 0.120141, 0.001);
  }
 
+/*
+ * Tripole i.e. 1-S_{012}
+ * S_{012} defined in https://arxiv.org/pdf/2007.01645 eq 13
+ */
+TEST(TRIPOLE_AMPLITUDE)
+{
+    NLODIS dis("gbw.dat");
 
+    dis.SetNcScheme(LargeNC);
+    double x01 = 1.0;
+    double x02 = 2.0;
+    double x21 = std::sqrt( SQR(x01) + SQR(x02) - 2.0*x01*x02*0.5 ); // angle cos=0.5
+    double Y = 2.0;
+
+    double tripole_largeNC = dis.TripoleAmplitude(x01, x02, x21, Y);
+    double N02 = dis.GetDipole().DipoleAmplitude(x02, Y);
+    double N12 = dis.GetDipole().DipoleAmplitude(x21, Y);
+    double expected_largeNC = 1.0 - (1.0 - N02)*(1.0 - N12);
+    ASSERT_ALMOST_EQUAL(tripole_largeNC, expected_largeNC, 1e-6);
+    dis.SetNcScheme(FiniteNC);
+    double tripole_finiteNC = dis.TripoleAmplitude(x01, x02, x21, Y);
+    double N01 = dis.GetDipole().DipoleAmplitude(x01, Y);
+
+    double expected_finiteNC = NC/(2.0*CF)*((1.0 - N02)*(1.0 - N12) - 1.0/(NC*NC)*(1.0 - N01));
+    ASSERT_ALMOST_EQUAL(tripole_finiteNC, expected_finiteNC, 1e-6);
+}
  
 /*
  * Test that the GBW dipole behaves as expected

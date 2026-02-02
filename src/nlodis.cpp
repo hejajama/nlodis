@@ -36,7 +36,66 @@ double NLODIS::F2(double Q2, double xbj)
 }
 
 
+/*
+ * qqg-target scattering amplitude
+ * Ref. https://arxiv.org/pdf/2211.03504 (4)
+ * In that notation, this is 1-S_{012}
+ * 
+ * x01, x02, x21: dipole sizes in GeV^-1
+ * Y: evolution rapidity
+ **/
+double NLODIS::TripoleAmplitude(double x01, double x02, double x21, double Y)
+{
+    double S01 = 1-dipole.DipoleAmplitude(x01, Y);
+    double S02 = 1-dipole.DipoleAmplitude(x02, Y);
+    double S12 = 1-dipole.DipoleAmplitude(x21, Y);
 
+    if (nc_scheme == LargeNC)
+    {
+        return 1.0 - S02*S12;
+    }
+    else if (nc_scheme == FiniteNC)
+    {
+        return NC/(2.0*CF)*(S02*S12 - 1./SQR(NC)*S01);
+    }
+    else
+    {
+        throw std::runtime_error("NLODIS::TripoleAmplitude: unknown NC scheme");
+    }
+}
+
+/*
+ * Evolution rapidity (in the qqg contribution)
+ *
+ * Ref https://arxiv.org/pdf/2007.01645 eq (19)
+ * xbj: Bjorken-x
+ * Q2: photon virtuality in GeV^2
+ * z2: gluon longitudinal momentum fraction
+ */
+double NLODIS::EvolutionRapidity(double xbj, double Q2, double z2)
+{
+    double W2 = Q2 / xbj;
+    return std::log(W2*z2/Q0sqr);
+}
+
+/*
+ * Running coupling scale depending on the RC scheme used
+ */
+double NLODIS::RunningCouplinScale(double x01, double x02, double x21)
+{
+    if (rc_scheme == SMALLEST)
+    {
+        return std::min({x01, x02, x21});
+    }
+    else if (rc_scheme == PARENT)
+    {
+        return x01;
+    }
+    else
+    {
+        throw std::runtime_error("NLODIS::RunningCouplinScale: unknown running coupling scheme");
+    }
+}
 
 /*
  * Photon-proton cross section [GeV^-2]
@@ -71,12 +130,15 @@ double NLODIS::Photon_proton_cross_section(double Q2, double xbj, Polarization p
  * \sigma_dip
  * qq part of the NLO cross section
  * L polarization: https://arxiv.org/pdf/2103.14549 (166)
- * T polarization:  
+ * T polarization:
  */
 double NLODIS::Sigma_dip(double Q2, double xbj, Polarization pol)
 {
     double result=0;
-    double fac=4.0*NC*ALPHA_EM/SQR(2.0*M_PI);
+    // Note on factors: the transverse integration measures are defined with 1/(2pi), see
+    // 2103.14549. This measure is not visible in the note, but should be there. Therefore
+    // we have 1/(2pi)^2 below (from d^2x_{01} d^2b)
+    double fac=4.0*NC*ALPHA_EM/SQR(2.0*M_PI); 
     IntegrationParams intparams;
     intparams.nlodis=this;
     intparams.Q2=Q2;
@@ -102,11 +164,64 @@ double NLODIS::Sigma_dip(double Q2, double xbj, Polarization pol)
             Cuba(cubamethod, 4, integrand_ILdip_massive, &intparams, &Icd, &Icderr, &Icdprob);
             result += SQR(quark.charge) * (Iab + Icd);
         }
+
     }
 
-    return fac*result;
+    // We have facotorized out \int d^2 b - note the normalization convention!
+    // Define sigma_0 = 2 \int d^2 b
+    
+    // Correspondingly I need to include 1/2
+    result *= 1./2.;
+
+        
+    // 2pi from overall angular integral
+    return fac*result*2.0*M_PI;
 }
 
+/*
+ * \sigma_qg
+ * qg part of the NLO cross section
+ * 
+ * Longitudinal reference: (167) but instead of q^+, k^+ we integrate over z_i
+ * Explicit expressoin is docs/NLO_DIS_cross_section_with_massive_quarks.pdf (13) 
+*/
+double NLODIS::Sigma_qg(double Q2, double xbj, Polarization pol)
+{
+    // Note on factors: the transverse integration measures are defined with 1/(2pi), see
+    // 2103.14549. This measure is not visible in the note, but should be there. Therefore
+    // we have 1/(2pi)^3 below (from d^2x_{01} d^2x_{02} d^2b)
+    double fac=4.0*NC*ALPHA_EM/std::pow(2.0*M_PI,3.0);
+    IntegrationParams intparams;
+    intparams.nlodis=this;
+    intparams.Q2=Q2;
+    intparams.xbj=xbj;
+    intparams.pol=pol;
+
+    double result=0;
+    for (const auto& quark : quarks) {
+        intparams.quark=quark;
+        if (pol == L)
+        {
+            // Note (21): this contribution is split into 3 parts I_1, I_2 and I_3
+            double I2,I2err,I2prob;
+            intparams.contribution="I2"; //"fast" means that u integration is done analytically(?)
+            Cuba(cubamethod, 6, integrand_ILqgunsub_massive, &intparams, &I2, &I2err, &I2prob);
+            result += SQR(quark.charge) * I2;
+            
+        }
+    }
+
+
+    // We have facotorized out (not performed) \int d^2 b - note the normalization convention!
+    // Define sigma_0 = 2 \int d^2 b
+    
+    // Correspondingly I need to include 1/2 to this result
+    result *= 1./2.;
+
+    // 2pi: overall integral over one angle
+    return  fac*2.0*M_PI*result;
+
+}
 
 /*
  * LO Photon-proton cross section
