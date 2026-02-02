@@ -11,8 +11,10 @@
 
 #include "nlodis.hpp"
 #include "qcd.hpp"
+#include "integration.hpp"
 
 using namespace std;
+const string cubamethod = "cuhre";
 
 
 
@@ -54,11 +56,55 @@ double NLODIS::Photon_proton_cross_section(double Q2, double xbj, Polarization p
     {
         return Photon_proton_cross_section_LO(Q2, xbj, pol);
     }
-    else
-    {
-        throw std::runtime_error("Only LO order is implemented.");
-    }   
+    
+    // NLO calculation
 
+    double sigma_LO = Photon_proton_cross_section_LO(Q2, dipole.X0(), pol);
+    double sigma_dip = Sigma_dip(Q2, xbj, pol);
+    double  sigma_qg = 0; // TODO
+
+    return sigma_LO + sigma_dip + sigma_qg;
+}
+
+
+/*
+ * \sigma_dip
+ * qq part of the NLO cross section
+ * L polarization: https://arxiv.org/pdf/2103.14549 (166)
+ * T polarization:  
+ */
+double NLODIS::Sigma_dip(double Q2, double xbj, Polarization pol)
+{
+    double result=0;
+    double fac=4.0*NC*ALPHA_EM/SQR(2.0*M_PI);
+    IntegrationParams intparams;
+    intparams.nlodis=this;
+    intparams.Q2=Q2;
+    intparams.xbj=xbj;
+    intparams.pol=pol;
+
+    for (const auto& quark : quarks) {
+        intparams.quark=quark;
+        if (pol == L)
+        {
+            // 1st line
+            double I, Ierr, Iprob;
+            intparams.contribution="Omega_L_const";
+            Cuba(cubamethod, 2, integrand_ILdip_massive, &intparams, &I, &Ierr, &Iprob);
+            result += SQR(quark.charge) * I;
+
+            // 2nd line of 2103.14549 (166)
+            intparams.contribution="ab";
+            double Iab,Iaberr,Iabprob;
+            Cuba(cubamethod, 3, integrand_ILdip_massive, &intparams, &Iab, &Iaberr, &Iabprob);
+            intparams.contribution="cd";
+            double Icd,Icderr,Icdprob;
+            Cuba(cubamethod, 4, integrand_ILdip_massive, &intparams, &Icd, &Icderr, &Icdprob);
+            result += SQR(quark.charge) * (Iab + Icd);
+        }
+    }
+
+    return fac*result;
 }
 
 
@@ -207,7 +253,7 @@ double NLODIS::Integrand_photon_target_LO(double r, double z, double x, double Q
  
  /*
   * Coordinate space coupling
-  * TODO: implement flavor thresholds
+  * TODO: implement flavor thresholds and C^2 scale
   */
  double NLODIS::Alphas(double r)
  {

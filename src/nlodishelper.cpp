@@ -8,6 +8,7 @@
 */
 
 #include "nlodis.hpp"
+#include <gsl/gsl_sf_dilog.h>
 #include "qcd.hpp"
 #include <gsl/gsl_sf_bessel.h>
 #include <gsl/gsl_errno.h>
@@ -46,8 +47,8 @@ int integrand_ILdip_massive(const int *ndim, const double x[], const int *ncomp,
     double z1=x[0];
     double x01=p->nlodis->GetMaxR()*x[1];
     double x01sq=SQR(x01);
-    double xi=x[2]; 
-    ; 
+    
+    
 
     double alphabar=p->nlodis->Alphas(x01)*CF/M_PI;
 
@@ -58,10 +59,21 @@ int integrand_ILdip_massive(const int *ndim, const double x[], const int *ncomp,
 
     if (p->contribution=="ab" ) {
         // "ab" contribution does not have the x integration variable
+        double xi=x[2]; 
         res = dipole*(ILdip_massive_Iab(Q2,z1,x01,mf,xi));
     } else if (p->contribution=="cd") {
+        double xi=x[2]; 
         double intx=x[3];
         res = dipole*(ILdip_massive_Icd(Q2,z1,x01,mf,xi,intx));
+    }
+    else if (p->contribution=="Omega_L_const")
+    {
+        // only z and r integration
+        res = dipole*ILdip_massive_Omega_L_Const(Q2, z1, x01, mf);
+    }
+    else 
+    {
+        throw std::invalid_argument("integrand_ILdip_massive: unknown contribution " + p->contribution );
     }
 
     res *= x01*alphabar; // Jacobian from r= x[1]*maxr
@@ -126,4 +138,47 @@ double ILdip_massive_Iab(double Q2, double z1, double r, double mf, double xi) {
 
     double dip_res = front_factor * Iab_integrand;
     return dip_res;
+}
+
+/*
+ * Integrand on the 2nd line of (166) in https://arxiv.org/pdf/2103.14549
+ */
+double OmegaL_V( double Q2, double z, double mf );
+double L_dip( double Q2, double z, double mf );
+double ILdip_massive_Omega_L_Const(double Q2, double z1, double r, double mf) 
+{
+    double front_factor = 4.0*Q2*SQR(z1*(1.0-z1));
+    double bessel_inner_fun = sqrt( Q2*z1*(1.0-z1) + SQR(mf))*r;
+    double dip_res = 0;
+    if (bessel_inner_fun < 1e-7){
+        dip_res = 0;
+    }else{
+        dip_res = front_factor * SQR(gsl_sf_bessel_K0( bessel_inner_fun )) * 
+        ( 5.0/2.0 - SQR(M_PI)/3.0 + SQR(log( z1/(1.0-z1) )) + OmegaL_V(Q2,z1,mf) + L_dip(Q2,z1,mf) );
+    }   
+
+    return dip_res;
+}
+
+// (100)
+double OmegaL_V( double Q2, double z, double mf ) {
+    // The Omega^L_V(gamma; z) function that appears in the longitudinal NLOdip part.
+    double gamma = sqrt( 1.0 + 4.0 * SQR(mf)/Q2);
+    double res = 1.0/(2.0*z) * ( log( 1.0-z ) + gamma * log( (1.0+gamma)/(1.0+gamma-2.0*z) ) ) 
+                +1.0/(2.0*(1.0-z)) * ( log( z ) + gamma * log( (1.0+gamma)/(1.0+gamma-2.0*(1.0-z)) ))
+                +1.0/( 4.0*z*(1.0-z) ) * ( gamma-1.0 + 2.0 * SQR(mf)/Q2 ) * log( (z*(1.0-z)*Q2 + SQR(mf) ) / SQR(mf) )  ;
+
+    return res;
+}
+//(101)
+double L_dip( double Q2, double z, double mf ) {
+    // The L(gamma; z) function that appears in the longitudinal NLOdip part. 
+    double gamma = sqrt( 1.0 + 4.0 * SQR(mf)/Q2);
+
+    double res = gsl_sf_dilog( 1.0 / ( 1.0 - 1.0 / (2.0 * z) * ( 1.0 - gamma) ) )
+               + gsl_sf_dilog( 1.0 / ( 1.0 - 1.0 / (2.0 * z) * ( 1.0 + gamma) ) )
+               + gsl_sf_dilog( 1.0 / ( 1.0 - 1.0 / (2.0 * (1.0-z)) * ( 1.0 - gamma) ) )
+               + gsl_sf_dilog( 1.0 / ( 1.0 - 1.0 / (2.0 * (1.0-z)) * ( 1.0 + gamma) ) );
+
+    return res;
 }

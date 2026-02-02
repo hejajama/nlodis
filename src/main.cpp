@@ -1,21 +1,12 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include "nlodis.hpp"
 
 int main(int argc, char* argv[]) {
-    std::cout << "Hello, world!\n";
-
-    if (argc > 1) {
-        std::cout << "Arguments (" << argc - 1 << "):\n";
-        for (int i = 1; i < argc; ++i) {
-            std::cout << "  " << argv[i] << '\n';
-        }
-    }
-
-    // Example: basic usage of std::string and std::vector
-    std::string example = "basic c++ template";
-    std::vector<char> letters(example.begin(), example.end());
-    std::cout << "Example string: " << example << '\n';
+    
+    NLODIS dis("gbw.dat");
+    cout << "sigma(gamma+p;Q^2=10,xbj=1e-3,pol=L)=" << dis.Photon_proton_cross_section(10, 1e-3,L) << endl;
 
     return 0;
 }

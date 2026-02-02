@@ -43,6 +43,11 @@ class NLODIS
 
          double Photon_proton_cross_section_LO(double Q2, double xbj, Polarization pol);
 
+         /// NLO caluclation ingredients 
+        double Sigma_dip(double Q2, double xbj, Polarization pol);
+
+         ////
+
 
     
         void SetOrder(Order o) { order = o; }
@@ -89,5 +94,6 @@ inline double SQR(double x) { return x*x; }
 int integrand_ILdip_massive(const int *ndim, const double x[], const int *ncomp, double *f, void *userdata);
 double ILdip_massive_Icd(double Q2, double z1, double x01sq, double mf, double xi, double x); 
 double ILdip_massive_Iab(double Q2, double z1, double r, double mf, double xi);
+double ILdip_massive_Omega_L_Const(double Q2, double z1, double r, double mf);
 
 #endif 

@@ -89,6 +89,7 @@ target_link_libraries(
 	nlodis
 	PRIVATE
     nlodisframework
+    amplitude
 	cuba
 	GSL::gsl
 	GSL::gslcblas
