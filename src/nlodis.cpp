@@ -120,7 +120,9 @@ double NLODIS::Photon_proton_cross_section(double Q2, double xbj, Polarization p
 
     double sigma_LO = Photon_proton_cross_section_LO(Q2, dipole.X0(), pol);
     double sigma_dip = Sigma_dip(Q2, xbj, pol);
-    double  sigma_qg = 0; // TODO
+    double  sigma_qg = Sigma_qg(Q2,xbj,pol);
+
+    cout <<"# Note: Sigma_LO: " << sigma_LO << " , Sigma_dip: " << sigma_dip << " , Sigma_qg: " << sigma_qg << endl;
 
     return sigma_LO + sigma_dip + sigma_qg;
 }
@@ -203,13 +205,25 @@ double NLODIS::Sigma_qg(double Q2, double xbj, Polarization pol)
         if (pol == L)
         {
             // Note (21): this contribution is split into 3 parts I_1, I_2 and I_3
+            double I1,I1err,I1prob;
+            intparams.contribution="I1";
+            Cuba(cubamethod, 5, integrand_ILqgunsub_massive, &intparams, &I1, &I1err, &I1prob);
+            result += I1;
+
             double I2,I2err,I2prob;
-            intparams.contribution="I2"; //"fast" means that u integration is done analytically(?)
+            intparams.contribution="I2";
             Cuba(cubamethod, 6, integrand_ILqgunsub_massive, &intparams, &I2, &I2err, &I2prob);
-            result += SQR(quark.charge) * I2;
-            
+            result += I2;
+
+            double I3,I3err,I3prob;
+            intparams.contribution="I3";
+            Cuba(cubamethod, 7, integrand_ILqgunsub_massive, &intparams, &I3, &I3err, &I3prob);
+            result += I3;
         }
+        result *= SQR(quark.charge);
     }
+
+    
 
 
     // We have facotorized out (not performed) \int d^2 b - note the normalization convention!
@@ -237,6 +251,7 @@ double NLODIS::Photon_proton_cross_section_LO(double Q2, double xbj, Polarizatio
         throw std::runtime_error("Only UNSUB scheme is implemented.");
     }
     
+    
 
     // Simple approach with nested 1D integrations
     gsl_function F;
@@ -246,37 +261,46 @@ double NLODIS::Photon_proton_cross_section_LO(double Q2, double xbj, Polarizatio
 
     gsl_integration_workspace *w = gsl_integration_workspace_alloc(1000);
 
-    // For r: integrate from 0 to some large cutoff
+    // For r: integrate from 0 to infinity
     // For z: integrate from 0 to 1
-    
-    // Create a struct to hold the integration parameters (must survive the integration)
-    IntegrationParams params_struct = {this, Q2, xbj, 0, pol, nullptr};
 
-    // z integrand
-    F.function = [](double z, void* params) {
-        auto* p = static_cast<IntegrationParams*>(params);
-        p->z = z;
-        gsl_function F_r;
-        // r integrand
-        F_r.function = [](double r, void* r_params) {
-            auto* int_params = static_cast<IntegrationParams*>(r_params);
-            // Below add Jacobian r and 2pi from angular integral
-            return 2.0*M_PI*r*int_params->nlodis->Integrand_photon_target_LO(r, int_params->z, int_params->xbj, int_params->Q2, int_params->pol);
+    struct LOParams {
+        NLODIS* nlodis;
+        double Q2;
+        double xbj;
+        double r;
+        Polarization pol;
+    } params_struct = {this, Q2, xbj, 0.0, pol};
+
+    // r integrand (outer)
+    F.function = [](double r, void* params) {
+        auto* p = static_cast<LOParams*>(params);
+        p->r = r;
+
+        gsl_function F_z;
+        // z integrand (inner)
+        F_z.function = [](double z, void* z_params) {
+            auto* int_params = static_cast<LOParams*>(z_params);
+            return 2.0*M_PI*int_params->r*int_params->nlodis->Integrand_photon_target_LO(int_params->r, z, int_params->xbj, int_params->Q2, int_params->pol);
         };
-        F_r.params = p;
-        
-        double r_result = 0.0, r_err = 0.0;
-        gsl_integration_workspace *w_r = gsl_integration_workspace_alloc(1000);
-        gsl_integration_qagiu(&F_r, 0.0, 0, INTRELACC, 1000, w_r, &r_result, &r_err);
-        gsl_integration_workspace_free(w_r);
-        return r_result;
+        F_z.params = p;
+
+        double z_result = 0.0, z_err = 0.0;
+        gsl_integration_workspace *w_z = gsl_integration_workspace_alloc(1000);
+        gsl_integration_qag(&F_z, 1e-3, 1.0-1e-3, 0, INTRELACC, 1000, GSL_INTEG_GAUSS21,
+            w_z, &z_result, &z_err);
+        gsl_integration_workspace_free(w_z);
+
+        //cout << r << " " << z_result << endl;
+        return z_result; // Note: Jacobian is in the innermost function
     };
     F.params = &params_struct;
 
-    gsl_integration_qag(&F, 1e-3, 1.0-1e-3, 0, INTRELACC, 1000, GSL_INTEG_GAUSS21,
-        w, &result, &abserr);
+    gsl_integration_qagiu(&F, 0.0, 0, INTRELACC, 1000, w, &result, &abserr);
 
     gsl_integration_workspace_free(w);
+
+
 
     result *= 4.0*ALPHA_EM*NC/SQR(2.0*M_PI); // Include prefactors as needed
     // Note: 1/(2pi)^2 because 1708.07328 (1) includes 2pi to transverse coordiante measures

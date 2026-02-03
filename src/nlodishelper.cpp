@@ -37,7 +37,8 @@ double ILdip_massive_Icd(double Q, double z1, double x01sq, double mf, double xi
 int integrand_ILdip_massive(const int *ndim, const double x[], const int *ncomp, double *f, void *userdata) {
     auto* p = static_cast<IntegrationParams*>(userdata);
 
-    if (!( (*ndim ==4 and p->contribution=="cd") or (*ndim == 3 and p->contribution =="ab") ))
+    if (!( (*ndim ==4 and p->contribution=="cd") or (*ndim == 3 and p->contribution =="ab") 
+        or (*ndim ==2 and p->contribution=="Omega_L_const") ) )
     {
      throw std::invalid_argument("integrand_ILdip_massive: ndim " + std::to_string(*ndim) + " and contribution " + p->contribution + " do not match" );
     }   
@@ -127,17 +128,19 @@ double ILdip_massive_Iab(double Q2, double z1, double r, double mf, double xi) {
 
     double front_factor = 4.0*Q2*SQR(z1*(1.0-z1));
 
-
     double kappa_z = sqrt( z1*(1.0-z1)*Q2 + SQR(mf) );
     double bessel_inner_fun = kappa_z * r;
-    double Iab_integrand = 0;
-    if (bessel_inner_fun < 1e-7){
-        Iab_integrand = 0;
-    }else{
-        Iab_integrand = gsl_sf_bessel_K0( bessel_inner_fun ) * 1.0/xi * ( -2.0*log(xi)/(1.0-xi) + (1.0+xi)/2.0 ) *
-                        (2.0*gsl_sf_bessel_K0( bessel_inner_fun ) - gsl_sf_bessel_K0( sqrt( SQR(kappa_z) + (1.0-z1)*xi/(1.0-xi) *SQR(mf) ) * r ) 
-                        - gsl_sf_bessel_K0( sqrt( SQR(kappa_z) + z1*xi/(1.0-xi) *SQR(mf) ) * r )  );
-    }   
+    double bessel_arg_2=sqrt( SQR(kappa_z) + (1.0-z1)*xi/(1.0-xi) *SQR(mf) ) * r;
+    double bessel_arg_3= sqrt( SQR(kappa_z) + z1*xi/(1.0-xi) *SQR(mf) ) * r;
+
+    double b1 = gsl_sf_bessel_K0( bessel_inner_fun);
+    double b2 = gsl_sf_bessel_K0( bessel_arg_2 );
+    double b3 = gsl_sf_bessel_K0( bessel_arg_3 );
+
+
+    double Iab_integrand = b1 * 1.0/xi * ( -2.0*log(xi)/(1.0-xi) + (1.0+xi)/2.0 ) *
+                        (2.0*b1 - b2 - b3); 
+      
 
     double dip_res = front_factor * Iab_integrand;
     return dip_res;
@@ -203,12 +206,23 @@ double L_dip( double Q2, double z, double mf ) {
 * x[2] = x01 
 * x[3] = x02 
 * x[4] = phi_x0102 (angle between x01 and x02)
-* x[5] = y_t 
+* x[5] = y_t (contribution I2 and I3)
+* x[6] = 
 * 
 * Note: overall 2pi integral is included in NLODIS::Sigma_qg
 */
  int integrand_ILqgunsub_massive(const int *ndim, const double x[], const int *ncomp,double *f, void *userdata) {
     auto* p = static_cast<IntegrationParams*>(userdata);
+
+    if (!( 
+        (*ndim == 5 and p->contribution == "I1") or
+        (*ndim ==6 and p->contribution=="I2")   or
+        (*ndim ==7 and p->contribution=="I3") )
+        )
+    {
+     throw std::invalid_argument("integrand_ILqgunsub_massive: ndim " + std::to_string(*ndim) + " and contribution " + p->contribution + " do not match" );
+    }
+
     double Q2=p->Q2;
     double xbj=p->xbj;
     double mf=p->quark.mass;
@@ -225,25 +239,50 @@ double L_dip( double Q2, double z, double mf ) {
     double x01=p->nlodis->GetMaxR()*x[2];
     double x02=p->nlodis->GetMaxR()*x[3];
     double phix0102=2.0*M_PI*x[4];
-    double y_t1 = x[5];
+    
     double x01sq=SQR(x01);
     double x02sq=SQR(x02);
     double x21sq=x01sq+x02sq-2.0*sqrt(x01sq*x02sq)*cos(phix0102);
 
     // Jacobians from Cuba variable changes (z's, 2 distances, 1 angle) and d^2x_01 d^2x_02
     // Note: one overall 2pi from angular integral is included in NLODIS::Sigma_qg
+    // All other integrals in I1, I2 and I3 are from 0 to 1
     double jac=(1.0-z2min)*(1.0-z1-z2min)*x01*x02 * p->nlodis->GetMaxR()*p->nlodis->GetMaxR()*2.0*M_PI;
 
-    //double Xrpdt= Optr->Xrpdty_NLO(Q2, z2, z2min, X0, x01sq, x02sq, x21sq); //z2min * X0/z2;
-    double evolution_rapidity=0; // TODO: implement evolution rapidity choice
-    double SKernel_tripole = 1.0 - p->nlodis->TripoleAmplitude(x01,x02, std::sqrt(x21sq), evolution_rapidity);
+    double evolution_rapidity=p->nlodis->EvolutionRapidity(xbj,Q2,z2);
 
-    double alphafac=p->nlodis->Alphas(p->nlodis->RunningCouplinScale(x01,x02,std::sqrt(x21sq)))*CF/Nc;
+    if (evolution_rapidity < 0){ // TODO: z2 limits should be such that this never happens
+        *f=0;
+        return 0;
+    }
+
+    double SKernel_tripole = p->nlodis->TripoleAmplitude(x01,x02, std::sqrt(x21sq), evolution_rapidity);
+    double SKernel_dipole = p->nlodis->GetDipole().DipoleAmplitude(x01, evolution_rapidity);
+
+    double alphafac=p->nlodis->Alphas(p->nlodis->RunningCouplinScale(x01,x02,std::sqrt(x21sq)))*CF/NC;
 
     double res=0;
 
-    if (p->contribution == "I2") {
+    if (p->contribution == "I1")
+    {
+        double dipole_term  = SKernel_dipole  * ILNLOqg_massive_dipole_part_I1(Q2,mf,z1,z2,x01sq,x02sq,x21sq); // Terms proportional to N_01
+        double tripole_term = SKernel_tripole * ILNLOqg_massive_tripole_part_I1(Q2,mf,z1,z2,x01sq,x02sq,x21sq); // Terms proportional to N_012
+
+        res = ( dipole_term + tripole_term )/z2*x01*x02;
+    }
+    else  if (p->contribution == "I2") {
+        double y_t1 = x[5];
        res = SKernel_tripole * ILNLOqg_massive_tripole_part_I2_fast(Q2,mf,z1,z2,x01sq,x02sq,x21sq,y_t1); 
+    }
+    else if (p->contribution == "I3")
+    {
+        double y_t1 = x[5];
+        double y_t2 = x[6];
+        res = SKernel_dipole * ILNLOqg_massive_tripole_part_I3_fast(Q2, mf, z1, z2, x01sq, x02sq, x21sq, y_t1, y_t2);
+    }
+    else
+    {
+        throw std::invalid_argument("integrand_ILqgunsub_massive: unknown contribution " + p->contribution );
     }
 
     res *=  jac*alphafac/z2;
@@ -254,6 +293,75 @@ double L_dip( double Q2, double z, double mf ) {
         *f=0;
     }
     return 0;
+}
+
+
+/*
+ * (22) in the note docs/NLO_DIS_cross_section_with_massive_quarks.pdf
+ * 
+ */
+
+
+double ILNLOqg_massive_tripole_part_I1(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq) {
+    // sigma_qg divided into three parts. This part has no additional integrals. Only contains the part proportional to N_012
+
+    double front_factor = 4.0*Q2;
+    double Q = std::sqrt(Q2);
+
+    double z0 = 1-z1-z2;
+    double x20x21 = -0.5*(x01sq - x21sq - x02sq);
+
+    double Qbar_k = Q*sqrt(z1*(1.0-z1));
+    double Qbar_l = Q*sqrt(z0*(1.0-z0));
+    double omega_k = z0*z2/(z1*SQR(z0+z2));
+    double omega_l = z1*z2/(z0*SQR(z1+z2));
+
+    double x3_k = sqrt( SQR(z0) / SQR(z0+z2) * x02sq + x21sq - 2.0 * z0/(z0+z2) *x20x21 );
+    double x3_l = sqrt( SQR(z1) / SQR(z1+z2) * x21sq + x02sq - 2.0 * z1/(z1+z2) *x20x21 );
+    
+    double term_k = 1.0/x02sq * SQR(z1) * ( 2.0*z0*(z0+z2) +SQR(z2) ) 
+        * SQR( gsl_sf_bessel_K0( sqrt( SQR(Qbar_k) + SQR(mf) ) 
+        * sqrt( SQR(x3_k) + omega_k * x02sq ) )  );
+    double term_l = 1.0/x21sq * SQR(z0) * ( 2.0*z1*(z1+z2) +SQR(z2) ) 
+        * SQR( gsl_sf_bessel_K0( sqrt( SQR(Qbar_l) + SQR(mf) ) 
+        * sqrt( SQR(x3_l) + omega_l * x21sq ) )  );
+    double term_kl = -2.0 * z0 *z1 * ( z0*(1.0-z0) + z1*(1.0-z1) ) * x20x21 / (x02sq * x21sq) 
+        * gsl_sf_bessel_K0( sqrt( SQR(Qbar_k) + SQR(mf)) * sqrt(SQR(x3_k) + omega_k * x02sq) ) 
+        * gsl_sf_bessel_K0( sqrt( SQR(Qbar_l) + SQR(mf)) * sqrt(SQR(x3_l) + omega_l * x21sq) );
+
+
+    double res = front_factor * ( term_k + term_l + term_kl );
+    return res;
+}
+
+
+
+double ILNLOqg_massive_dipole_part_I1(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq) {
+    // sigma_qg divided into three parts. This part has no additional integrals. Only contains the part proportional to N_01
+
+    double front_factor = 4.0*Q2;
+    double x20x21 = -0.5*(x01sq - x21sq - x02sq);
+
+    double z0 = 1-z1-z2;
+
+    double Q = std::sqrt(Q2);
+    double Qbar_k = Q*sqrt(z1*(1.0-z1));
+    double Qbar_l = Q*sqrt(z0*(1.0-z0));
+    double omega_k = z0*z2/(z1*SQR(z0+z2));
+    double omega_l = z1*z2/(z0*SQR(z1+z2));
+    double lambda_k = z1*z2/z0;
+    double lambda_l = z0*z2/z1;
+
+    double x3_k = sqrt( SQR(z0) / SQR(z0+z2) * x02sq + x21sq - 2.0 * z0/(z0+z2) *x20x21 );
+    double x3_l = sqrt( SQR(z1) / SQR(z1+z2) * x21sq + x02sq - 2.0 * z1/(z1+z2) *x20x21 );
+
+
+
+    double term_k = -1.0/x02sq * SQR(z1) * ( 2.0*z0*(z0+z2) +SQR(z2) ) * exp( -x02sq / x01sq / exp(M_EULER) ) * SQR( gsl_sf_bessel_K0( sqrt( SQR(Qbar_k) + SQR(mf) ) * sqrt(x01sq) )  );
+    double term_l = -1.0/x21sq * SQR(z0) * ( 2.0*z1*(z1+z2) +SQR(z2) ) * exp( -x21sq / x01sq / exp(M_EULER) ) * SQR( gsl_sf_bessel_K0( sqrt( SQR(Qbar_l) + SQR(mf) ) * sqrt(x01sq) )  );
+
+    double res = front_factor * ( term_k + term_l );
+    return res;
 }
 
 /*
@@ -295,6 +403,59 @@ double ILNLOqg_massive_tripole_part_I2_fast(double Q2, double mf, double z1, dou
     double res = front_factor * ( term_k + term_l + term_kl );
     return res;
 }
+
+/*
+ * I3 for qqg contribution
+ * Note 24 but some integrals performed analytically 
+ * */
+
+double ILNLOqg_massive_tripole_part_I3_fast(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2) {
+    // sigma_qg divided into three parts. This part has two additional integrals.
+
+    double front_factor = 4.0*Q2;
+
+    double z0 = 1-z1-z2;
+    double x20x21 = -0.5*(x01sq - x21sq - x02sq);
+    double Q = std::sqrt(Q2);
+
+    double Qbar_k = Q*sqrt(z1*(1.0-z1));
+    double Qbar_l = Q*sqrt(z0*(1.0-z0));
+    double omega_k = z0*z2/(z1*SQR(z0+z2));
+    double omega_l = z1*z2/(z0*SQR(z1+z2));
+    double lambda_k = z1*z2/z0;
+    double lambda_l = z0*z2/z1;
+    double x2_k = sqrt( x02sq );
+    double x2_l = sqrt( x21sq );
+
+    double x3_k = sqrt( SQR(z0) / SQR(z0+z2) * x02sq + x21sq - 2.0 * z0/(z0+z2) *x20x21 );
+    double x3_l = sqrt( SQR(z1) / SQR(z1+z2) * x21sq + x02sq - 2.0 * z1/(z1+z2) *x20x21 );
+
+    double int_12_bar_k1 = G_integrand_simplified( 1, 2, Qbar_k, mf, x2_k, x3_k, omega_k, lambda_k, y_t1)-G_integrand_simplified( 1, 2, Qbar_k, mf, x2_k, x3_k, omega_k, 0.0, y_t1);
+    double int_12_bar_l1 = G_integrand_simplified( 1, 2, Qbar_l, mf, x2_l, x3_l, omega_l, lambda_l, y_t1)-G_integrand_simplified( 1, 2, Qbar_l, mf, x2_l, x3_l, omega_l, 0.0, y_t1);
+    double int_12_bar_k2 = G_integrand_simplified( 1, 2, Qbar_k, mf, x2_k, x3_k, omega_k, lambda_k, y_t2)-G_integrand_simplified( 1, 2, Qbar_k, mf, x2_k, x3_k, omega_k, 0.0, y_t2);
+    double int_12_bar_l2 = G_integrand_simplified( 1, 2, Qbar_l, mf, x2_l, x3_l, omega_l, lambda_l, y_t2)-G_integrand_simplified( 1, 2, Qbar_l, mf, x2_l, x3_l, omega_l, 0.0, y_t2);
+
+
+    double int_11_k1 = G_integrand_simplified( 1, 1, Qbar_k, mf, x2_k, x3_k, omega_k, lambda_k, y_t1);
+    double int_11_l1 = G_integrand_simplified( 1, 1, Qbar_l, mf, x2_l, x3_l, omega_l, lambda_l, y_t1);
+    double int_11_k2 = G_integrand_simplified( 1, 1, Qbar_k, mf, x2_k, x3_k, omega_k, lambda_k, y_t2);
+    double int_11_l2 = G_integrand_simplified( 1, 1, Qbar_l, mf, x2_l, x3_l, omega_l, lambda_l, y_t2);
+
+
+
+
+    double term_k = SQR(z1) * ( 2.0*z0*(z0+z2) +SQR(z2) ) * x02sq/64.0 * int_12_bar_k1 * int_12_bar_k2 ;
+    double term_l = SQR(z0) * ( 2.0*z1*(z1+z2) +SQR(z2) ) * x21sq/64.0 * int_12_bar_l1 * int_12_bar_l2;
+    double term_kl = -1.0/32.0 * z1*z0 * ( z1*(1.0-z1) + z0*(1.0-z0) ) * x20x21 * int_12_bar_k1 * int_12_bar_l2;
+    double term_mf = SQR(mf)/16.0 * SQR(z2) * SQR(z2) * (  
+        SQR(z1/(z0+z2)) * int_11_k1 * int_11_k2 + SQR( z0/(z1+z2) ) * int_11_l1 * int_11_l2 - 2.0 * z0/(z1+z2) * z1/(z0+z2) * int_11_k1 * int_11_l2
+    );
+
+
+    double res = front_factor * ( term_k + term_l + term_kl + term_mf );
+    return res;
+}
+
 
 /*
  * G_(x)^{a,b) with u integrated analytically

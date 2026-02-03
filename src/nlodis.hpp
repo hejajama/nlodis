@@ -70,7 +70,7 @@ class NLODIS
 
         double z2_lower_bound(double xbj, double Q2, double mf) { return 1e-4; } // TODO: implement proper lower bound for z2 integration
 
-        double TripoleAmplitude(double x01, double x02, double x21, double Y); // TODO : implement tripole amplitude
+        double TripoleAmplitude(double x01, double x02, double x21, double Y); 
 
         double EvolutionRapidity(double xbj, double Q2, double z2);
 
@@ -124,4 +124,7 @@ double ILdip_massive_Omega_L_Const(double Q2, double z1, double r, double mf);
 int integrand_ILqgunsub_massive(const int *ndim, const double x[], const int *ncomp,double *f, void *userdata);
 double ILNLOqg_massive_tripole_part_I2_fast(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);
 double G_integrand_simplified(int a, int b, double Qbar, double mf, double x2, double x3, double omega, double lambda, double y);
+double ILNLOqg_massive_dipole_part_I1(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
+double ILNLOqg_massive_tripole_part_I1(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
+double ILNLOqg_massive_tripole_part_I3_fast(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
 #endif 

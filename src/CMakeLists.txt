@@ -21,6 +21,7 @@ add_executable(
     test
     tests/tests.cpp
     tests/test_massivedishelpers.cpp
+    tests/test_nlodis_helpers.cpp
     )
 	
 include_directories(.)
