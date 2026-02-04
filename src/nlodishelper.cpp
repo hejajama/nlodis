@@ -207,7 +207,7 @@ double L_dip( double Q2, double z, double mf ) {
 * x[3] = x02 
 * x[4] = phi_x0102 (angle between x01 and x02)
 * x[5] = y_t (contribution I2 and I3)
-* x[6] = 
+* x[6] = y_t2 (contribution I3)
 * 
 * Note: overall 2pi integral is included in NLODIS::Sigma_qg
 */
@@ -228,7 +228,7 @@ double L_dip( double Q2, double z, double mf ) {
     double mf=p->quark.mass;
 
    
-    double z2min = p->nlodis->z2_lower_bound(xbj,Q2,mf); // TODO
+    double z2min = p->nlodis->z2_lower_bound(xbj,Q2); 
     if (z2min > 1.0){ // Check that z2min is not too large. IF it is too large, return *f=0.
         *f=0;
         return 0;
@@ -244,6 +244,15 @@ double L_dip( double Q2, double z, double mf ) {
     double x02sq=SQR(x02);
     double x21sq=x01sq+x02sq-2.0*sqrt(x01sq*x02sq)*cos(phix0102);
 
+    double alphabar = p->nlodis->Alphas(p->nlodis->RunningCouplinScale(x01, x02, std::sqrt(x21sq))) * CF / NC;
+
+    // Check if any integration variable is NaN
+    if (!std::isfinite(z1) || !std::isfinite(z2) || !std::isfinite(x01) || !std::isfinite(x02) || 
+        !std::isfinite(phix0102) || !std::isfinite(x01sq) || !std::isfinite(x02sq) || !std::isfinite(x21sq)) {
+        *f = 0;
+        return 0;
+    }
+
     // Jacobians from Cuba variable changes (z's, 2 distances, 1 angle) and d^2x_01 d^2x_02
     // Note: one overall 2pi from angular integral is included in NLODIS::Sigma_qg
     // All other integrals in I1, I2 and I3 are from 0 to 1
@@ -251,7 +260,8 @@ double L_dip( double Q2, double z, double mf ) {
 
     double evolution_rapidity=p->nlodis->EvolutionRapidity(xbj,Q2,z2);
 
-    if (evolution_rapidity < 0){ // TODO: z2 limits should be such that this never happens
+    if (evolution_rapidity < 0){
+        cout << "Warning: integrand_ILqgunsub_massive: evolution rapidity < 0: " << evolution_rapidity << ", xbj=" << xbj << ", Q2=" << Q2 << ", z2=" << z2 << endl;
         *f=0;
         return 0;
     }
@@ -268,7 +278,7 @@ double L_dip( double Q2, double z, double mf ) {
         double dipole_term  = SKernel_dipole  * ILNLOqg_massive_dipole_part_I1(Q2,mf,z1,z2,x01sq,x02sq,x21sq); // Terms proportional to N_01
         double tripole_term = SKernel_tripole * ILNLOqg_massive_tripole_part_I1(Q2,mf,z1,z2,x01sq,x02sq,x21sq); // Terms proportional to N_012
 
-        res = ( dipole_term + tripole_term )/z2*x01*x02;
+        res = ( dipole_term + tripole_term );
     }
     else  if (p->contribution == "I2") {
         double y_t1 = x[5];

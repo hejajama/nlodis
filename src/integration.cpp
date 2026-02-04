@@ -12,7 +12,7 @@ void Cuba(string method, int ndim, integrand_t integrand,
     char *statefile=NULL;
     if(method=="vegas"){
     // Vegas-specific arguments
-    int nstart=1000, nincrease=500, nbatch=1000, gridno=0;
+    int nstart=1000, nincrease=500, nbatch=100, gridno=0;
     Vegas(ndim,ncomp,integrand,userdata,nvec,cuba_config::epsrel,
         cuba_config::epsabs,cuba_config::verbose,seed,mineval,
         cuba_config::maxeval,nstart,nincrease,nbatch,gridno,statefile,

@@ -50,6 +50,7 @@ class NLODIS
         NLODIS(std::string bkdata);
 
         double F2(double Q2, double xbj);
+        double FL(double Q2, double xbj);
         double Photon_proton_cross_section(double Q2, double xbj, Polarization pol);
 
          double Photon_proton_cross_section_LO(double Q2, double xbj, Polarization pol);
@@ -63,12 +64,12 @@ class NLODIS
 
     
         void SetOrder(Order o) { order = o; }
-        double GetMaxR() { return maxr; }
+        double GetMaxR() const { return maxr; }
         
-        double Alphas(double r);
+        double Alphas(double r) const;
         AmplitudeLib& GetDipole() { return dipole; }
 
-        double z2_lower_bound(double xbj, double Q2, double mf) { return 1e-4; } // TODO: implement proper lower bound for z2 integration
+        double z2_lower_bound(double xbj, double Q2);
 
         double TripoleAmplitude(double x01, double x02, double x21, double Y); 
 
@@ -77,6 +78,8 @@ class NLODIS
         void SetNcScheme(NcScheme scheme_) { nc_scheme = scheme_; }
         void SetRunningCouplingScheme(RunningCouplingScheme rc_) { rc_scheme = rc_; }
         double RunningCouplinScale(double x01, double x02, double x21);
+
+        void SetRunningCouplingC2Alpha(double c2) { C2_alpha = c2; }
     private:
     
         /* Integrand for LO cross section
@@ -95,6 +98,7 @@ class NLODIS
         NcScheme nc_scheme = LargeNC;
         RunningCouplingScheme rc_scheme = SMALLEST;
         const double Q0sqr = 1; // Non-perturbative target scale, should match the one used in the NLO DIS fit!
+        double C2_alpha = 10.0; // Scale factor in the coordinate space running coupling
       
 };
 

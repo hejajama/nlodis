@@ -14,11 +14,11 @@
 #include "integration.hpp"
 
 using namespace std;
-const string cubamethod = "cuhre";
+
+static const std::string cubamethod = "suave";
 
 
-
-const double INTRELACC = 1e-3;
+const double INTRELACC_LO = 1e-3;
 
 /*
  * Structure function F2 
@@ -33,6 +33,18 @@ double NLODIS::F2(double Q2, double xbj)
     double sigmaL = Photon_proton_cross_section(Q2, xbj, L);
 
     return Q2 / (4.0 * M_PI * M_PI * ALPHA_EM) * (sigmaT + sigmaL);
+}
+
+/*
+ * Structure function FL
+ *
+ * Q2 [GeV^2]: photon virtuality
+ * xbj: Bjorken-x
+ */
+double NLODIS::FL(double Q2, double xbj)
+{
+    double sigmaL = Photon_proton_cross_section(Q2, xbj, L);
+    return Q2 / (4.0 * M_PI * M_PI * ALPHA_EM) * sigmaL;
 }
 
 
@@ -122,7 +134,7 @@ double NLODIS::Photon_proton_cross_section(double Q2, double xbj, Polarization p
     double sigma_dip = Sigma_dip(Q2, xbj, pol);
     double  sigma_qg = Sigma_qg(Q2,xbj,pol);
 
-    cout <<"# Note: Sigma_LO: " << sigma_LO << " , Sigma_dip: " << sigma_dip << " , Sigma_qg: " << sigma_qg << endl;
+    //cout <<"# Note: Sigma_LO: " << sigma_LO << " , Sigma_dip: " << sigma_dip << " , Sigma_qg: " << sigma_qg << endl;
 
     return sigma_LO + sigma_dip + sigma_qg;
 }
@@ -141,13 +153,15 @@ double NLODIS::Sigma_dip(double Q2, double xbj, Polarization pol)
     // 2103.14549. This measure is not visible in the note, but should be there. Therefore
     // we have 1/(2pi)^2 below (from d^2x_{01} d^2b)
     double fac=4.0*NC*ALPHA_EM/SQR(2.0*M_PI); 
-    IntegrationParams intparams;
-    intparams.nlodis=this;
-    intparams.Q2=Q2;
-    intparams.xbj=xbj;
-    intparams.pol=pol;
+    
 
     for (const auto& quark : quarks) {
+        IntegrationParams intparams;
+        intparams.nlodis=this;
+        intparams.Q2=Q2;
+        intparams.xbj=xbj;
+        intparams.pol=pol;
+
         intparams.quark=quark;
         if (pol == L)
         {
@@ -193,14 +207,16 @@ double NLODIS::Sigma_qg(double Q2, double xbj, Polarization pol)
     // 2103.14549. This measure is not visible in the note, but should be there. Therefore
     // we have 1/(2pi)^3 below (from d^2x_{01} d^2x_{02} d^2b)
     double fac=4.0*NC*ALPHA_EM/std::pow(2.0*M_PI,3.0);
-    IntegrationParams intparams;
-    intparams.nlodis=this;
-    intparams.Q2=Q2;
-    intparams.xbj=xbj;
-    intparams.pol=pol;
+    
 
     double result=0;
     for (const auto& quark : quarks) {
+        IntegrationParams intparams;
+        intparams.nlodis=this;
+        intparams.Q2=Q2;
+        intparams.xbj=xbj;
+        intparams.pol=pol;
+
         intparams.quark=quark;
         if (pol == L)
         {
@@ -287,7 +303,7 @@ double NLODIS::Photon_proton_cross_section_LO(double Q2, double xbj, Polarizatio
 
         double z_result = 0.0, z_err = 0.0;
         gsl_integration_workspace *w_z = gsl_integration_workspace_alloc(1000);
-        gsl_integration_qag(&F_z, 1e-3, 1.0-1e-3, 0, INTRELACC, 1000, GSL_INTEG_GAUSS21,
+        gsl_integration_qag(&F_z, 1e-3, 1.0-1e-3, 0, INTRELACC_LO, 1000, GSL_INTEG_GAUSS21,
             w_z, &z_result, &z_err);
         gsl_integration_workspace_free(w_z);
 
@@ -296,7 +312,7 @@ double NLODIS::Photon_proton_cross_section_LO(double Q2, double xbj, Polarizatio
     };
     F.params = &params_struct;
 
-    gsl_integration_qagiu(&F, 0.0, 0, INTRELACC, 1000, w, &result, &abserr);
+    gsl_integration_qagiu(&F, 0.0, 0, INTRELACC_LO, 1000, w, &result, &abserr);
 
     gsl_integration_workspace_free(w);
 
@@ -377,13 +393,13 @@ double NLODIS::Integrand_photon_target_LO(double r, double z, double x, double Q
     Quark u; u.type = Quark::U; u.mass = 0.14; u.charge = 2.0/3.0;
     Quark d; d.type = Quark::D; d.mass = 0.14; d.charge = -1.0/3.0;
     Quark s; s.type = Quark::S; s.mass = 0.14;  s.charge = -1.0/3.0;
-    //Quark c; c.type = Quark::C; c.mass = 1.27;   c.charge = 2.0/3.0;
+    Quark c; c.type = Quark::C; c.mass = 1.27;   c.charge = 2.0/3.0;
     //Quark b; b.type = Quark::B; b.mass = 4.18;   b.charge = -1.0/3.0;
 
     quarks.push_back(u);
     quarks.push_back(d);
     quarks.push_back(s);
-    //quarks.push_back(c);
+    quarks.push_back(c);
     //quarks.push_back(b);
 
     dipole.SetOutOfRangeErrors(false);
@@ -394,11 +410,11 @@ double NLODIS::Integrand_photon_target_LO(double r, double z, double x, double Q
   * Coordinate space coupling
   * TODO: implement flavor thresholds and C^2 scale
   */
- double NLODIS::Alphas(double r)
+ double NLODIS::Alphas(double r) const
  {
     const double LambdaQCD = 0.241; // GeV
     const double b0 = (11.0*NC - 2.0*quarks.size())/(12.0*M_PI);
-    double mu2 = 4.0/(r*r) + LambdaQCD*LambdaQCD;
+    double mu2 = 4.0*C2_alpha/(r*r) + LambdaQCD*LambdaQCD;
     double as = 1.0/(b0*log(mu2/(LambdaQCD*LambdaQCD)));
     if (as > 0.7)
     {
@@ -406,3 +422,15 @@ double NLODIS::Integrand_photon_target_LO(double r, double z, double x, double Q
     }
     return as;
  }
+
+ /*
+  * Lower bound for the z2 integral
+  * 
+  * Ref https://arxiv.org/pdf/2007.01645 eq (18)
+  * 
+  */
+double NLODIS::z2_lower_bound(double xbj, double Q2)
+{
+    double W2 = Q2 / xbj;
+    return Q0sqr / W2;
+}
