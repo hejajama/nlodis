@@ -16,18 +16,26 @@ const std::string gbw_datafile = "gbw.dat";
  {
 
     NLODIS dis("gbw.dat");
+    Quark u; u.type = Quark::U; u.mass = 0.14; u.charge = 2.0/3.0;
+    Quark d; d.type = Quark::D; d.mass = 0.14; d.charge = -1.0/3.0;
+    Quark s; s.type = Quark::S; s.mass = 0.14;  s.charge = -1.0/3.0;
+    Quark c; c.type = Quark::C; c.mass = 1.4;   c.charge = 2.0/3.0;
+    std::vector<Quark> quark_list = {u,d,s,c};
+    dis.SetQuarks(quark_list);
 
     double Q2 = 10.0; // GeV^2
     double xbj = 1;  // Test case datafile is generated such that it starts from x0=1
     
     dis.SetOrder(LO);
 
+    
+
     double f2_ic=dis.F2(Q2,xbj);
-    ASSERT_ALMOST_EQUAL(f2_ic, 0.0202973, 0.001);
+    ASSERT_ALMOST_EQUAL(f2_ic, 0.0202973+0.00543532, 0.0005); // light + charm
 
     // Smaller x, tests interpolation and computation of the evolution rapidity
     double f2 = dis.F2(Q2, 1e-4);
-    ASSERT_ALMOST_EQUAL(f2, 0.120141, 0.001);
+    ASSERT_ALMOST_EQUAL(f2, 0.120141+0.0538897, 0.001); // light +charm
  }
 
 /*

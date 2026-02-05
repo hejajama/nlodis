@@ -73,3 +73,4 @@ TEST(Gintegrated)
     ASSERT_ALMOST_EQUAL(result, expected, std::min(result, expected)/1e2);
 
 }
+

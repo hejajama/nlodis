@@ -4,9 +4,11 @@ add_library(
 	nlodisframework
     STATIC	
 	nlodis.cpp
-    nlodishelper.cpp
+    nlodishelper_longitudinal.cpp
+    nlodishelper_transverse.cpp
 	qcd.cpp
     integration.cpp
+    lo.cpp
 	${CMAKE_CURRENT_BINARY_DIR}/gitsha1.cpp
 )
 

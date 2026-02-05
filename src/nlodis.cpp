@@ -18,7 +18,7 @@ using namespace std;
 static const std::string cubamethod = "suave";
 
 
-const double INTRELACC_LO = 1e-3;
+
 
 /*
  * Structure function F2 
@@ -56,7 +56,7 @@ double NLODIS::FL(double Q2, double xbj)
  * x01, x02, x21: dipole sizes in GeV^-1
  * Y: evolution rapidity
  **/
-double NLODIS::TripoleAmplitude(double x01, double x02, double x21, double Y)
+double NLODIS::TripoleAmplitude(double x01, double x02, double x21, double Y) 
 {
     double S01 = 1-dipole.DipoleAmplitude(x01, Y);
     double S02 = 1-dipole.DipoleAmplitude(x02, Y);
@@ -84,7 +84,7 @@ double NLODIS::TripoleAmplitude(double x01, double x02, double x21, double Y)
  * Q2: photon virtuality in GeV^2
  * z2: gluon longitudinal momentum fraction
  */
-double NLODIS::EvolutionRapidity(double xbj, double Q2, double z2)
+double NLODIS::EvolutionRapidity(double xbj, double Q2, double z2) const
 {
     double W2 = Q2 / xbj;
     return std::log(W2*z2/Q0sqr);
@@ -168,22 +168,49 @@ double NLODIS::Sigma_dip(double Q2, double xbj, Polarization pol)
             // 1st line
             double I, Ierr, Iprob;
             intparams.contribution="Omega_L_const";
-            Cuba(cubamethod, 2, integrand_ILdip_massive, &intparams, &I, &Ierr, &Iprob);
-            result += SQR(quark.charge) * I;
+            Cuba(cubamethod, 2, integrand_dip_massive, &intparams, &I, &Ierr, &Iprob);
+            result += I;
 
             // 2nd line of 2103.14549 (166)
             intparams.contribution="ab";
             double Iab,Iaberr,Iabprob;
-            Cuba(cubamethod, 3, integrand_ILdip_massive, &intparams, &Iab, &Iaberr, &Iabprob);
+            Cuba(cubamethod, 3, integrand_dip_massive, &intparams, &Iab, &Iaberr, &Iabprob);
             intparams.contribution="cd";
+
             double Icd,Icderr,Icdprob;
-            Cuba(cubamethod, 4, integrand_ILdip_massive, &intparams, &Icd, &Icderr, &Icdprob);
-            result += SQR(quark.charge) * (Iab + Icd);
+            Cuba(cubamethod, 4, integrand_dip_massive, &intparams, &Icd, &Icderr, &Icdprob);
+            result += Iab + Icd;
+        }
+        else if (pol == T)
+        {
+            // T0 contribution
+            intparams.contribution="T0";
+            double IT0, IT0err, IT0prob;
+            Cuba(cubamethod, 2, integrand_dip_massive, &intparams, &IT0, &IT0err, &IT0prob);
+            result += IT0;
+
+            // T1 contribution
+            intparams.contribution="T1";
+            double IT1, IT1err, IT1prob;
+            Cuba(cubamethod, 3, integrand_dip_massive, &intparams, &IT1, &IT1err, &IT1prob);
+            result += IT1;
+
+            // T2 contribution
+            intparams.contribution="T2";
+            double IT2, IT2err, IT2prob;
+            Cuba(cubamethod, 4, integrand_dip_massive, &intparams, &IT2, &IT2err, &IT2prob);
+            result += IT2;
+        }
+        else
+        {
+            throw std::runtime_error("NLODIS::Sigma_dip: unknown polarization");
         }
 
-    }
+        result *= SQR(quark.charge);
 
-    // We have facotorized out \int d^2 b - note the normalization convention!
+    } // Quark flavor loop
+
+    // We have factorized out \int d^2 b - note the normalization convention!
     // Define sigma_0 = 2 \int d^2 b
     
     // Correspondingly I need to include 1/2
@@ -193,6 +220,107 @@ double NLODIS::Sigma_dip(double Q2, double xbj, Polarization pol)
     // 2pi from overall angular integral
     return fac*result*2.0*M_PI;
 }
+
+
+/*
+ * Integrand wrapper for Cuba
+ * Evaluate different contributions for the sigma_dip part
+ * Integration variables are
+ * x[0] = z1
+ * x[1] = [0,1] mapped to r = x[1]*maxr
+ * x[2] = xi (integration variable xi in (114))
+ * x[3] = x (integration variable x in (114)) [when computing the "cd" contribution]
+ * 
+ * Note: 2pi from the overall angular integration of x01 in NLODIS::Sigma_dip
+ */
+int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, double *f, void *userdata) {
+    auto* const p = static_cast<IntegrationParams*>(userdata);
+
+    if (p->pol == L)
+    {
+        if (!( (*ndim ==4 and p->contribution=="cd") or (*ndim == 3 and p->contribution =="ab") 
+        or (*ndim ==2 and p->contribution=="Omega_L_const") ) )
+        {
+            cerr << "integrand_dip_massive: ndim " << *ndim << " and contribution " << p->contribution << " do not match" << endl;
+            exit(1);
+        }   
+    }
+    else
+    {
+        if (!( (*ndim ==4 and p->contribution=="T2") or (*ndim == 3 and p->contribution =="T1") 
+        or (*ndim ==2 and p->contribution=="T0") ) )
+        {
+            cerr << "integrand_dip_massive: ndim " << *ndim << " and contribution " << p->contribution << " do not match" << endl;
+            exit(1);
+        }   
+    }
+
+   
+    
+    double Q2=p->Q2;
+    double xbj=p->xbj;
+    double mf=p->quark.mass;
+
+    double z1=x[0];
+    double x01=p->nlodis->GetMaxR()*x[1];
+    double x01sq=SQR(x01);
+    
+    
+
+    double alphabar=p->nlodis->Alphas(x01)*CF/M_PI;
+
+    // TODO: add more user control for evolution rapidity
+    double evolution_rapidity = std::log(1/xbj); 
+    double dipole = p->nlodis->GetDipole().DipoleAmplitude(x01,evolution_rapidity);
+    double res;
+    /////////////// Longitudinal part ///////////////
+    if (p->contribution=="ab" and p->pol == L) {
+        // "ab" contribution does not have the x integration variable
+        double xi=x[2]; 
+        res = dipole*(ILdip_massive_Iab(Q2,z1,x01,mf,xi));
+    } else if (p->contribution=="cd" and p->pol == L) {
+        double xi=x[2]; 
+        double intx=x[3];
+        res = dipole*(ILdip_massive_Icd(Q2,z1,x01,mf,xi,intx));
+    }
+    else if (p->contribution=="Omega_L_const" and p->pol == L)
+    {
+        // only z and r integration
+        res = dipole*ILdip_massive_Omega_L_Const(Q2, z1, x01, mf);
+    }
+    /////////////// Transverse part ///////////////
+    else if (p->contribution=="T0" and p->pol == T)
+    {
+        res = dipole*ITdip_massive_0(Q2, z1, x01, mf);
+    }
+    else if (p->contribution=="T1" and p->pol == T)
+    {
+        double xi=x[2]; 
+        res = dipole*ITdip_massive_1(Q2, z1, x01, mf, xi);
+    }
+    else if (p->contribution=="T2" and p->pol == T)
+    {
+        double xi=x[2]; 
+        double intx=x[3];
+        res = dipole*ITdip_massive_2(Q2, z1, x01, mf, xi, intx);
+    }
+    else 
+    {
+        cerr << "integrand_dip_massive: unknown contribution " << p->contribution << " pol " << p->pol << endl;
+        exit(1);
+    }
+
+    double jacobian = x01 * p->nlodis->GetMaxR() * 2.0 * M_PI; // Jacobian from d^2r and r = u*MAXR
+    res *= jacobian*alphabar; // Jacobian from d^2r
+
+    if(std::isfinite(res)){
+        *f=res;
+    }else{
+        *f=0;
+    }
+    return 0;
+}
+
 
 /*
  * \sigma_qg
@@ -253,138 +381,6 @@ double NLODIS::Sigma_qg(double Q2, double xbj, Polarization pol)
 
 }
 
-/*
- * LO Photon-proton cross section
-    * Q2 [GeV^2]: photon virtuality
-    * xbj: Bjorken-x
-    * pol: photon polarization (T or L)
-    * 
- */
-double NLODIS::Photon_proton_cross_section_LO(double Q2, double xbj, Polarization pol)
-{
-    if (scheme != UNSUB)
-    {
-        throw std::runtime_error("Only UNSUB scheme is implemented.");
-    }
-    
-    
-
-    // Simple approach with nested 1D integrations
-    gsl_function F;
-    double result = 0.0;
-    double abserr = 0.0;
-    size_t neval = 0;
-
-    gsl_integration_workspace *w = gsl_integration_workspace_alloc(1000);
-
-    // For r: integrate from 0 to infinity
-    // For z: integrate from 0 to 1
-
-    struct LOParams {
-        NLODIS* nlodis;
-        double Q2;
-        double xbj;
-        double r;
-        Polarization pol;
-    } params_struct = {this, Q2, xbj, 0.0, pol};
-
-    // r integrand (outer)
-    F.function = [](double r, void* params) {
-        auto* p = static_cast<LOParams*>(params);
-        p->r = r;
-
-        gsl_function F_z;
-        // z integrand (inner)
-        F_z.function = [](double z, void* z_params) {
-            auto* int_params = static_cast<LOParams*>(z_params);
-            return 2.0*M_PI*int_params->r*int_params->nlodis->Integrand_photon_target_LO(int_params->r, z, int_params->xbj, int_params->Q2, int_params->pol);
-        };
-        F_z.params = p;
-
-        double z_result = 0.0, z_err = 0.0;
-        gsl_integration_workspace *w_z = gsl_integration_workspace_alloc(1000);
-        gsl_integration_qag(&F_z, 1e-3, 1.0-1e-3, 0, INTRELACC_LO, 1000, GSL_INTEG_GAUSS21,
-            w_z, &z_result, &z_err);
-        gsl_integration_workspace_free(w_z);
-
-        //cout << r << " " << z_result << endl;
-        return z_result; // Note: Jacobian is in the innermost function
-    };
-    F.params = &params_struct;
-
-    gsl_integration_qagiu(&F, 0.0, 0, INTRELACC_LO, 1000, w, &result, &abserr);
-
-    gsl_integration_workspace_free(w);
-
-
-
-    result *= 4.0*ALPHA_EM*NC/SQR(2.0*M_PI); // Include prefactors as needed
-    // Note: 1/(2pi)^2 because 1708.07328 (1) includes 2pi to transverse coordiante measures
-    result /= 2.0; // Follow convention that 2\int d^2b is replaced by sigma_0
-    // which is not included here
-    return result;
-
-
-}
-
-
-/*
- * Integrand for the LO cross section
- * r: dipole size [GeV^-1]
- * z: longitudinal momentum fraction of the quark
- * x: Bjorken-x
- * Q2: photon virtuality [GeV^2]
- * pol: photon polarization (T or L)
- * 
- * Note: In the UNSUB scheme, expect user to evaluate the dipole amplitude at the initial x
- * 
- * This is |\Psi|^2 N(r), no Jacobian of r included
- * Reference: 1708.07328 (1-3), this is K_L, K_T
- * 
-*/
-double NLODIS::Integrand_photon_target_LO(double r, double z, double x, double Q2, Polarization pol )
-{
-    if (scheme != UNSUB)
-    {
-        throw std::runtime_error("Only UNSUB scheme is implemented.");
-    }
-
-    double res=0;
-    
-    
-    for (const auto& quark : quarks) {
-        double eps = sqrt( Q2*z*(1.0-z) + SQR(quark.mass) );
-        if (r*eps < 1e-7 or r*eps > 5e2) { // GSL overflow/underflow
-            continue;
-        }
-
-        if (pol == T)
-        {
-            res += SQR(quark.charge)*((1.0-2.0*z+2.0*SQR(z))*SQR(eps)*SQR(gsl_sf_bessel_K1(r*eps)) 
-                + SQR( quark.mass*gsl_sf_bessel_K0( r*eps ) ) );
-        }
-        else if (pol == L)
-        { 
-            res += SQR(quark.charge) * 4.0 * Q2 * SQR(z) * SQR(1.0 - z) * SQR(gsl_sf_bessel_K0(r*eps));
-        }        
-        else
-        {
-            throw std::runtime_error("Unknown polarization in Integrand_LO.");
-        }
-    }
-
-    double evolution_rapidity = std::log(dipole.X0() / x); 
-    if (evolution_rapidity < 0)
-    {
-        cout << "Warning: evolution rapidity " << evolution_rapidity << "< 0 in Integrand_LO. Setting to 0." << endl;
-        evolution_rapidity = 0;
-    }
-    
-    res *= dipole.DipoleAmplitude(r, evolution_rapidity); // Dipole amplitude at x
-
-    
-    return res;
-}
 
 
  NLODIS::NLODIS(string bkdata) : dipole(bkdata)
@@ -414,9 +410,9 @@ double NLODIS::Integrand_photon_target_LO(double r, double z, double x, double Q
  {
     const double LambdaQCD = 0.241; // GeV
     const double b0 = (11.0*NC - 2.0*quarks.size())/(12.0*M_PI);
-    double mu2 = 4.0*C2_alpha/(r*r) + LambdaQCD*LambdaQCD;
+    double mu2 = 4.0*C2_alpha/(r*r);
     double as = 1.0/(b0*log(mu2/(LambdaQCD*LambdaQCD)));
-    if (as > 0.7)
+    if (as > 0.7 or log(mu2/(LambdaQCD*LambdaQCD))<0)
     {
         as = 0.7; // Freeze coupling
     }

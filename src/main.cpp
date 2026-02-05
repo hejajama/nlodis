@@ -17,10 +17,13 @@ int main(int argc, char* argv[]) {
     kcbk_parentdipole.SetOrder(NLO);
     double Q2=10;
     double xbj=2e-4;
-    //double FL_kcbk_parent = kcbk_parentdipole.FL(Q2, xbj);
+    double FL_kcbk_parent = kcbk_parentdipole.FL(Q2, xbj);
+    double F2_kcbk_parent = kcbk_parentdipole.F2(Q2, xbj);
     double simga0_2_kcbk = 20.7*2.5684624; // Convert mb to GeV^-2
-    //std::cout << "KCBK parent dipole FL(Q2="<< Q2 << ", xbj="<< xbj << ") = " << FL_kcbk_parent*2*simga0_2_kcbk << std::endl;
+    std::cout << "KCBK parent dipole FL(Q2="<< Q2 << ", xbj="<< xbj << ") = " << FL_kcbk_parent*2*simga0_2_kcbk << std::endl;
+    std::cout << "KCBK parent dipole F2(Q2="<< Q2 << ", xbj="<< xbj << ") = " << F2_kcbk_parent*2*simga0_2_kcbk << std::endl;
 
+        /* // H1 FL
     NLODIS mv("/Users/hejajama/Downloads/mv_bk.dat");
     mv.SetRunningCouplingC2Alpha(23);
     mv.SetRunningCouplingScheme(SMALLEST);

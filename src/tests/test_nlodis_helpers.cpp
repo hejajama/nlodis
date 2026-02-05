@@ -76,20 +76,22 @@ TEST(RUNNING_COUPLING_SCALE)
 /*
  * Test Alphas (coordinate space coupling)
  * Formula: alphas = 1/(b0 * log(mu^2/Lambda^2))
- * where mu^2 = 4/r^2 + Lambda^2
+ * where mu^2 = 4C^2/r^2 + Lambda^2
  */
 TEST(ALPHAS_COORDINATE_SPACE)
 {
     NLODIS dis("gbw.dat");
+    double C2=8;
+    dis.SetRunningCouplingC2Alpha(C2); 
     
     const double LambdaQCD = 0.241; // GeV
-    const int Nf = 3; // number of flavors (u,d,s)
+    const int Nf = 4; // number of flavors (u,d,s,c)
     const double b0 = (11.0*NC - 2.0*Nf)/(12.0*M_PI);
 
     
     // Test at r = 2 GeV^-1 
     double r = 2.0;
-    double mu2 = 4.0/(r*r) + LambdaQCD*LambdaQCD;
+    double mu2 = 4.0*C2/(r*r);
     double expected_as = 1.0/(b0*log(mu2/(LambdaQCD*LambdaQCD)));
     double as = dis.Alphas(r);
     ASSERT_ALMOST_EQUAL(as, expected_as, 1e-6);

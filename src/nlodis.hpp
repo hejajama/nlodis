@@ -73,13 +73,15 @@ class NLODIS
 
         double TripoleAmplitude(double x01, double x02, double x21, double Y); 
 
-        double EvolutionRapidity(double xbj, double Q2, double z2);
+        double EvolutionRapidity(double xbj, double Q2, double z2) const;
 
         void SetNcScheme(NcScheme scheme_) { nc_scheme = scheme_; }
         void SetRunningCouplingScheme(RunningCouplingScheme rc_) { rc_scheme = rc_; }
         double RunningCouplinScale(double x01, double x02, double x21);
 
         void SetRunningCouplingC2Alpha(double c2) { C2_alpha = c2; }
+
+        void SetQuarks(const std::vector<Quark>& quark_list) { quarks = quark_list; }
     private:
     
         /* Integrand for LO cross section
@@ -98,7 +100,7 @@ class NLODIS
         NcScheme nc_scheme = LargeNC;
         RunningCouplingScheme rc_scheme = SMALLEST;
         const double Q0sqr = 1; // Non-perturbative target scale, should match the one used in the NLO DIS fit!
-        double C2_alpha = 10.0; // Scale factor in the coordinate space running coupling
+        double C2_alpha = 1.0; // Scale factor in the coordinate space running coupling
       
 };
 
@@ -119,10 +121,15 @@ inline double SQR(double x) { return x*x; }
 
 // Helper functions in nlodishelper.cpp that need to be accessed outside
 // e.g. for unit tests
-int integrand_ILdip_massive(const int *ndim, const double x[], const int *ncomp, double *f, void *userdata);
+int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, double *f, void *userdata);
 double ILdip_massive_Icd(double Q2, double z1, double x01sq, double mf, double xi, double x); 
 double ILdip_massive_Iab(double Q2, double z1, double r, double mf, double xi);
 double ILdip_massive_Omega_L_Const(double Q2, double z1, double r, double mf);
+
+// Sigma_dip transverse
+double ITdip_massive_0(double Q2, double z1, double x01sq, double mf);
+double ITdip_massive_1(double Q2, double z1, double x01sq, double mf, double y_chi);
+double ITdip_massive_2(double Q2, double z1, double x01sq, double mf, double y_chi, double y_u);
 
 // Sigma_qg longitudinal part helper
 int integrand_ILqgunsub_massive(const int *ndim, const double x[], const int *ncomp,double *f, void *userdata);

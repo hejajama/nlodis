@@ -23,72 +23,6 @@
 
 double ILdip_massive_Icd(double Q, double z1, double x01sq, double mf, double xi, double x);
 
-/*
- * Integrand wrapper for Cuba
- * To be used to evaluated ab and cd contributions to NLO DIP
- * Integration variables are
- * x[0] = z1
- * x[1] = [0,1] mapped to r = x[1]*maxr
- * x[2] = xi (integration variable xi in (114))
- * x[3] = x (integration variable x in (114)) [when computing the "cd" contribution]
- * 
- * Note: 2pi from the overall angular integration of x01 in NLODIS::Sigma_dip
- */
-int integrand_ILdip_massive(const int *ndim, const double x[], const int *ncomp, double *f, void *userdata) {
-    auto* p = static_cast<IntegrationParams*>(userdata);
-
-    if (!( (*ndim ==4 and p->contribution=="cd") or (*ndim == 3 and p->contribution =="ab") 
-        or (*ndim ==2 and p->contribution=="Omega_L_const") ) )
-    {
-     throw std::invalid_argument("integrand_ILdip_massive: ndim " + std::to_string(*ndim) + " and contribution " + p->contribution + " do not match" );
-    }   
-    
-    double Q2=p->Q2;
-    double xbj=p->xbj;
-    double mf=p->quark.mass;
-
-    double z1=x[0];
-    double x01=p->nlodis->GetMaxR()*x[1];
-    double x01sq=SQR(x01);
-    
-    
-
-    double alphabar=p->nlodis->Alphas(x01)*CF/M_PI;
-
-    // TODO: add more user control for evolution rapidity
-    double evolution_rapidity = std::log(1/xbj); 
-    double dipole = p->nlodis->GetDipole().DipoleAmplitude(x01,evolution_rapidity);
-    double res;
-
-    if (p->contribution=="ab" ) {
-        // "ab" contribution does not have the x integration variable
-        double xi=x[2]; 
-        res = dipole*(ILdip_massive_Iab(Q2,z1,x01,mf,xi));
-    } else if (p->contribution=="cd") {
-        double xi=x[2]; 
-        double intx=x[3];
-        res = dipole*(ILdip_massive_Icd(Q2,z1,x01,mf,xi,intx));
-    }
-    else if (p->contribution=="Omega_L_const")
-    {
-        // only z and r integration
-        res = dipole*ILdip_massive_Omega_L_Const(Q2, z1, x01, mf);
-    }
-    else 
-    {
-        throw std::invalid_argument("integrand_ILdip_massive: unknown contribution " + p->contribution );
-    }
-
-    double jacobian = x01 * p->nlodis->GetMaxR() * 2.0 * M_PI; // Jacobian from d^2r and r = u*MAXR
-    res *= jacobian*alphabar; // Jacobian from d^2r
-
-    if(gsl_finite(res)==1){
-        *f=res;
-    }else{
-        *f=0;
-    }
-    return 0;
-}
 
 
 /*
@@ -178,7 +112,7 @@ double OmegaL_V( double Q2, double z, double mf ) {
 }
 //(101)
 double L_dip( double Q2, double z, double mf ) {
-    // The L(gamma; z) function that appears in the longitudinal NLOdip part. 
+    // The L(gamma; z) function that appears in the transverse and longitudinal NLOdip part. 
     double gamma = sqrt( 1.0 + 4.0 * SQR(mf)/Q2);
 
     double res = gsl_sf_dilog( 1.0 / ( 1.0 - 1.0 / (2.0 * z) * ( 1.0 - gamma) ) )
@@ -212,7 +146,7 @@ double L_dip( double Q2, double z, double mf ) {
 * Note: overall 2pi integral is included in NLODIS::Sigma_qg
 */
  int integrand_ILqgunsub_massive(const int *ndim, const double x[], const int *ncomp,double *f, void *userdata) {
-    auto* p = static_cast<IntegrationParams*>(userdata);
+    auto* const p = static_cast<IntegrationParams*>(userdata);
 
     if (!( 
         (*ndim == 5 and p->contribution == "I1") or
