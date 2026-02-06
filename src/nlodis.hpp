@@ -1,7 +1,7 @@
 /*
  * NLO DIS code
  * Based on code originally written by H. Hänninen
- * Modified by J. Penttala, H. Mäntysaari, C. Casuga
+ * Modified by J. Penttala, H. Mäntysaari
  */
 
 #ifndef _NLODIS_HPP_
@@ -9,40 +9,10 @@
 
 #include <amplitudelib.hpp> // Dipole amplitude
 #include "qcd.hpp"
+#include "datatypes.hpp"
 #include <vector>
 #include <string>
 #include <gsl/gsl_integration.h>
-
-enum Polarization
-{
-    T,
-    L
-};
-
-std::string PolarizationString(Polarization pol);
-enum Scheme
-{
-    UNSUB
-};
-
-enum Order
-{
-    LO,
-    NLO
-};
-
-enum NcScheme
-{
-    FiniteNC,
-    LargeNC
-};
-
-enum RunningCouplingScheme
-{
-    SMALLEST,
-    PARENT
-};
-
 
 class NLODIS
 {
@@ -50,41 +20,136 @@ class NLODIS
         
         NLODIS(std::string bkdata);
 
+        /**
+         * @brief Structure function F2 
+         * @param Q2 Photon virtuality [GeV^2].
+         * @param xbj Bjorken-x.
+         * 
+         * @return F2
+         */
         double F2(double Q2, double xbj);
+        /**
+         * @brief Structure function FL.
+         * @param Q2 Photon virtuality [GeV^2].
+         * @param xbj Bjorken-x.
+         */
         double FL(double Q2, double xbj);
+        /**
+         * @brief Structure function FT.
+         * @param Q2 Photon virtuality [GeV^2].
+         * @param xbj Bjorken-x.
+         */
         double FT(double Q2, double xbj);
+        /**
+         * @brief Photon-proton cross section [GeV^-2].
+         *
+         * @param Q2 Photon virtuality [GeV^2].
+         * @param xbj Bjorken-x.
+         * @param pol Photon polarization.
+         */
         double Photon_proton_cross_section(double Q2, double xbj, Polarization pol);
 
-         double Photon_proton_cross_section_LO(double Q2, double xbj, Polarization pol);
+        /** 
+         * @brief Photon-proton cross section at LO [GeV^-2]
+         * 
+         * @param Q2 photon virtuality [GeV^2]
+         * @param xbj Bjorken-x
+         * @param pol photon polarization (T or L)
+         * 
+         */
+        double Photon_proton_cross_section_LO(double Q2, double xbj, Polarization pol);
 
-         /// NLO caluclation ingredients 
+        /**
+         * @brief \sigma_dip: qq part of the NLO cross section.
+         * @param Q2 Photon virtuality [GeV^2].
+         * @param xbj Bjorken-x.
+         * @param pol Photon polarization.
+         */
+
         double Sigma_dip(double Q2, double xbj, Polarization pol);
+        /**
+         * @brief \sigma_qg: qg part of the NLO cross section.
+         * @param Q2 Photon virtuality [GeV^2].
+         * @param xbj Bjorken-x.
+         * @param pol Photon polarization.
+         */
         double Sigma_qg(double Q2, double xbj, Polarization pol);
 
-         ////
-
-
-    
+        
         void SetOrder(Order o) { order = o; }
         double GetMaxR() const { return maxr; }
         
+        /**
+         * @brief Coordinate space coupling.
+         * 
+         * TODO: implement n_f dependence
+         * 
+         * @param r Dipole size [GeV^-1].
+         */
         double Alphas(double r) const;
+
+        /**
+         * @brief Set proton transverse area = \sigma_0/2
+         * 
+         * @param sigma0_2 Proton transverse area \int d^2 b
+         * @param unit Unit of sigma0_2, default is GeV^-2. If unit is MB, the value will be converted to GeV^-2 internally.
+         * 
+         */
+        void SetSigma0_2(double sigma0_2_, Unit unit=GEVm2);
+
         AmplitudeLib& GetDipole() { return dipole; }
 
+        /**
+         * @brief Lower bound for the z2 integral.
+         * @param xbj Bjorken-x.
+         * @param Q2 Photon virtuality [GeV^2].
+         * @return Lower bound for z2.
+         *
+         * Ref https://arxiv.org/pdf/2007.01645 eq (18)
+         */
         double z2_lower_bound(double xbj, double Q2);
 
-        double TripoleAmplitude(double x01, double x02, double x21, double Y); 
+        /**
+         * @brief qqg-target scattering amplitude.
+         *
+         * Ref. https://arxiv.org/pdf/2211.03504 (4). In that notation, this is 1-S_{012}.
+         *
+         * @param x01 Dipole size [GeV^-1].
+         * @param x02 Dipole size [GeV^-1].
+         * @param x21 Dipole size [GeV^-1].
+         * @param Y Evolution rapidity.
+         */
+        double TripoleAmplitude(double x01, double x02, double x21, double Y);
 
+        /**
+         * @brief Evolution rapidity (in the qqg contribution).
+         * @param xbj Bjorken-x.
+         * @param Q2 Photon virtuality [GeV^2].
+         * @param z2 Gluon longitudinal momentum fraction.
+         *
+         * Ref https://arxiv.org/pdf/2007.01645 eq (19)
+         */
         double EvolutionRapidity(double xbj, double Q2, double z2) const;
 
         void SetNcScheme(NcScheme scheme_) { nc_scheme = scheme_; }
         void SetRunningCouplingScheme(RunningCouplingScheme rc_) { rc_scheme = rc_; }
+        /**
+         * @brief Running coupling scale depending on the RC scheme used.
+         * @param x01 Dipole size [GeV^-1].
+         * @param x02 Dipole size [GeV^-1].
+         * @param x21 Dipole size [GeV^-1].
+         */
         double RunningCouplinScale(double x01, double x02, double x21);
 
         void SetRunningCouplingC2Alpha(double c2) { C2_alpha = c2; }
 
         void SetQuarks(const std::vector<Quark>& quark_list) { quarks = quark_list; }
 
+        /**
+         * @brief Set mass of the given quark flavor.
+         * @param type Quark flavor.
+         * @param mass Quark mass [GeV].
+         */
         void SetQuarkMass(Quark::Type type, double mass);
     private:
     
@@ -96,6 +161,7 @@ class NLODIS
         */
         double Integrand_photon_target_LO(double r, double z, double x, double Q2, Polarization pol );
     
+        double sigma0_2=1; // \sigma_0/2 = \int d^2b in GeV^-2 (proton transverse area)
         AmplitudeLib dipole;
         Scheme scheme = UNSUB;
         std::vector<Quark> quarks;

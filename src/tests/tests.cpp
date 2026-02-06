@@ -23,6 +23,11 @@ const std::string gbw_datafile = "gbw.dat";
     std::vector<Quark> quark_list = {u,d,s,c};
     dis.SetQuarks(quark_list);
 
+    // Set \sigma_0/2 = 0.5, so that when the result is multiplied by 
+    // 2\sigma_0/2 = 1, it matches the setup used to compute reference values 
+    // (no simga0 factor included)
+    dis.SetSigma0_2(0.5);
+
     double Q2 = 10.0; // GeV^2
     double xbj = 1;  // Test case datafile is generated such that it starts from x0=1
     

@@ -2,6 +2,8 @@
 #include <string>
 #include <vector>
 #include "nlodis.hpp"
+#include "datafile.hpp"
+#include "datatypes.hpp"
 #include <gsl/gsl_errno.h>
 
 using namespace std;

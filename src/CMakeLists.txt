@@ -8,6 +8,7 @@ add_library(
     nlodishelper_transverse.cpp
 	qcd.cpp
     integration.cpp
+    datatypes.cpp
     lo.cpp
 	${CMAKE_CURRENT_BINARY_DIR}/gitsha1.cpp
 )

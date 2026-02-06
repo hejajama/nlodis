@@ -12,21 +12,12 @@
 #include "nlodis.hpp"
 #include "qcd.hpp"
 #include "integration.hpp"
+#include "datatypes.hpp"
 
 using namespace std;
 
 static const std::string cubamethod = "suave";
 
-
-
-
-/*
- * Structure function F2 
- *
- * Q2 [GeV^2]: photon virtuality
- * xbj: Bjorken-x
- * 
- */
 double NLODIS::F2(double Q2, double xbj)
 {
     double sigmaT = Photon_proton_cross_section(Q2, xbj, T);
@@ -35,39 +26,18 @@ double NLODIS::F2(double Q2, double xbj)
     return Q2 / (4.0 * M_PI * M_PI * ALPHA_EM) * (sigmaT + sigmaL);
 }
 
-/*
- * Structure function FL
- *
- * Q2 [GeV^2]: photon virtuality
- * xbj: Bjorken-x
- */
 double NLODIS::FL(double Q2, double xbj)
 {
     double sigmaL = Photon_proton_cross_section(Q2, xbj, L);
     return Q2 / (4.0 * M_PI * M_PI * ALPHA_EM) * sigmaL;
 }
 
-/*
- * Structure function FT
-    *
-    *  Q2 [GeV^2]: photon virtuality
-    *  xbj: Bjorken-x
- */
 double NLODIS::FT(double Q2, double xbj)
 {
     double sigmaT = Photon_proton_cross_section(Q2, xbj, T);
     return Q2 / (4.0 * M_PI * M_PI * ALPHA_EM) * sigmaT;
 }   
 
-
-/*
- * qqg-target scattering amplitude
- * Ref. https://arxiv.org/pdf/2211.03504 (4)
- * In that notation, this is 1-S_{012}
- * 
- * x01, x02, x21: dipole sizes in GeV^-1
- * Y: evolution rapidity
- **/
 double NLODIS::TripoleAmplitude(double x01, double x02, double x21, double Y) 
 {
     double S01 = 1-dipole.DipoleAmplitude(x01, Y);
@@ -88,23 +58,12 @@ double NLODIS::TripoleAmplitude(double x01, double x02, double x21, double Y)
     }
 }
 
-/*
- * Evolution rapidity (in the qqg contribution)
- *
- * Ref https://arxiv.org/pdf/2007.01645 eq (19)
- * xbj: Bjorken-x
- * Q2: photon virtuality in GeV^2
- * z2: gluon longitudinal momentum fraction
- */
 double NLODIS::EvolutionRapidity(double xbj, double Q2, double z2) const
 {
     double W2 = Q2 / xbj;
     return std::log(W2*z2/Q0sqr);
 }
 
-/*
- * Running coupling scale depending on the RC scheme used
- */
 double NLODIS::RunningCouplinScale(double x01, double x02, double x21)
 {
     if (rc_scheme == SMALLEST)
@@ -121,13 +80,6 @@ double NLODIS::RunningCouplinScale(double x01, double x02, double x21)
     }
 }
 
-/*
- * Photon-proton cross section [GeV^-2]
- *
- * To get the cross section, this has to be integrated over d^2r and multiplied by sigma_0 [in GeV^-2]
- * i.e. we replace 2\int d^2b -> sigma_0
- * 
- * */
 double NLODIS::Photon_proton_cross_section(double Q2, double xbj, Polarization pol)
 {
     if (scheme != UNSUB)
@@ -137,7 +89,7 @@ double NLODIS::Photon_proton_cross_section(double Q2, double xbj, Polarization p
 
     if (order==LO)
     {
-        return Photon_proton_cross_section_LO(Q2, xbj, pol);
+        return 2.0*sigma0_2*Photon_proton_cross_section_LO(Q2, xbj, pol);
     }
     
     // NLO calculation
@@ -148,16 +100,16 @@ double NLODIS::Photon_proton_cross_section(double Q2, double xbj, Polarization p
 
     cout <<"# Note: Sigma_LO: " << sigma_LO << " , Sigma_dip: " << sigma_dip << " , Sigma_qg: " << sigma_qg << endl;
 
-    return sigma_LO + sigma_dip + sigma_qg;
+    return (sigma_LO + sigma_dip + sigma_qg)*sigma0_2*2.0; // sigma_0/2 * 2 = \int d^2 b
 }
 
-
 /*
- * \sigma_dip
- * qq part of the NLO cross section
+ * NLO-dip term
+ * References:
  * L polarization: https://arxiv.org/pdf/2103.14549 (166)
  * T polarization:
  */
+
 double NLODIS::Sigma_dip(double Q2, double xbj, Polarization pol)
 {
     double result=0;
@@ -333,11 +285,8 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
     return 0;
 }
 
-
 /*
- * \sigma_qg
- * qg part of the NLO cross section
- * 
+ * qg contribution
  * Longitudinal reference: (167) but instead of q^+, k^+ we integrate over z_i
  * Explicit expressoin is docs/NLO_DIS_cross_section_with_massive_quarks.pdf (13) 
 */
@@ -552,10 +501,6 @@ double NLODIS::Sigma_qg(double Q2, double xbj, Polarization pol)
 
  }
  
- /*
-  * Coordinate space coupling
-  * TODO: implement flavor thresholds and C^2 scale
-  */
  double NLODIS::Alphas(double r) const
  {
     const double LambdaQCD = 0.241; // GeV
@@ -569,39 +514,14 @@ double NLODIS::Sigma_qg(double Q2, double xbj, Polarization pol)
     return as;
  }
 
- /*
-  * Lower bound for the z2 integral
-  * 
-  * Ref https://arxiv.org/pdf/2007.01645 eq (18)
-  * 
-  */
-double NLODIS::z2_lower_bound(double xbj, double Q2)
+ double NLODIS::z2_lower_bound(double xbj, double Q2)
 {
     double W2 = Q2 / xbj;
     return Q0sqr / W2;
 }
 
-std::string PolarizationString(Polarization pol)
-{
-    if (pol == T)
-    {
-        return "T";
-    }
-    else if (pol == L)
-    {
-        return "L";
-    }
-    else
-    {
-        throw std::runtime_error("Unknown polarization in PolarizationString.");
-    }
-}
 
-/*
- * Set mas off the qiven quark flavor to mass
- *
- * mass: quark mass [GeV]
- */
+
 void NLODIS::SetQuarkMass(Quark::Type type, double mass)
 {
     for (auto& quark : quarks) {
@@ -611,4 +531,21 @@ void NLODIS::SetQuarkMass(Quark::Type type, double mass)
         }
     }
     throw std::runtime_error("Quark type not found in SetQuarkMass");
+}
+
+void NLODIS::SetSigma0_2(double sigma0_2_, Unit unit)
+{
+    if (unit == MB)
+    {
+        // Convert from mb to GeV^-2
+        sigma0_2 = sigma0_2_ * 0.389379; // 1 mb = 0.389379 GeV^-2
+    }
+    else if (unit == GEVm2)
+    {
+        sigma0_2 = sigma0_2_;
+    }
+    else
+    {
+        throw std::runtime_error("Unknown unit in SetSigma0_2");
+    }
 }
