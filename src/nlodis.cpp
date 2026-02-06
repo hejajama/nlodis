@@ -303,18 +303,18 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
     /////////////// Transverse part ///////////////
     else if (p->contribution=="T0" and p->pol == T)
     {
-        res = dipole*ITdip_massive_0(Q2, z1, x01, mf);
+        res = dipole*ITdip_massive_0(Q2, z1, SQR(x01)  , mf);
     }
     else if (p->contribution=="T1" and p->pol == T)
     {
         double xi=x[2]; 
-        res = dipole*ITdip_massive_1(Q2, z1, x01, mf, xi);
+        res = dipole*ITdip_massive_1(Q2, z1, SQR(x01), mf, xi);
     }
     else if (p->contribution=="T2" and p->pol == T)
     {
         double xi=x[2]; 
         double intx=x[3];
-        res = dipole*ITdip_massive_2(Q2, z1, x01, mf, xi, intx);
+        res = dipole*ITdip_massive_2(Q2, z1, SQR(x01), mf, xi, intx);
     }
     else 
     {
@@ -323,7 +323,7 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
     }
 
     double jacobian = x01 * p->nlodis->GetMaxR() * 2.0 * M_PI; // Jacobian from d^2r and r = u*MAXR
-    res *= jacobian*alphabar; // Jacobian from d^2r
+    res *= jacobian*alphabar; 
 
     if(std::isfinite(res)){
         *f=res;
@@ -506,6 +506,12 @@ double NLODIS::Sigma_qg(double Q2, double xbj, Polarization pol)
         double y_t1 = x[5];
         double y_t2 = x[6];
         res = SKernel_dipole * ILNLOqg_massive_tripole_part_I3_fast(Q2, mf, z1, z2, x01sq, x02sq, x21sq, y_t1, y_t2);
+    }
+    else if (p->contribution == "I3" and p->pol == T)
+    {
+        double y_t1 = x[5];
+        double y_t2 = x[6];
+        res = SKernel_dipole * ITNLOqg_massive_tripole_part_I3_fast(Q2, mf, z1, z2, x01sq, x02sq, x21sq, y_t1, y_t2);
     }
     else
     {

@@ -120,11 +120,12 @@ struct IntegrationParams {
 
 inline double SQR(double x) { return x*x; }
 
+//// TODO NOTE: Inconsistency: some functions take r^2, some functions take r as an argumetn. This should be fixed at some point to avoid confusion.
 
 // Helper functions in nlodishelper.cpp that need to be accessed outside
 // e.g. for unit tests
 int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, double *f, void *userdata);
-double ILdip_massive_Icd(double Q2, double z1, double x01sq, double mf, double xi, double x); 
+double ILdip_massive_Icd(double Q2, double z1, double r, double mf, double xi, double x); 
 double ILdip_massive_Iab(double Q2, double z1, double r, double mf, double xi);
 double ILdip_massive_Omega_L_Const(double Q2, double z1, double r, double mf);
 
@@ -170,6 +171,9 @@ double IT_tripole_jk_I2_fast(double Q, double mf, double z1, double z2, double x
 double IT_tripole_jkm_I2_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);
 double IT_tripole_F_I2_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);
 double IT_tripole_Fm_I2_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);
-
+double IT_tripole_jkm_I3_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
+double IT_tripole_jk_I3_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
+double IT_tripole_F_I3_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
+double IT_tripole_Fm_I3_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
 
 #endif 
