@@ -15,23 +15,29 @@ int main(int argc, char* argv[]) {
     kcbk_parentdipole.SetRunningCouplingC2Alpha(663);
     kcbk_parentdipole.SetRunningCouplingScheme(PARENT);
     kcbk_parentdipole.SetOrder(NLO);
-    double Q2=10;
-    double xbj=2e-4;
-    double FL_kcbk_parent = kcbk_parentdipole.FL(Q2, xbj);
-    double FT_kcbk_parent = kcbk_parentdipole.FT(Q2, xbj);
+    kcbk_parentdipole.SetQuarkMass(Quark::Type::C, 1.4);
+    double Q2=4.5;
+    double xbj=3e-3;
+    //double FL_kcbk_parent = kcbk_parentdipole.FL(Q2, xbj);
+    //double FT_kcbk_parent = kcbk_parentdipole.FT(Q2, xbj);
+    double F2_kcbk_parent = kcbk_parentdipole.F2(Q2, xbj);
     double simga0_2_kcbk = 20.7*2.5684624; // Convert mb to GeV^-2
-    std::cout << "KCBK parent dipole FL(Q2="<< Q2 << ", xbj="<< xbj << ") = " << FL_kcbk_parent*2*simga0_2_kcbk << std::endl;
-    std::cout << "KCBK parent dipole FT(Q2="<< Q2 << ", xbj="<< xbj << ") = " << FT_kcbk_parent*2*simga0_2_kcbk << std::endl;
-
-        /* // H1 FL
+    //std::cout << "KCBK parent dipole FL(Q2="<< Q2 << ", xbj="<< xbj << ") = " << FL_kcbk_parent*2*simga0_2_kcbk << std::endl;
+    //std::cout << "KCBK parent dipole FT(Q2="<< Q2 << ", xbj="<< xbj << ") = " << FT_kcbk_parent*2*simga0_2_kcbk << std::endl;
+    std::cout << "KCBK parent dipole F2(Q2="<< Q2 << ", xbj="<< xbj << ") = " << F2_kcbk_parent*2*simga0_2_kcbk << std::endl;
+      
     NLODIS mv("/Users/hejajama/Downloads/mv_bk.dat");
     mv.SetRunningCouplingC2Alpha(23);
     mv.SetRunningCouplingScheme(SMALLEST);
     mv.SetOrder(NLO);
+    mv.SetQuarkMass(Quark::Type::C, 1.04);
     double sigma0_2_mv = 23.5*2.5684624; // Convert mb to GeV^-2
     //double FL_mv = mv.FL(Q2, xbj);
+    double F2_mv = mv.F2(Q2, xbj);
+    std::cout << "NLOBK MV smallest F2(Q2="<< Q2 << ", xbj="<< xbj << ") = " << F2_mv*2*sigma0_2_mv << std::endl;
     //std::cout << "MV smallest FL(Q2="<< Q2 << ", xbj="<< xbj << ") = " << FL_mv*2*sigma0_2_mv << std::endl;
 
+    /*
     NLODIS mvgamma("/Users/hejajama/Downloads/mvgam_bk.dat");
     mvgamma.SetRunningCouplingC2Alpha(std::pow(10,2.9));
     mvgamma.SetRunningCouplingScheme(SMALLEST);

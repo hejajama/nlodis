@@ -84,6 +84,8 @@ class NLODIS
         void SetRunningCouplingC2Alpha(double c2) { C2_alpha = c2; }
 
         void SetQuarks(const std::vector<Quark>& quark_list) { quarks = quark_list; }
+
+        void SetQuarkMass(Quark::Type type, double mass);
     private:
     
         /* Integrand for LO cross section

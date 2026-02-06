@@ -596,3 +596,19 @@ std::string PolarizationString(Polarization pol)
         throw std::runtime_error("Unknown polarization in PolarizationString.");
     }
 }
+
+/*
+ * Set mas off the qiven quark flavor to mass
+ *
+ * mass: quark mass [GeV]
+ */
+void NLODIS::SetQuarkMass(Quark::Type type, double mass)
+{
+    for (auto& quark : quarks) {
+        if (quark.type == type) {
+            quark.mass = mass;
+            return;
+        }
+    }
+    throw std::runtime_error("Quark type not found in SetQuarkMass");
+}
