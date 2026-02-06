@@ -30,8 +30,10 @@ include_directories("/Users/hejajama/code/nlodisfit_bayesian/cpp/src")
 
 include_directories("src/Cuba-4.2.2/")
 
-
 add_subdirectory(src)
+
+set_target_properties(test PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
 
 set_target_properties(nlodis PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
