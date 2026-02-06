@@ -47,6 +47,18 @@ double NLODIS::FL(double Q2, double xbj)
     return Q2 / (4.0 * M_PI * M_PI * ALPHA_EM) * sigmaL;
 }
 
+/*
+ * Structure function FT
+    *
+    *  Q2 [GeV^2]: photon virtuality
+    *  xbj: Bjorken-x
+ */
+double NLODIS::FT(double Q2, double xbj)
+{
+    double sigmaT = Photon_proton_cross_section(Q2, xbj, T);
+    return Q2 / (4.0 * M_PI * M_PI * ALPHA_EM) * sigmaT;
+}   
+
 
 /*
  * qqg-target scattering amplitude
@@ -134,7 +146,7 @@ double NLODIS::Photon_proton_cross_section(double Q2, double xbj, Polarization p
     double sigma_dip = Sigma_dip(Q2, xbj, pol);
     double  sigma_qg = Sigma_qg(Q2,xbj,pol);
 
-    //cout <<"# Note: Sigma_LO: " << sigma_LO << " , Sigma_dip: " << sigma_dip << " , Sigma_qg: " << sigma_qg << endl;
+    cout <<"# Note: Sigma_LO: " << sigma_LO << " , Sigma_dip: " << sigma_dip << " , Sigma_qg: " << sigma_qg << endl;
 
     return sigma_LO + sigma_dip + sigma_qg;
 }
@@ -346,24 +358,30 @@ double NLODIS::Sigma_qg(double Q2, double xbj, Polarization pol)
         intparams.pol=pol;
 
         intparams.quark=quark;
-        if (pol == L)
-        {
-            // Note (21): this contribution is split into 3 parts I_1, I_2 and I_3
-            double I1,I1err,I1prob;
-            intparams.contribution="I1";
-            Cuba(cubamethod, 5, integrand_ILqgunsub_massive, &intparams, &I1, &I1err, &I1prob);
-            result += I1;
 
-            double I2,I2err,I2prob;
-            intparams.contribution="I2";
-            Cuba(cubamethod, 6, integrand_ILqgunsub_massive, &intparams, &I2, &I2err, &I2prob);
-            result += I2;
+        // Sum different contributions, labeling is the same for T and L polarizations,
+        // proper integrand is selcted in integrand_qgunsub_massive according to intarams.pol and intparams.contribution
 
-            double I3,I3err,I3prob;
-            intparams.contribution="I3";
-            Cuba(cubamethod, 7, integrand_ILqgunsub_massive, &intparams, &I3, &I3err, &I3prob);
-            result += I3;
-        }
+        // Note (21): this contribution is split into 3 parts I_1, I_2 and I_3
+        double I1,I1err,I1prob;
+        intparams.contribution="I1";
+        Cuba(cubamethod, 5, integrand_qgunsub_massive, &intparams, &I1, &I1err, &I1prob);
+        result += I1;
+
+        double I2,I2err,I2prob;
+        intparams.contribution="I2";
+        Cuba(cubamethod, 6, integrand_qgunsub_massive, &intparams, &I2, &I2err, &I2prob);
+        result += I2;
+
+        double I3,I3err,I3prob;
+        intparams.contribution="I3";
+        Cuba(cubamethod, 7, integrand_qgunsub_massive, &intparams, &I3, &I3err, &I3prob);
+           
+        result += I3;
+        
+        
+
+
         result *= SQR(quark.charge);
     }
 
@@ -380,6 +398,132 @@ double NLODIS::Sigma_qg(double Q2, double xbj, Polarization pol)
     return  fac*2.0*M_PI*result;
 
 }
+
+
+/*
+* Integrand wrapper for Cuba
+* To be used to evaluate I2 part of NLO qg unsubtracted contribution
+* Integration variables are
+* x[0] = z1
+* x[1] = z2
+* x[2] = x01 
+* x[3] = x02 
+* x[4] = phi_x0102 (angle between x01 and x02)
+* x[5] = y_t (contribution I2 and I3)
+* x[6] = y_t2 (contribution I3)
+* 
+* Note: overall 2pi integral is included in NLODIS::Sigma_qg
+*/
+ int integrand_qgunsub_massive(const int *ndim, const double x[], const int *ncomp,double *f, void *userdata) {
+    auto* const p = static_cast<IntegrationParams*>(userdata);
+
+    if (!( // Note: same contribution labels and ndim's for T and L polarization 
+        (*ndim == 5 and p->contribution == "I1") or
+        (*ndim ==6 and p->contribution=="I2")   or
+        (*ndim ==7 and p->contribution=="I3") )
+        )
+    {
+        cerr << "integrand_qgunsub_massive: ndim " << *ndim << " and contribution " << p->contribution << " do not match" << endl;
+        exit(1);
+    }
+    
+
+
+
+    double Q2=p->Q2;
+    double xbj=p->xbj;
+    double mf=p->quark.mass;
+
+   
+    double z2min = p->nlodis->z2_lower_bound(xbj,Q2); 
+    if (z2min > 1.0){ // Check that z2min is not too large. IF it is too large, return *f=0.
+        *f=0;
+        return 0;
+    }
+
+    double z1=(1.0-z2min)*x[0];
+    double z2=((1.0-z1)-z2min)*x[1]+z2min;
+    double x01=p->nlodis->GetMaxR()*x[2];
+    double x02=p->nlodis->GetMaxR()*x[3];
+    double phix0102=2.0*M_PI*x[4];
+    
+    double x01sq=SQR(x01);
+    double x02sq=SQR(x02);
+    double x21sq=x01sq+x02sq-2.0*sqrt(x01sq*x02sq)*cos(phix0102);
+
+    double alphabar = p->nlodis->Alphas(p->nlodis->RunningCouplinScale(x01, x02, std::sqrt(x21sq))) * CF / NC;
+
+    // Check if any integration variable is NaN
+    if (!std::isfinite(z1) || !std::isfinite(z2) || !std::isfinite(x01) || !std::isfinite(x02) || 
+        !std::isfinite(phix0102) || !std::isfinite(x01sq) || !std::isfinite(x02sq) || !std::isfinite(x21sq)) {
+            cerr << "Warning: integrand_qgunsub_massive: NaN encountered in integration variables. Setting integrand to 0." << endl;
+        *f = 0;
+        return 0;
+    }
+
+    // Jacobians from Cuba variable changes (z's, 2 distances, 1 angle) and d^2x_01 d^2x_02
+    // Note: one overall 2pi from angular integral is included in NLODIS::Sigma_qg
+    // All other integrals in I1, I2 and I3 are from 0 to 1
+    double jac=(1.0-z2min)*(1.0-z1-z2min)*x01*x02 * p->nlodis->GetMaxR()*p->nlodis->GetMaxR()*2.0*M_PI;
+
+    double evolution_rapidity=p->nlodis->EvolutionRapidity(xbj,Q2,z2);
+
+    if (evolution_rapidity < 0){
+        cout << "Warning: integrand_ILqgunsub_massive: evolution rapidity < 0: " << evolution_rapidity << ", xbj=" << xbj << ", Q2=" << Q2 << ", z2=" << z2 << endl;
+        *f=0;
+        return 0;
+    }
+
+    double SKernel_tripole = p->nlodis->TripoleAmplitude(x01,x02, std::sqrt(x21sq), evolution_rapidity);
+    double SKernel_dipole = p->nlodis->GetDipole().DipoleAmplitude(x01, evolution_rapidity);
+
+    double alphafac=p->nlodis->Alphas(p->nlodis->RunningCouplinScale(x01,x02,std::sqrt(x21sq)))*CF/NC;
+
+    double res=0;
+
+    if (p->contribution == "I1" and p->pol == L)
+    {
+        double dipole_term  = SKernel_dipole  * ILNLOqg_massive_dipole_part_I1(Q2,mf,z1,z2,x01sq,x02sq,x21sq); // Terms proportional to N_01
+        double tripole_term = SKernel_tripole * ILNLOqg_massive_tripole_part_I1(Q2,mf,z1,z2,x01sq,x02sq,x21sq); // Terms proportional to N_012
+
+        res = ( dipole_term + tripole_term );
+    }
+    else if (p->contribution == "I1" and p->pol == T)
+    {
+        double dipole_term = SKernel_dipole * ITNLOqg_massive_dipole_part_I1(Q2,mf,z1,z2,x01sq,x02sq,x21sq);
+        double tripole_term = SKernel_tripole * ITNLOqg_massive_tripole_part_I1(Q2,mf,z1,z2,x01sq,x02sq,x21sq);
+    }
+    else  if (p->contribution == "I2" and p->pol == L) {
+        double y_t1 = x[5];
+       res = SKernel_tripole * ILNLOqg_massive_tripole_part_I2_fast(Q2,mf,z1,z2,x01sq,x02sq,x21sq,y_t1); 
+    }
+    else if (p->contribution == "I2" and p->pol == T) {
+        double y_t1 = x[5];
+        res = SKernel_tripole * ITNLOqg_massive_tripole_part_I2_fast(Q2,mf,z1,z2,x01sq,x02sq,x21sq,y_t1); 
+    }
+    else if (p->contribution == "I3" and p->pol == L)
+    {
+        double y_t1 = x[5];
+        double y_t2 = x[6];
+        res = SKernel_dipole * ILNLOqg_massive_tripole_part_I3_fast(Q2, mf, z1, z2, x01sq, x02sq, x21sq, y_t1, y_t2);
+    }
+    else
+    {
+        cerr << "integrand_qgunsub_massive: unknown contribution " + p->contribution << " polarization " << PolarizationString(p->pol) << endl;
+        exit(1);
+    }
+
+    res *=  jac*alphafac/z2;
+
+    if(gsl_finite(res)==1){
+        *f=res;
+    }else{
+        *f=0;
+    }
+    return 0;
+}
+
+
 
 
 
@@ -429,4 +573,20 @@ double NLODIS::z2_lower_bound(double xbj, double Q2)
 {
     double W2 = Q2 / xbj;
     return Q0sqr / W2;
+}
+
+std::string PolarizationString(Polarization pol)
+{
+    if (pol == T)
+    {
+        return "T";
+    }
+    else if (pol == L)
+    {
+        return "L";
+    }
+    else
+    {
+        throw std::runtime_error("Unknown polarization in PolarizationString.");
+    }
 }

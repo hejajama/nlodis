@@ -19,6 +19,7 @@ enum Polarization
     L
 };
 
+std::string PolarizationString(Polarization pol);
 enum Scheme
 {
     UNSUB
@@ -51,6 +52,7 @@ class NLODIS
 
         double F2(double Q2, double xbj);
         double FL(double Q2, double xbj);
+        double FT(double Q2, double xbj);
         double Photon_proton_cross_section(double Q2, double xbj, Polarization pol);
 
          double Photon_proton_cross_section_LO(double Q2, double xbj, Polarization pol);
@@ -132,10 +134,42 @@ double ITdip_massive_1(double Q2, double z1, double x01sq, double mf, double y_c
 double ITdip_massive_2(double Q2, double z1, double x01sq, double mf, double y_chi, double y_u);
 
 // Sigma_qg longitudinal part helper
-int integrand_ILqgunsub_massive(const int *ndim, const double x[], const int *ncomp,double *f, void *userdata);
+int integrand_qgunsub_massive(const int *ndim, const double x[], const int *ncomp,double *f, void *userdata);
 double ILNLOqg_massive_tripole_part_I2_fast(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);
 double G_integrand_simplified(int a, int b, double Qbar, double mf, double x2, double x3, double omega, double lambda, double y);
 double ILNLOqg_massive_dipole_part_I1(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
 double ILNLOqg_massive_tripole_part_I1(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
 double ILNLOqg_massive_tripole_part_I3_fast(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
+
+// Sigma qg T
+double ITNLOqg_massive_dipole_part_I1(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
+double ITNLOqg_massive_tripole_part_I1(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
+double IT_dipole_jk_I1(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
+double ITNLOqg_massive_tripole_part_I2_fast(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);
+double ITNLOqg_massive_tripole_part_I3_fast(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
+
+// Helper functions from nlodishelper_transverse.cpp
+double OmegaT_V_unsymmetric(double Q, double z, double mf);
+double OmegaT_N_unsymmetric(double Q, double z, double mf);
+double IT_V1_unsymmetric(double Q, double z, double mf, double r, double xi);
+double IT_VMS1_unsymmetric(double Q, double z, double mf, double r, double xi);
+double IT_V2_unsymmetric(double Q, double z, double mf, double r, double y_chi, double y_u);
+double IT_VMS2_unsymmetric(double Q, double z, double mf, double r, double y_chi, double y_u);
+double IT_N_unsymmetric(double Q, double z, double mf, double r, double y_chi, double y_u);
+double IT_V1(double Q, double z, double mf, double r, double xi);
+double IT_VMS1(double Q, double z, double mf, double r, double xi);
+double IT_V2(double Q, double z, double mf, double r, double y_chi, double y_u);
+double IT_VMS2(double Q, double z, double mf, double r, double y_chi, double y_u);
+double IT_N(double Q, double z, double mf, double r, double y_chi, double y_u);
+double IT_tripole_jk_I1(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
+double IT_dipole_jkm_I1(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
+double IT_tripole_jkm_I1(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
+double IT_tripole_F_I1(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
+double IT_tripole_Fm_I1(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
+double IT_tripole_jk_I2_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);
+double IT_tripole_jkm_I2_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);
+double IT_tripole_F_I2_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);
+double IT_tripole_Fm_I2_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);
+
+
 #endif 

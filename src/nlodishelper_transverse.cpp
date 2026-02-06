@@ -221,3 +221,430 @@ double IT_N_unsymmetric( double Q, double z, double mf, double r, double y_chi, 
     return res;
 
 }
+
+
+////////// Transverse qqg
+//////////
+
+// I1 = Note (54)
+
+double ITNLOqg_massive_dipole_part_I1(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq) {
+    double Q = sqrt(Q2);
+    return IT_dipole_jk_I1( Q, mf, z1, z2, x01sq, x02sq, x21sq ) + 
+           IT_dipole_jkm_I1( Q, mf, z1, z2, x01sq, x02sq, x21sq );
+}
+
+double ITNLOqg_massive_tripole_part_I1(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq){
+    double Q = sqrt(Q2);
+    return IT_tripole_jk_I1( Q, mf, z1, z2, x01sq, x02sq, x21sq ) + 
+           IT_tripole_jkm_I1( Q, mf, z1, z2, x01sq, x02sq, x21sq ) + 
+           IT_tripole_F_I1( Q, mf, z1, z2, x01sq, x02sq, x21sq ) +
+           IT_tripole_Fm_I1( Q, mf, z1, z2, x01sq, x02sq, x21sq );
+}
+
+
+////////////////// Transverse I2
+
+double ITNLOqg_massive_tripole_part_I2_fast(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t){
+    double Q = sqrt(Q2);
+    return IT_tripole_jk_I2_fast(  Q, mf, z1, z2, x01sq, x02sq, x21sq, y_t ) + 
+           IT_tripole_jkm_I2_fast( Q, mf, z1, z2, x01sq, x02sq, x21sq, y_t  ) + 
+           IT_tripole_F_I2_fast(   Q, mf, z1, z2, x01sq, x02sq, x21sq, y_t  ) +
+           IT_tripole_Fm_I2_fast(  Q, mf, z1, z2, x01sq, x02sq, x21sq, y_t  );
+}
+
+
+
+
+
+// I_1, (54) of the note docs/NLO_DIS_cross_section_with_massive_quarks.pdf
+// First part proportional to N_01
+double IT_dipole_jk_I1(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq){
+
+    double x20x21 = -0.5*(x01sq - x21sq - x02sq);
+
+    double z0 = 1-z1-z2;
+
+    double Qbar_j = Q*sqrt(z1*(1.0-z1));
+    double Qbar_k = Q*sqrt(z0*(1.0-z0));
+
+
+    double x2_j = sqrt(x02sq);
+    double x2_k = sqrt(x21sq);
+    double x3_j = sqrt( SQR(z0) / SQR(z0+z2) * x02sq + x21sq - 2.0 * z0/(z0+z2) *x20x21 );
+    double x3_k = sqrt( SQR(z1) / SQR(z1+z2) * x21sq + x02sq - 2.0 * z1/(z1+z2) *x20x21 );
+
+    double term_j = 1.0/SQR(z0+z2) * (2.0*z0*(z0+z2)+SQR(z2)) * ( 1.0-2.0*z1*(1.0-z1) ) * ( SQR(Qbar_j) + SQR(mf) ) / SQR(x2_j) 
+                    * ( - exp( -SQR(x2_j) / ( x01sq *exp(M_EULER) ) ) * SQR(gsl_sf_bessel_K1( sqrt( x01sq * ( SQR(Qbar_j) + SQR(mf) ) ) ) ));
+    double term_k = 1.0/SQR(z1+z2) * (2.0*z1*(z1+z2)+SQR(z2)) * ( 1.0-2.0*z0*(1.0-z0) ) * ( SQR(Qbar_k) + SQR(mf) ) / SQR(x2_k) 
+                    * ( - exp( -SQR(x2_k) / ( x01sq *exp(M_EULER) ) ) * SQR(gsl_sf_bessel_K1( sqrt( x01sq * ( SQR(Qbar_k) + SQR(mf) ) ) ) ));
+   
+    double res = term_j + term_k;
+
+    return res;
+}
+
+// Part of (54) proportional to N_012
+double IT_tripole_jk_I1(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq){
+
+    double x20x21 = -0.5*(x01sq - x21sq - x02sq);
+
+    double z0 = 1-z1-z2;
+
+    double Qbar_j = Q*sqrt(z1*(1.0-z1));
+    double Qbar_k = Q*sqrt(z0*(1.0-z0));
+    double omega_j = z0*z2/(z1*SQR(z0+z2));
+    double omega_k = z1*z2/(z0*SQR(z1+z2));
+
+
+    double x2_j = sqrt(x02sq);
+    double x2_k = sqrt(x21sq);
+    double x3_j = sqrt( SQR(z0) / SQR(z0+z2) * x02sq + x21sq - 2.0 * z0/(z0+z2) *x20x21 );
+    double x3_k = sqrt( SQR(z1) / SQR(z1+z2) * x21sq + x02sq - 2.0 * z1/(z1+z2) *x20x21 );
+
+    double term_j = 1.0/SQR(z0+z2) * (2.0*z0*(z0+z2)+SQR(z2)) * ( 1.0-2.0*z1*(1.0-z1) ) * ( SQR(Qbar_j) + SQR(mf) ) / SQR(x2_j) 
+                    * SQR(x3_j) / ( SQR(x3_j) + omega_j * SQR(x2_j) ) * SQR( gsl_sf_bessel_K1( sqrt( SQR(x3_j) + omega_j * SQR(x2_j) ) * sqrt( SQR(Qbar_j) + SQR(mf) ) ) ) ;
+    double term_k = 1.0/SQR(z1+z2) * (2.0*z1*(z1+z2)+SQR(z2)) * ( 1.0-2.0*z0*(1.0-z0) ) * ( SQR(Qbar_k) + SQR(mf) ) / SQR(x2_k) 
+                    * SQR(x3_k) / ( SQR(x3_k) + omega_k * SQR(x2_k) ) * SQR( gsl_sf_bessel_K1( sqrt( SQR(x3_k) + omega_k * SQR(x2_k) ) * sqrt( SQR(Qbar_k) + SQR(mf) ) ) ) ;
+   
+    double res = term_j + term_k;
+
+    return res;
+}
+
+double IT_dipole_jkm_I1(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq){
+
+    double x20x21 = -0.5*(x01sq - x21sq - x02sq);
+
+    double z0 = 1-z1-z2;
+
+    double Qbar_j = Q*sqrt(z1*(1.0-z1));
+    double Qbar_k = Q*sqrt(z0*(1.0-z0));
+
+    double x2_j = sqrt(x02sq);
+    double x2_k = sqrt(x21sq);
+    double x3_j = sqrt( SQR(z0) / SQR(z0+z2) * x02sq + x21sq - 2.0 * z0/(z0+z2) *x20x21 );
+    double x3_k = sqrt( SQR(z1) / SQR(z1+z2) * x21sq + x02sq - 2.0 * z1/(z1+z2) *x20x21 );
+
+    double term_j = 1.0/SQR(z0+z2) * (2.0*z0*(z0+z2)+SQR(z2)) / SQR(x2_j) 
+                    * ( - exp( -SQR(x2_j) / ( x01sq *exp(M_EULER) ) ) * SQR(gsl_sf_bessel_K0( sqrt( x01sq * ( SQR(Qbar_j) + SQR(mf) ) ) ) ));
+    double term_k = 1.0/SQR(z1+z2) * (2.0*z1*(z1+z2)+SQR(z2)) / SQR(x2_k) 
+                    * ( - exp( -SQR(x2_k) / ( x01sq *exp(M_EULER) ) ) * SQR(gsl_sf_bessel_K0( sqrt( x01sq * ( SQR(Qbar_k) + SQR(mf) ) ) ) ));
+   
+    double res = SQR(mf) * (term_j + term_k);
+
+    return res;
+}
+
+double IT_tripole_jkm_I1(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq) {
+
+    double x20x21 = -0.5*(x01sq - x21sq - x02sq);
+
+    double z0 = 1-z1-z2;
+
+    double Qbar_j = Q*sqrt(z1*(1.0-z1));
+    double Qbar_k = Q*sqrt(z0*(1.0-z0));
+    double omega_j = z0*z2/(z1*SQR(z0+z2));
+    double omega_k = z1*z2/(z0*SQR(z1+z2));
+
+
+    double x2_j = sqrt(x02sq);
+    double x2_k = sqrt(x21sq);
+    double x3_j = sqrt( SQR(z0) / SQR(z0+z2) * x02sq + x21sq - 2.0 * z0/(z0+z2) *x20x21 );
+    double x3_k = sqrt( SQR(z1) / SQR(z1+z2) * x21sq + x02sq - 2.0 * z1/(z1+z2) *x20x21 );
+
+    double term_j = 1.0/SQR(z0+z2) * (2.0*z0*(z0+z2)+SQR(z2)) / SQR(x2_j) 
+                    * SQR( gsl_sf_bessel_K0( sqrt( SQR(x3_j) + omega_j * SQR(x2_j) ) * sqrt( SQR(Qbar_j) + SQR(mf) ) ) );
+    double term_k = 1.0/SQR(z1+z2) * (2.0*z1*(z1+z2)+SQR(z2)) / SQR(x2_k) 
+                    * SQR( gsl_sf_bessel_K0( sqrt( SQR(x3_k) + omega_k * SQR(x2_k) ) * sqrt( SQR(Qbar_k) + SQR(mf) ) ) );
+   
+    double res = SQR(mf) * (term_j + term_k);
+
+    return res;
+}
+
+
+
+double IT_tripole_F_I1(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq){
+
+    double x20x21 = -0.5*(x01sq - x21sq - x02sq);
+
+    double z0 = 1-z1-z2;
+
+    double Qbar_j = Q*sqrt(z1*(1.0-z1));
+    double Qbar_k = Q*sqrt(z0*(1.0-z0));
+    double omega_j = z0*z2/(z1*SQR(z0+z2));
+    double omega_k = z1*z2/(z0*SQR(z1+z2));
+    double lambda_j = z1*z2/z0;
+    double lambda_k = z0*z2/z1;
+
+
+    double x2_j = sqrt(x02sq);
+    double x2_k = sqrt(x21sq);
+    double x3_j = sqrt( SQR(z0) / SQR(z0+z2) * x02sq + x21sq - 2.0 * z0/(z0+z2) *x20x21 );
+    double x3_k = sqrt( SQR(z1) / SQR(z1+z2) * x21sq + x02sq - 2.0 * z1/(z1+z2) *x20x21 );
+
+    double x2j_x3j = x20x21 - z0/(z0+z2) * x02sq ;
+    double x2k_x3k = -x20x21 + z1/(z1+z2) * x21sq ;
+    double x2j_x3k = -x02sq + z1/(z1+z2) * x20x21 ;
+    double x2k_x3j = x21sq - z0/(z0+z2) * x20x21 ;
+    double x3j_x3k = z0/(z0+z2)*x02sq + z1/(z1+z2)*x21sq - ( 1.0 + z0*z1/(z0+z2)/(z1+z2) ) * x20x21;
+
+    double G22_sing_j = 1.0/SQR(x2_j) * sqrt( ( SQR(Qbar_j) + SQR(mf) ) / ( SQR(x3_j) + omega_j * SQR(x2_j) ) ) 
+                        * gsl_sf_bessel_K1( sqrt(( SQR(Qbar_j) + SQR(mf) ) * ( SQR(x3_j) + omega_j * SQR(x2_j) ) ) );
+    double G22_sing_k = 1.0/SQR(x2_k) * sqrt( ( SQR(Qbar_k) + SQR(mf) ) / ( SQR(x3_k) + omega_k * SQR(x2_k) ) ) 
+                        * gsl_sf_bessel_K1( sqrt(( SQR(Qbar_k) + SQR(mf) ) * ( SQR(x3_k) + omega_k * SQR(x2_k) ) ) );
+
+    double H_j = 4.0 * sqrt( ( SQR(Qbar_j) + SQR(mf) * (1.0+lambda_j) ) / ( SQR(x3_j) + omega_j * SQR(x2_j) ) ) 
+                * gsl_sf_bessel_K1( sqrt( ( SQR(Qbar_j) + SQR(mf) * (1.0+lambda_j) ) * ( SQR(x3_j) + omega_j * SQR(x2_j) ) ) );
+    double H_k = 4.0 * sqrt( ( SQR(Qbar_k) + SQR(mf) * (1.0+lambda_k) ) / ( SQR(x3_k) + omega_k * SQR(x2_k) ) ) 
+                * gsl_sf_bessel_K1( sqrt( ( SQR(Qbar_k) + SQR(mf) * (1.0+lambda_k) ) * ( SQR(x3_k) + omega_k * SQR(x2_k) ) ) );
+
+    double term_1 = 4.0/(z0+z2)/(z1+z2) * ( z2*SQR(z0-z1) * ( x2j_x3j * x2k_x3k - x2k_x3j * x2j_x3k ) 
+                    - ( z1*(z0+z2) + z0*(z1+z2) )*(z0*(z0+z2)+z1*(z1+z2)) * x20x21 * x3j_x3k ) *
+                    G22_sing_j * G22_sing_k;
+    double term_2j = -(z0+z2)*z1*z2/SQR(z1+z2) * x2j_x3j * H_k * G22_sing_j;
+    double term_2k = (z1+z2)*z0*z2/SQR(z0+z2) * x2k_x3k * H_j * G22_sing_k;
+    double term_3j = -SQR(z0)*z1*z2/(z0+z2)/SQR(z0+z2) * x2j_x3j * H_j * G22_sing_j ;
+    double term_3k = SQR(z1)*z0*z2/(z1+z2)/SQR(z1+z2) * x2k_x3k * H_k * G22_sing_k ;
+    double term_4j = SQR(z0*z2)/(8.0*SQR(z0+z2)*SQR(z0+z2))*SQR(H_j);
+    double term_4k = SQR(z1*z2)/(8.0*SQR(z1+z2)*SQR(z1+z2))*SQR(H_k);
+
+    double res = 0.5 * (term_1 + term_2j + term_2k + term_3j + term_3k + term_4j + term_4k);
+
+    return res;
+
+}
+
+
+double IT_tripole_Fm_I1(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq){
+
+    double x20x21 = -0.5*(x01sq - x21sq - x02sq);
+
+    double z0 = 1-z1-z2;
+
+    double Qbar_j = Q*sqrt(z1*(1.0-z1));
+    double Qbar_k = Q*sqrt(z0*(1.0-z0));
+    double omega_j = z0*z2/(z1*SQR(z0+z2));
+    double omega_k = z1*z2/(z0*SQR(z1+z2));
+    double lambda_j = z1*z2/z0;
+    double lambda_k = z0*z2/z1;
+
+
+    double x2_j = sqrt(x02sq);
+    double x2_k = sqrt(x21sq);
+    double x3_j = sqrt( SQR(z0) / SQR(z0+z2) * x02sq + x21sq - 2.0 * z0/(z0+z2) *x20x21 );
+    double x3_k = sqrt( SQR(z1) / SQR(z1+z2) * x21sq + x02sq - 2.0 * z1/(z1+z2) *x20x21 );
+
+
+    double G12_sing_j = 1.0/SQR(x2_j) * gsl_sf_bessel_K0( sqrt(( SQR(Qbar_j) + SQR(mf) ) * ( SQR(x3_j) + omega_j * SQR(x2_j) ) ) );
+    double G12_sing_k = 1.0/SQR(x2_k) * gsl_sf_bessel_K0( sqrt(( SQR(Qbar_k) + SQR(mf) ) * ( SQR(x3_k) + omega_k * SQR(x2_k) ) ) );
+
+
+    double res = 0.5*SQR(mf) * (
+        -1.0/(32.0*(z0+z2)*(z1+z2)) * ( (2.0*z0+z2)*(2.0*z1+z2)+SQR(z2) ) *x20x21 * 8.0 * G12_sing_j * 8.0 *G12_sing_k
+    );
+
+    return res;
+}
+
+
+
+
+////// Terms for I2
+double IT_tripole_F_I2_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t){
+
+    double x20x21 = -0.5*(x01sq - x21sq - x02sq);
+
+    double z0 = 1-z1-z2;
+
+    double Qbar_j = Q*sqrt(z1*(1.0-z1));
+    double Qbar_k = Q*sqrt(z0*(1.0-z0));
+    double omega_j = z0*z2/(z1*SQR(z0+z2));
+    double omega_k = z1*z2/(z0*SQR(z1+z2));
+    double lambda_j = z1*z2/z0;
+    double lambda_k = z0*z2/z1;
+
+
+    double x2_j = sqrt(x02sq);
+    double x2_k = sqrt(x21sq);
+    double x3_j = sqrt( SQR(z0) / SQR(z0+z2) * x02sq + x21sq - 2.0 * z0/(z0+z2) *x20x21 );
+    double x3_k = sqrt( SQR(z1) / SQR(z1+z2) * x21sq + x02sq - 2.0 * z1/(z1+z2) *x20x21 );
+
+    double x2j_x3j = x20x21 - z0/(z0+z2) * x02sq ;
+    double x2k_x3k = -x20x21 + z1/(z1+z2) * x21sq ;
+    double x2j_x3k = -x02sq + z1/(z1+z2) * x20x21 ;
+    double x2k_x3j = x21sq - z0/(z0+z2) * x20x21 ;
+    double x3j_x3k = z0/(z0+z2)*x02sq + z1/(z1+z2)*x21sq - ( 1.0 + z0*z1/(z0+z2)/(z1+z2) ) * x20x21;
+
+
+
+    double int_22_bar_j = G_integrand_simplified( 2, 2, Qbar_j, mf, x2_j, x3_j, omega_j, lambda_j, y_t) - G_integrand_simplified( 2, 2, Qbar_j, mf, x2_j, x3_j, omega_j, 0.0, y_t);
+    double int_22_bar_k = G_integrand_simplified( 2, 2, Qbar_k, mf, x2_k, x3_k, omega_k, lambda_k, y_t) - G_integrand_simplified( 2, 2, Qbar_k, mf, x2_k, x3_k, omega_k, 0.0, y_t);
+
+    double G22_sing_j = 1.0/SQR(x2_j) * sqrt( ( SQR(Qbar_j) + SQR(mf) ) / ( SQR(x3_j) + omega_j * SQR(x2_j) ) ) 
+                        * gsl_sf_bessel_K1( sqrt(( SQR(Qbar_j) + SQR(mf) ) * ( SQR(x3_j) + omega_j * SQR(x2_j) ) ) );
+    double G22_sing_k = 1.0/SQR(x2_k) * sqrt( ( SQR(Qbar_k) + SQR(mf) ) / ( SQR(x3_k) + omega_k * SQR(x2_k) ) ) 
+                        * gsl_sf_bessel_K1( sqrt(( SQR(Qbar_k) + SQR(mf) ) * ( SQR(x3_k) + omega_k * SQR(x2_k) ) ) );
+
+    double H_j = 4.0 * sqrt( ( SQR(Qbar_j) + SQR(mf) * (1.0+lambda_j) ) / ( SQR(x3_j) + omega_j * SQR(x2_j) ) ) 
+                * gsl_sf_bessel_K1( sqrt( ( SQR(Qbar_j) + SQR(mf) * (1.0+lambda_j) ) * ( SQR(x3_j) + omega_j * SQR(x2_j) ) ) );
+    double H_k = 4.0 * sqrt( ( SQR(Qbar_k) + SQR(mf) * (1.0+lambda_k) ) / ( SQR(x3_k) + omega_k * SQR(x2_k) ) ) 
+                * gsl_sf_bessel_K1( sqrt( ( SQR(Qbar_k) + SQR(mf) * (1.0+lambda_k) ) * ( SQR(x3_k) + omega_k * SQR(x2_k) ) ) );
+
+    double term_1 = 1.0/(4.0*(z0+z2)*(z1+z2)) * (z2*SQR(z0-z1)* ( x2j_x3j * x2k_x3k - x2k_x3j * x2j_x3k ) 
+                    - (z1*(z0+z2)+z0*(z1+z2))* (z0*(z0+z2)+z1*(z1+z2))*x20x21 * x3j_x3k  )
+                    * (
+                        int_22_bar_k * G22_sing_j
+                        +int_22_bar_j * G22_sing_k
+                    );
+    double term_2j = -(z0+z2)*z1*z2/(16.0*SQR(z1+z2)) * x2j_x3j * H_k *int_22_bar_j;
+    double term_2k = (z1+z2)*z0*z2/(16.0*SQR(z0+z2)) * x2k_x3k * H_j *int_22_bar_k;
+    double term_3j = -SQR(z0)*z1*z2/(16.0*(z0+z2)*SQR(z0+z2)) * x2j_x3j*H_j*int_22_bar_j;
+    double term_3k = SQR(z1)*z0*z2/(16.0*(z1+z2)*SQR(z1+z2)) * x2k_x3k*H_k*int_22_bar_k;
+
+    double res = 0.5 * (term_1 + term_2j + term_2k + term_3j + term_3k);
+
+    return res;
+}
+
+double IT_tripole_Fm_I2_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t){
+
+    double x20x21 = -0.5*(x01sq - x21sq - x02sq);
+
+    double z0 = 1-z1-z2;
+
+    double Qbar_j = Q*sqrt(z1*(1.0-z1));
+    double Qbar_k = Q*sqrt(z0*(1.0-z0));
+    double omega_j = z0*z2/(z1*SQR(z0+z2));
+    double omega_k = z1*z2/(z0*SQR(z1+z2));
+    double lambda_j = z1*z2/z0;
+    double lambda_k = z0*z2/z1;
+
+
+    double x2_j = sqrt(x02sq);
+    double x2_k = sqrt(x21sq);
+    double x3_j = sqrt( SQR(z0) / SQR(z0+z2) * x02sq + x21sq - 2.0 * z0/(z0+z2) *x20x21 );
+    double x3_k = sqrt( SQR(z1) / SQR(z1+z2) * x21sq + x02sq - 2.0 * z1/(z1+z2) *x20x21 );
+
+    double x2j_x3j = x20x21 - z0/(z0+z2) * x02sq ;
+    double x2k_x3k = -x20x21 + z1/(z1+z2) * x21sq ;
+    double x2j_x3k = -x02sq + z1/(z1+z2) * x20x21 ;
+    double x2k_x3j = x21sq - z0/(z0+z2) * x20x21 ;
+    double x3j_x3k = z0/(z0+z2)*x02sq + z1/(z1+z2)*x21sq - ( 1.0 + z0*z1/(z0+z2)/(z1+z2) ) * x20x21;
+
+
+    double int_12_bar_j = G_integrand_simplified( 1, 2, Qbar_j, mf, x2_j, x3_j, omega_j, lambda_j, y_t) - G_integrand_simplified( 1, 2, Qbar_j, mf, x2_j, x3_j, omega_j, 0.0, y_t);
+    double int_12_bar_k = G_integrand_simplified( 1, 2, Qbar_k, mf, x2_k, x3_k, omega_k, lambda_k, y_t) - G_integrand_simplified( 1, 2, Qbar_k, mf, x2_k, x3_k, omega_k, 0.0, y_t);
+
+    double int_22_bar_j = G_integrand_simplified( 2, 2, Qbar_j, mf, x2_j, x3_j, omega_j, lambda_j, y_t) - G_integrand_simplified( 2, 2, Qbar_j, mf, x2_j, x3_j, omega_j, 0.0, y_t);
+    double int_22_bar_k = G_integrand_simplified( 2, 2, Qbar_k, mf, x2_k, x3_k, omega_k, lambda_k, y_t) - G_integrand_simplified( 2, 2, Qbar_k, mf, x2_k, x3_k, omega_k, 0.0, y_t);
+
+
+    double int_21_j = G_integrand_simplified( 2, 1, Qbar_j, mf, x2_j, x3_j, omega_j, lambda_j, y_t);
+    double int_21_k = G_integrand_simplified( 2, 1, Qbar_k, mf, x2_k, x3_k, omega_k, lambda_k, y_t);
+
+    double int_11_j = G_integrand_simplified( 1, 1, Qbar_j, mf, x2_j, x3_j, omega_j, lambda_j, y_t);
+    double int_11_k = G_integrand_simplified( 1, 1, Qbar_k, mf, x2_k, x3_k, omega_k, lambda_k, y_t);
+
+    double G12_sing_j = 1.0/SQR(x2_j) * gsl_sf_bessel_K0( sqrt(( SQR(Qbar_j) + SQR(mf) ) * ( SQR(x3_j) + omega_j * SQR(x2_j) ) ) );
+    double G12_sing_k = 1.0/SQR(x2_k) * gsl_sf_bessel_K0( sqrt(( SQR(Qbar_k) + SQR(mf) ) * ( SQR(x3_k) + omega_k * SQR(x2_k) ) ) );
+
+    double G22_sing_j = 1.0/SQR(x2_j) * sqrt( ( SQR(Qbar_j) + SQR(mf) ) / ( SQR(x3_j) + omega_j * SQR(x2_j) ) ) 
+                        * gsl_sf_bessel_K1( sqrt(( SQR(Qbar_j) + SQR(mf) ) * ( SQR(x3_j) + omega_j * SQR(x2_j) ) ) );
+    double G22_sing_k = 1.0/SQR(x2_k) * sqrt( ( SQR(Qbar_k) + SQR(mf) ) / ( SQR(x3_k) + omega_k * SQR(x2_k) ) ) 
+                        * gsl_sf_bessel_K1( sqrt(( SQR(Qbar_k) + SQR(mf) ) * ( SQR(x3_k) + omega_k * SQR(x2_k) ) ) );
+
+    double H_j = 4.0 * sqrt( ( SQR(Qbar_j) + SQR(mf) * (1.0+lambda_j) ) / ( SQR(x3_j) + omega_j * SQR(x2_j) ) ) 
+                * gsl_sf_bessel_K1( sqrt( ( SQR(Qbar_j) + SQR(mf) * (1.0+lambda_j) ) * ( SQR(x3_j) + omega_j * SQR(x2_j) ) ) );
+    double H_k = 4.0 * sqrt( ( SQR(Qbar_k) + SQR(mf) * (1.0+lambda_k) ) / ( SQR(x3_k) + omega_k * SQR(x2_k) ) ) 
+                * gsl_sf_bessel_K1( sqrt( ( SQR(Qbar_k) + SQR(mf) * (1.0+lambda_k) ) * ( SQR(x3_k) + omega_k * SQR(x2_k) ) ) );
+
+    double term_1j = -z0*z1*SQR(z2)/(16.0*(z0+z2)*SQR(z0+z2)) * x2j_x3j * int_21_j * 8.0 * G12_sing_j;
+    double term_1k =  z0*z1*SQR(z2)/(16.0*(z1+z2)*SQR(z1+z2)) * x2k_x3k * int_21_k * 8.0 * G12_sing_k;
+    double term_2 = -1.0/(32.0*(z0+z2)*(z1+z2))* ( (2.0*z0+z2)*(2.0*z1+z2) + SQR(z2) ) * x20x21 * (
+         int_12_bar_k * 8.0 * G12_sing_j
+        +int_12_bar_j * 8.0 * G12_sing_k
+    );
+    double term_3j = -SQR(z0*z2)/(16.0*(z0+z2)*SQR(z1+z2)) * x2j_x3k * int_21_k * 8.0 * G12_sing_j;
+    double term_3k =  SQR(z1*z2)/(16.0*SQR(z0+z2)*(z1+z2)) * x2k_x3j * int_21_j * 8.0 * G12_sing_k;
+    double term_4j = -z0*z1*SQR(z2)/(16.0*(z0+z2)*SQR(z0+z2)) * x2j_x3j * int_11_j * 16.0 * G22_sing_j ;
+    double term_4k =  z0*z1*SQR(z2)/(16.0*(z1+z2)*SQR(z1+z2)) * x2k_x3k * int_11_k * 16.0 * G22_sing_k ;
+    double term_5j = -(z0+z2)*SQR(z2)/(16.0*SQR(z1+z2)) * x2j_x3j * int_11_k * 16.0 * G22_sing_j ;
+    double term_5k =  (z1+z2)*SQR(z2)/(16.0*SQR(z0+z2)) * x2k_x3k * int_11_j * 16.0 * G22_sing_k ;
+    double term_6j = z0*z2*SQR(z2)/(4.0*SQR(z0+z2)*SQR(z0+z2))* H_j * int_11_j;
+    double term_6k = z1*z2*SQR(z2)/(4.0*SQR(z1+z2)*SQR(z1+z2))* H_k * int_11_k;
+
+    double res = 0.5*SQR(mf) * ( term_1j + term_1k + term_2 + term_3j + term_3k + term_4j + term_4k + term_5j + term_5k + term_6j + term_6k );
+
+    return res;
+}
+
+
+double IT_tripole_jk_I2_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t){
+
+    double x20x21 = -0.5*(x01sq - x21sq - x02sq);
+
+    double z0 = 1-z1-z2;
+
+    double Qbar_j = Q*sqrt(z1*(1.0-z1));
+    double Qbar_k = Q*sqrt(z0*(1.0-z0));
+    double omega_j = z0*z2/(z1*SQR(z0+z2));
+    double omega_k = z1*z2/(z0*SQR(z1+z2));
+    double lambda_j = z1*z2/z0;
+    double lambda_k = z0*z2/z1;
+
+    double x2_j = sqrt(x02sq);
+    double x2_k = sqrt(x21sq);
+    double x3_j = sqrt( SQR(z0) / SQR(z0+z2) * x02sq + x21sq - 2.0 * z0/(z0+z2) *x20x21 );
+    double x3_k = sqrt( SQR(z1) / SQR(z1+z2) * x21sq + x02sq - 2.0 * z1/(z1+z2) *x20x21 );
+
+
+
+    double int_22_bar_j = G_integrand_simplified( 2, 2, Qbar_j, mf, x2_j, x3_j, omega_j, lambda_j, y_t) - G_integrand_simplified( 2, 2, Qbar_j, mf, x2_j, x3_j, omega_j, 0.0, y_t);
+    double int_22_bar_k = G_integrand_simplified( 2, 2, Qbar_k, mf, x2_k, x3_k, omega_k, lambda_k, y_t) - G_integrand_simplified( 2, 2, Qbar_k, mf, x2_k, x3_k, omega_k, 0.0, y_t);
+
+
+    double term_j = 1.0/SQR(z0+z2) * (2.0*z0*(z0+z2)+SQR(z2)) * ( 1.0-2.0*z1*(1.0-z1) ) 
+                    * int_22_bar_j * SQR(x3_j)/8.0 * sqrt( ( SQR(Qbar_j) + SQR(mf) ) / (SQR(x3_j) + omega_j * SQR(x2_j) ) )
+                    * gsl_sf_bessel_K1( sqrt( SQR(x3_j) + omega_j * SQR(x2_j) ) * sqrt( SQR(Qbar_j) + SQR(mf) ) )  ;
+    double term_k = 1.0/SQR(z1+z2) * (2.0*z1*(z1+z2)+SQR(z2)) * ( 1.0-2.0*z0*(1.0-z0) ) 
+                    * int_22_bar_k * SQR(x3_k)/8.0 * sqrt( ( SQR(Qbar_k) + SQR(mf) ) / (SQR(x3_k) + omega_k * SQR(x2_k) ) )
+                    * gsl_sf_bessel_K1( sqrt( SQR(x3_k) + omega_k * SQR(x2_k) ) * sqrt( SQR(Qbar_k) + SQR(mf) ) )  ;
+
+    double res = term_j + term_k;
+
+    return res;
+}
+
+double IT_tripole_jkm_I2_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t){
+
+    double x20x21 = -0.5*(x01sq - x21sq - x02sq);
+
+    double z0 = 1-z1-z2;
+
+    double Qbar_j = Q*sqrt(z1*(1.0-z1));
+    double Qbar_k = Q*sqrt(z0*(1.0-z0));
+    double omega_j = z0*z2/(z1*SQR(z0+z2));
+    double omega_k = z1*z2/(z0*SQR(z1+z2));
+    double lambda_j = z1*z2/z0;
+    double lambda_k = z0*z2/z1;
+
+    double x2_j = sqrt(x02sq);
+    double x2_k = sqrt(x21sq);
+    double x3_j = sqrt( SQR(z0) / SQR(z0+z2) * x02sq + x21sq - 2.0 * z0/(z0+z2) *x20x21 );
+    double x3_k = sqrt( SQR(z1) / SQR(z1+z2) * x21sq + x02sq - 2.0 * z1/(z1+z2) *x20x21 );
+
+
+    double int_12_bar_j = G_integrand_simplified( 1, 2, Qbar_j, mf, x2_j, x3_j, omega_j, lambda_j, y_t) - G_integrand_simplified( 1, 2, Qbar_j, mf, x2_j, x3_j, omega_j, 0.0, y_t);
+    double int_12_bar_k = G_integrand_simplified( 1, 2, Qbar_k, mf, x2_k, x3_k, omega_k, lambda_k, y_t) - G_integrand_simplified( 1, 2, Qbar_k, mf, x2_k, x3_k, omega_k, 0.0, y_t);
+
+    double term_j = 1.0/SQR(z0+z2) * (2.0*z0*(z0+z2)+SQR(z2))
+                    * int_12_bar_j/4.0 * gsl_sf_bessel_K0( sqrt( SQR(x3_j) + omega_j * SQR(x2_j) ) * sqrt( SQR(Qbar_j) + SQR(mf) ) )  ;
+    double term_k = 1.0/SQR(z1+z2) * (2.0*z1*(z1+z2)+SQR(z2))
+                    * int_12_bar_k/4.0 * gsl_sf_bessel_K0( sqrt( SQR(x3_k) + omega_k * SQR(x2_k) ) * sqrt( SQR(Qbar_k) + SQR(mf) ) )  ;
+
+    double res = SQR(mf) * (term_j + term_k);
+
+    return res;
+}
