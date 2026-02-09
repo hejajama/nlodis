@@ -12,7 +12,7 @@ using namespace std;
  */
 TEST(EVOLUTION_RAPIDITY)
 {
-    NLODIS dis("gbw.dat");
+    NLODIS dis;
     
     double Q2 = 10.0;
     double xbj = 0.01;
@@ -43,7 +43,7 @@ TEST(EVOLUTION_RAPIDITY)
  */
 TEST(RUNNING_COUPLING_SCALE)
 {
-    NLODIS dis("gbw.dat");
+    NLODIS dis;
     
     double x01 = 1.0;
     double x02 = 2.0;
@@ -80,7 +80,7 @@ TEST(RUNNING_COUPLING_SCALE)
  */
 TEST(ALPHAS_COORDINATE_SPACE)
 {
-    NLODIS dis("gbw.dat");
+    NLODIS dis;
     double C2=8;
     dis.SetRunningCouplingC2Alpha(C2); 
     

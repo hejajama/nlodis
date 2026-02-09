@@ -13,12 +13,27 @@ add_library(
 	${CMAKE_CURRENT_BINARY_DIR}/gitsha1.cpp
 )
 
-target_link_libraries(nlodisframework PUBLIC GSL::gsl GSL::gslcblas)
-
 add_executable(
     nlodis
     main.cpp
 )
+
+add_library(
+    bkdipole
+    STATIC
+    dipole/bkdipole/bkdipole.cpp
+    dipole/bkdipole/datafile.cpp
+    dipole/bkdipole/interpolation.cpp
+    dipole/dipoleamplitude.cpp
+    dipole/vector.cpp
+)
+
+
+target_link_libraries(nlodisframework PUBLIC GSL::gsl GSL::gslcblas)
+target_link_libraries(bkdipole PUBLIC GSL::gsl GSL::gslcblas)
+
+
+
 
 add_executable(
     test
@@ -93,7 +108,7 @@ target_link_libraries(
 	nlodis
 	PRIVATE
     nlodisframework
-    amplitude
+    bkdipole
 	cuba
 	GSL::gsl
 	GSL::gslcblas
@@ -103,7 +118,7 @@ target_link_libraries(
     test
     PRIVATE
     nlodisframework
-    amplitude
+    bkdipole
 	cuba
 	GSL::gsl
 	GSL::gslcblas

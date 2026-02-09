@@ -47,9 +47,9 @@ double NLODIS::FT(double Q2, double xbj)
 
 double NLODIS::TripoleAmplitude(double x01, double x02, double x21, double Y) 
 {
-    double S01 = 1-dipole.DipoleAmplitude(x01, Y);
-    double S02 = 1-dipole.DipoleAmplitude(x02, Y);
-    double S12 = 1-dipole.DipoleAmplitude(x21, Y);
+    double S01 = 1-dipole->DipoleAmplitude(x01, Y);
+    double S02 = 1-dipole->DipoleAmplitude(x02, Y);
+    double S12 = 1-dipole->DipoleAmplitude(x21, Y);
 
     if (nc_scheme == LargeNC)
     {
@@ -101,7 +101,7 @@ double NLODIS::Photon_proton_cross_section_d2b(double Q2, double xbj, Polarizati
     
     // NLO calculation
 
-    double sigma_LO = Photon_proton_cross_section_LO_d2b(Q2, dipole.X0(), pol);
+    double sigma_LO = Photon_proton_cross_section_LO_d2b(Q2, dipole->X0(), pol);
     double sigma_dip = Sigma_dip_d2b(Q2, xbj, pol);
     double  sigma_qg = Sigma_qg_d2b(Q2,xbj,pol);
 
@@ -478,7 +478,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
 
 
 
- NLODIS::NLODIS(string bkdata) : dipole(bkdata)
+ NLODIS::NLODIS()
  {
     // Initialize quark flavors and masses
     Quark u; u.type = Quark::U; u.mass = 0.14; u.charge = 2.0/3.0;
@@ -493,12 +493,20 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     quarks.push_back(c);
     //quarks.push_back(b);
 
-    dipole.SetOutOfRangeErrors(false);
-
  }
  
  double NLODIS::Alphas(double r) const
- {
+ {double scalefactor = 4.0*C2_alpha;
+    const double alphas_mu0=2.5;    // mu0/lqcd
+    const double alphas_freeze_c=0.2;
+    double b0 = (11.0*3 - 2.0*3)/3.0;
+
+    double AlphaSres = 4.0*M_PI / ( b0 * std::log(
+    std::pow( std::pow(alphas_mu0, 2.0/alphas_freeze_c) + std::pow(scalefactor/(r*r*0.241*0.241), 1.0/alphas_freeze_c), alphas_freeze_c)
+    ) );
+    return AlphaSres;
+
+    /*
     const double LambdaQCD = 0.241; // GeV
     const double b0 = (11.0*NC - 2.0*quarks.size())/(12.0*M_PI);
     double mu2 = 4.0*C2_alpha/(r*r);
@@ -507,7 +515,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     {
         as = 0.7; // Freeze coupling
     }
-    return as;
+    return as;*/
  }
 
  double NLODIS::z2_lower_bound(double xbj, double Q2)
@@ -544,4 +552,9 @@ void NLODIS::SetProtonTransverseArea(double transverse_area_, Unit unit)
     {
         throw std::runtime_error("Unknown unit in SetProtonTransverseArea");
     }
+}
+
+void NLODIS::SetDipole(std::unique_ptr<Dipole> dipole_)
+{
+    dipole = std::move(dipole_);
 }

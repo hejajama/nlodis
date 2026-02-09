@@ -25,8 +25,8 @@ endif()
 
 # Headers and libraries
 
-link_directories("/Users/hejajama/code//nlodisfit_bayesian/cpp/build/lib/")
-include_directories("/Users/hejajama/code/nlodisfit_bayesian/cpp/src")
+#link_directories("/Users/hejajama/code//nlodisfit_bayesian/cpp/build/lib/")
+#include_directories("/Users/hejajama/code/nlodisfit_bayesian/cpp/src")
 
 include_directories("src/Cuba-4.2.2/")
 

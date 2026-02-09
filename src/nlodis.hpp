@@ -12,7 +12,7 @@
 #ifndef _NLODIS_HPP_
 #define _NLODIS_HPP_
 
-#include <amplitudelib.hpp> // Dipole amplitude
+#include "dipole/dipoleamplitude.hpp"
 #include "qcd.hpp"
 #include "datatypes.hpp"
 #include <vector>
@@ -23,7 +23,7 @@ class NLODIS
 {
     public:
         
-        NLODIS(std::string bkdata);
+        NLODIS();
 
         /**
          * @brief Structure function F2 
@@ -114,6 +114,7 @@ class NLODIS
          */
         double Sigma_qg_d2b(double Q2, double xbj, Polarization pol);
 
+        void SetDipole(std::unique_ptr<Dipole> dipole_);
         
         void SetOrder(Order o) { order = o; }
         double GetMaxR() const { return maxr; }
@@ -141,7 +142,7 @@ class NLODIS
          */
         double ProtonTransverseArea() const { return transverse_area; }
 
-        AmplitudeLib& GetDipole() { return dipole; }
+        Dipole& GetDipole() { return *dipole; }
 
         /**
          * @brief Lower bound for the z2 integral.
@@ -206,7 +207,8 @@ class NLODIS
         double Integrand_photon_target_LO(double r, double z, double x, double Q2, Polarization pol );
     
         double transverse_area=1; // \sigma_0/2 = \int d^2b in GeV^-2 (proton transverse area)
-        AmplitudeLib dipole;
+        //AmplitudeLib dipole;
+        std::unique_ptr<Dipole> dipole;
         Scheme scheme = UNSUB;
         std::vector<Quark> quarks;
         Order order = LO;

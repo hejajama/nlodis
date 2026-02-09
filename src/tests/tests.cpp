@@ -4,7 +4,7 @@
 #include "../nlodis.hpp"
 #include "../integration.hpp"
 
-#include <amplitudelib.hpp>
+#include "dipole/bkdipole/bkdipole.hpp"
 
 const std::string gbw_datafile = "gbw.dat";
 
@@ -15,7 +15,9 @@ const std::string gbw_datafile = "gbw.dat";
  TEST(LEADING_LOG_STRUCTURE_FUNCTIONS)
  {
 
-    NLODIS dis("gbw.dat");
+    BKDipole gbwdatafile(gbw_datafile);
+    NLODIS dis;
+    dis.SetDipole(std::make_unique<BKDipole>(gbw_datafile));
     Quark u; u.type = Quark::U; u.mass = 0.14; u.charge = 2.0/3.0;
     Quark d; d.type = Quark::D; d.mass = 0.14; d.charge = -1.0/3.0;
     Quark s; s.type = Quark::S; s.mass = 0.14;  s.charge = -1.0/3.0;
@@ -52,7 +54,9 @@ const std::string gbw_datafile = "gbw.dat";
  */
 TEST(TRIPOLE_AMPLITUDE)
 {
-    NLODIS dis("gbw.dat");
+    NLODIS dis;
+    BKDipole gbwdatafile("gbw.dat");
+    dis.SetDipole(std::make_unique<BKDipole>(gbwdatafile));
 
     dis.SetNcScheme(LargeNC);
     double x01 = 1.0;
@@ -82,7 +86,7 @@ TEST(GBW_DIPOLE_SATSCALE)
     // file gbw.dat corresponds to the GBW dipole amplitude
     // N(r,Y) = 1 - exp(-r^2 Q_s^2(Y)/4)
     // with Q_s^2(Y) = 1.0*exp(-lambda*Y) [GeV^2] and lambda=1/3
-    AmplitudeLib N(gbw_datafile);
+    BKDipole N(gbw_datafile);
 
     double Ns=1-std::exp(-0.5);
 

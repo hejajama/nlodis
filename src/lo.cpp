@@ -3,6 +3,8 @@
 #include <gsl/gsl_sf_bessel.h>
 
 const double INTRELACC_LO = 1e-4;
+using std::cout; 
+using std::endl;
 
 /*
  * LO Photon-proton cross section
@@ -18,7 +20,7 @@ double NLODIS::Photon_proton_cross_section_LO_d2b(double Q2, double xbj, Polariz
         throw std::runtime_error("Only UNSUB scheme is implemented.");
     }
     
-    dipole.InitializeInterpolation( std::log(dipole.X0()/xbj) );
+    dipole->InitializeInterpolation( std::log(dipole->X0()/xbj) );
 
     // Simple approach with nested 1D integrations
     gsl_function F;
@@ -125,14 +127,14 @@ double NLODIS::Integrand_photon_target_LO(double r, double z, double x, double Q
         }
     }
 
-    double evolution_rapidity = std::log(dipole.X0() / x); 
+    double evolution_rapidity = std::log(dipole->X0() / x); 
     if (evolution_rapidity < 0)
     {
         cout << "Warning: evolution rapidity " << evolution_rapidity << "< 0 in Integrand_LO. Setting to 0." << endl;
         evolution_rapidity = 0;
     }
     
-    res *= dipole.DipoleAmplitude(r, evolution_rapidity); // Dipole amplitude at x
+    res *= dipole->DipoleAmplitude(r, evolution_rapidity); // Dipole amplitude at x
 
     
     return res;

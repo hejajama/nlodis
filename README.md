@@ -17,3 +17,5 @@ This is a cleaned-up version of the code originally written by H. Hänninen [see
 See `src/main.cpp`
 
 
+## Future developments
+* Include support for b-dependent dipoles
