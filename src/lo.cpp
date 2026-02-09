@@ -11,7 +11,7 @@ const double INTRELACC_LO = 1e-4;
     * pol: photon polarization (T or L)
     * 
  */
-double NLODIS::Photon_proton_cross_section_LO(double Q2, double xbj, Polarization pol)
+double NLODIS::Photon_proton_cross_section_LO_d2b(double Q2, double xbj, Polarization pol)
 {
     if (scheme != UNSUB)
     {
@@ -71,8 +71,9 @@ double NLODIS::Photon_proton_cross_section_LO(double Q2, double xbj, Polarizatio
 
     result *= 4.0*ALPHA_EM*NC/SQR(2.0*M_PI); // Include prefactors as needed
     // Note: 1/(2pi)^2 because 1708.07328 (1) includes 2pi to transverse coordiante measures
-    result /= 2.0; // Follow convention that 2\int d^2b is replaced by sigma_0
-    // which is not included here
+    
+    // \int d^2b not included in here
+
     return result;
 
 

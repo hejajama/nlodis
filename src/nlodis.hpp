@@ -1,5 +1,10 @@
 /*
  * NLO DIS code
+ *
+ * Compute inclusive structure functions at NLO in the dipole picture, with massive quarks.
+ * Currently the code supports only targets with impact-parameter independent dipole amplitude,
+ * formally corresponding to infinite large
+ * 
  * Based on code originally written by H. Hänninen
  * Modified by J. Penttala, H. Mäntysaari
  */
@@ -40,40 +45,74 @@ class NLODIS
          * @param xbj Bjorken-x.
          */
         double FT(double Q2, double xbj);
-        /**
-         * @brief Photon-proton cross section [GeV^-2].
-         *
-         * @param Q2 Photon virtuality [GeV^2].
-         * @param xbj Bjorken-x.
-         * @param pol Photon polarization.
-         */
-        double Photon_proton_cross_section(double Q2, double xbj, Polarization pol);
-
         /** 
-         * @brief Photon-proton cross section at LO [GeV^-2]
+         * @brief Photon-proton cross section (without the impact parameter integral)
+         * 
+         * Calculate the photon-proton cross section without the impact parameter integral,
+         * at LO or NLO depending on the order set by SetOrder().
+         * 
+         * The result is _not_ integrated over the impact parameter, but factor 2 from
+         * the optical theorem is included.
+         * 
+         * In the case of proton target, the cross section can be obtained by multiplying 
+         * this by \sigma_0/2 = \int d^2 b = ProtonTransverseArea()
          * 
          * @param Q2 photon virtuality [GeV^2]
          * @param xbj Bjorken-x
          * @param pol photon polarization (T or L)
          * 
+         * @return d\sigma(\gamma+A)/d^2b. 
          */
-        double Photon_proton_cross_section_LO(double Q2, double xbj, Polarization pol);
+        double Photon_proton_cross_section_d2b(double Q2, double xbj, Polarization pol);
+
+        /** 
+         * @brief Photon-proton cross section at LO
+         * 
+         * Calculate the photon-proton cross section without the impact parameter integral,
+         * at LO
+         * 
+         * The result is _not_ integrated over the impact parameter, but factor 2 from
+         * the optical theorem is included.
+         * 
+         * In the case of proton target, the cross section can be obtained by multiplying 
+         * this by \sigma_0/2 = \int d^2 b = ProtonTransverseArea()
+         * 
+         * @param Q2 photon virtuality [GeV^2]
+         * @param xbj Bjorken-x
+         * @param pol photon polarization (T or L)
+         * 
+         * @return d\sigma(\gamma+A)/d^2b. 
+         */
+        double Photon_proton_cross_section_LO_d2b(double Q2, double xbj, Polarization pol);
 
         /**
          * @brief \sigma_dip: qq part of the NLO cross section.
+         * 
+         * NLO contribution from the diagrams where qq interacts with the shockwave
+         * Result is not integrated over the impact parameter, but factor 2 from the 
+         * optical theorem is included.
+         * 
          * @param Q2 Photon virtuality [GeV^2].
          * @param xbj Bjorken-x.
          * @param pol Photon polarization.
+         * 
+         * @return d\sigma_dip/d^2b (dimensionless)
          */
-
-        double Sigma_dip(double Q2, double xbj, Polarization pol);
+        double Sigma_dip_d2b(double Q2, double xbj, Polarization pol);
         /**
          * @brief \sigma_qg: qg part of the NLO cross section.
+         * 
+         * NLO contribution from the diagrams where qqg interacts with the shockwave
+         * Result is not integrated over the impact parameter, but factor 2 from the
+         *  optical theorem is included.
+         * 
          * @param Q2 Photon virtuality [GeV^2].
          * @param xbj Bjorken-x.
          * @param pol Photon polarization.
+         * 
+         * @return d\sigma_qg/d^2b (dimensionless)
          */
-        double Sigma_qg(double Q2, double xbj, Polarization pol);
+        double Sigma_qg_d2b(double Q2, double xbj, Polarization pol);
 
         
         void SetOrder(Order o) { order = o; }
@@ -91,11 +130,16 @@ class NLODIS
         /**
          * @brief Set proton transverse area = \sigma_0/2
          * 
-         * @param sigma0_2 Proton transverse area \int d^2 b
-         * @param unit Unit of sigma0_2, default is GeV^-2. If unit is MB, the value will be converted to GeV^-2 internally.
+         * @param transverse_area Proton transverse area \int d^2 b
+         * @param unit Unit of transverse_area, default is GeV^-2. If unit is MB, the value will be converted to GeV^-2 internally.
          * 
          */
-        void SetSigma0_2(double sigma0_2_, Unit unit=GEVm2);
+        void SetProtonTransverseArea(double transverse_area_, Unit unit=GEVm2);
+
+        /**
+         * @brief Proton transverse area in GeV^-2
+         */
+        double ProtonTransverseArea() const { return transverse_area; }
 
         AmplitudeLib& GetDipole() { return dipole; }
 
@@ -161,7 +205,7 @@ class NLODIS
         */
         double Integrand_photon_target_LO(double r, double z, double x, double Q2, Polarization pol );
     
-        double sigma0_2=1; // \sigma_0/2 = \int d^2b in GeV^-2 (proton transverse area)
+        double transverse_area=1; // \sigma_0/2 = \int d^2b in GeV^-2 (proton transverse area)
         AmplitudeLib dipole;
         Scheme scheme = UNSUB;
         std::vector<Quark> quarks;

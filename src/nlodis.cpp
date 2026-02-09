@@ -20,22 +20,29 @@ static const std::string cubamethod = "suave";
 
 double NLODIS::F2(double Q2, double xbj)
 {
-    double sigmaT = Photon_proton_cross_section(Q2, xbj, T);
-    double sigmaL = Photon_proton_cross_section(Q2, xbj, L);
+    double sigmaT = Photon_proton_cross_section_d2b(Q2, xbj, T);
+    double sigmaL = Photon_proton_cross_section_d2b(Q2, xbj, L);
 
-    return Q2 / (4.0 * M_PI * M_PI * ALPHA_EM) * (sigmaT + sigmaL);
+    double res = Q2 / (4.0 * M_PI * M_PI * ALPHA_EM) * (sigmaT + sigmaL);
+
+    res *= ProtonTransverseArea(); // Include \int d^2 b
+    return res;
 }
 
 double NLODIS::FL(double Q2, double xbj)
 {
-    double sigmaL = Photon_proton_cross_section(Q2, xbj, L);
-    return Q2 / (4.0 * M_PI * M_PI * ALPHA_EM) * sigmaL;
+    double sigmaL = Photon_proton_cross_section_d2b(Q2, xbj, L);
+    double res = Q2 / (4.0 * M_PI * M_PI * ALPHA_EM) * sigmaL;
+    res *= ProtonTransverseArea(); // Include \int d^2 b
+    return res;
 }
 
 double NLODIS::FT(double Q2, double xbj)
 {
-    double sigmaT = Photon_proton_cross_section(Q2, xbj, T);
-    return Q2 / (4.0 * M_PI * M_PI * ALPHA_EM) * sigmaT;
+    double sigmaT = Photon_proton_cross_section_d2b(Q2, xbj, T);
+    double res = Q2 / (4.0 * M_PI * M_PI * ALPHA_EM) * sigmaT;
+    res *= ProtonTransverseArea(); // Include \int d^2 b
+    return res;
 }   
 
 double NLODIS::TripoleAmplitude(double x01, double x02, double x21, double Y) 
@@ -80,7 +87,7 @@ double NLODIS::RunningCouplinScale(double x01, double x02, double x21)
     }
 }
 
-double NLODIS::Photon_proton_cross_section(double Q2, double xbj, Polarization pol)
+double NLODIS::Photon_proton_cross_section_d2b(double Q2, double xbj, Polarization pol)
 {
     if (scheme != UNSUB)
     {
@@ -89,18 +96,18 @@ double NLODIS::Photon_proton_cross_section(double Q2, double xbj, Polarization p
 
     if (order==LO)
     {
-        return 2.0*sigma0_2*Photon_proton_cross_section_LO(Q2, xbj, pol);
+        return 2.0*transverse_area*Photon_proton_cross_section_LO_d2b(Q2, xbj, pol);
     }
     
     // NLO calculation
 
-    double sigma_LO = Photon_proton_cross_section_LO(Q2, dipole.X0(), pol);
-    double sigma_dip = Sigma_dip(Q2, xbj, pol);
-    double  sigma_qg = Sigma_qg(Q2,xbj,pol);
+    double sigma_LO = Photon_proton_cross_section_LO_d2b(Q2, dipole.X0(), pol);
+    double sigma_dip = Sigma_dip_d2b(Q2, xbj, pol);
+    double  sigma_qg = Sigma_qg_d2b(Q2,xbj,pol);
 
-    cout <<"# Note: Sigma_LO: " << sigma_LO << " , Sigma_dip: " << sigma_dip << " , Sigma_qg: " << sigma_qg << endl;
+    cout <<"# Note: Pol " << PolarizationString(pol) << " Sigma_LO: " << sigma_LO << " , Sigma_dip: " << sigma_dip << " , Sigma_qg: " << sigma_qg << endl;
 
-    return (sigma_LO + sigma_dip + sigma_qg)*sigma0_2*2.0; // sigma_0/2 * 2 = \int d^2 b
+    return sigma_LO + sigma_dip + sigma_qg; // sigma_0/2 * 2 = \int d^2 b
 }
 
 /*
@@ -110,7 +117,7 @@ double NLODIS::Photon_proton_cross_section(double Q2, double xbj, Polarization p
  * T polarization:
  */
 
-double NLODIS::Sigma_dip(double Q2, double xbj, Polarization pol)
+double NLODIS::Sigma_dip_d2b(double Q2, double xbj, Polarization pol)
 {
     double result=0;
     // Note on factors: the transverse integration measures are defined with 1/(2pi), see
@@ -132,7 +139,7 @@ double NLODIS::Sigma_dip(double Q2, double xbj, Polarization pol)
             // 1st line
             double I, Ierr, Iprob;
             intparams.contribution="Omega_L_const";
-            Cuba(cubamethod, 2, integrand_dip_massive, &intparams, &I, &Ierr, &Iprob);
+            Cuba("cuhre", 2, integrand_dip_massive, &intparams, &I, &Ierr, &Iprob);
             result += I;
 
             // 2nd line of 2103.14549 (166)
@@ -150,7 +157,7 @@ double NLODIS::Sigma_dip(double Q2, double xbj, Polarization pol)
             // T0 contribution
             intparams.contribution="T0";
             double IT0, IT0err, IT0prob;
-            Cuba(cubamethod, 2, integrand_dip_massive, &intparams, &IT0, &IT0err, &IT0prob);
+            Cuba("cuhre", 2, integrand_dip_massive, &intparams, &IT0, &IT0err, &IT0prob);
             result += IT0;
 
             // T1 contribution
@@ -174,12 +181,7 @@ double NLODIS::Sigma_dip(double Q2, double xbj, Polarization pol)
 
     } // Quark flavor loop
 
-    // We have factorized out \int d^2 b - note the normalization convention!
-    // Define sigma_0 = 2 \int d^2 b
-    
-    // Correspondingly I need to include 1/2
-    result *= 1./2.;
-
+    // We have factorized out \int d^2 b
         
     // 2pi from overall angular integral
     return fac*result*2.0*M_PI;
@@ -290,7 +292,7 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
  * Longitudinal reference: (167) but instead of q^+, k^+ we integrate over z_i
  * Explicit expressoin is docs/NLO_DIS_cross_section_with_massive_quarks.pdf (13) 
 */
-double NLODIS::Sigma_qg(double Q2, double xbj, Polarization pol)
+double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
 {
     // Note on factors: the transverse integration measures are defined with 1/(2pi), see
     // 2103.14549. This measure is not visible in the note, but should be there. Therefore
@@ -327,9 +329,6 @@ double NLODIS::Sigma_qg(double Q2, double xbj, Polarization pol)
         Cuba(cubamethod, 7, integrand_qgunsub_massive, &intparams, &I3, &I3err, &I3prob);
            
         result += I3;
-        
-        
-
 
         result *= SQR(quark.charge);
     }
@@ -337,11 +336,8 @@ double NLODIS::Sigma_qg(double Q2, double xbj, Polarization pol)
     
 
 
-    // We have facotorized out (not performed) \int d^2 b - note the normalization convention!
-    // Define sigma_0 = 2 \int d^2 b
-    
-    // Correspondingly I need to include 1/2 to this result
-    result *= 1./2.;
+    // We have facotorized out (not performed) \int d^2 b 
+
 
     // 2pi: overall integral over one angle
     return  fac*2.0*M_PI*result;
@@ -533,19 +529,19 @@ void NLODIS::SetQuarkMass(Quark::Type type, double mass)
     throw std::runtime_error("Quark type not found in SetQuarkMass");
 }
 
-void NLODIS::SetSigma0_2(double sigma0_2_, Unit unit)
+void NLODIS::SetProtonTransverseArea(double transverse_area_, Unit unit)
 {
     if (unit == MB)
     {
         // Convert from mb to GeV^-2
-        sigma0_2 = sigma0_2_ * 0.389379; // 1 mb = 0.389379 GeV^-2
+        transverse_area = transverse_area_ * 2.5684624; 
     }
     else if (unit == GEVm2)
     {
-        sigma0_2 = sigma0_2_;
+        transverse_area = transverse_area_;
     }
     else
     {
-        throw std::runtime_error("Unknown unit in SetSigma0_2");
+        throw std::runtime_error("Unknown unit in SetProtonTransverseArea");
     }
 }

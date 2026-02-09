@@ -23,10 +23,8 @@ const std::string gbw_datafile = "gbw.dat";
     std::vector<Quark> quark_list = {u,d,s,c};
     dis.SetQuarks(quark_list);
 
-    // Set \sigma_0/2 = 0.5, so that when the result is multiplied by 
-    // 2\sigma_0/2 = 1, it matches the setup used to compute reference values 
-    // (no simga0 factor included)
-    dis.SetSigma0_2(0.5);
+    // Set \sigma_0/2 = 1 so that results match the setup used to compute reference values
+    dis.SetProtonTransverseArea(1);
 
     double Q2 = 10.0; // GeV^2
     double xbj = 1;  // Test case datafile is generated such that it starts from x0=1
@@ -36,11 +34,16 @@ const std::string gbw_datafile = "gbw.dat";
     
 
     double f2_ic=dis.F2(Q2,xbj);
-    ASSERT_ALMOST_EQUAL(f2_ic, 0.0202973+0.00543532, 0.0005); // light + charm
+    // Reference: factor 2 is the optical theorem 2 not included when the refernece value
+    // was computed
+    double ref = (0.0202973+0.00543532)*2; // light + charm + bottom
+    
+    ASSERT_ALMOST_EQUAL(f2_ic, ref, ref/100); // light + charm
 
     // Smaller x, tests interpolation and computation of the evolution rapidity
     double f2 = dis.F2(Q2, 1e-4);
-    ASSERT_ALMOST_EQUAL(f2, 0.120141+0.0538897, 0.001); // light +charm
+    ref = 2.0*(0.120141+0.0538897);
+    ASSERT_ALMOST_EQUAL(f2, ref, ref/100); // light +charm
  }
 
 /*
