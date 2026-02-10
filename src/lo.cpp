@@ -92,7 +92,8 @@ double NLODIS::Photon_proton_cross_section_LO_d2b(double Q2, double xbj, Polariz
  * 
  * Note: In the UNSUB scheme, expect user to evaluate the dipole amplitude at the initial x
  * 
- * This is |\Psi|^2 N(r), no Jacobian of r included
+ * This is |\Psi|^2 2N(r), no Jacobian of r included
+ * Factor 2 from the optical theorem is included in thje overall normalization factor
  * Reference: 1708.07328 (1-3), this is K_L, K_T
  * 
 */

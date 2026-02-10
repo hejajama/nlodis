@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <memory>
 #include "nlodis.hpp"
 #include "datatypes.hpp"
 #include <gsl/gsl_errno.h>
@@ -17,9 +18,8 @@ int main(int argc, char* argv[]) {
 
 
     cout <<" == KCBK, parent ==" << endl;
-    BKDipole kcbk_parentdipole("/Users/hejajama/code/nlodisfit_bayesian/data/pd/bk_map.dat");
     NLODIS kcbk_parent;
-    kcbk_parent.SetDipole(std::make_unique<BKDipole>(kcbk_parentdipole));
+    kcbk_parent.SetDipole(std::make_unique<BKDipole>("/Users/hejajama/code/nlodisfit_bayesian/data/pd/bk_map.dat"));
     kcbk_parent.SetRunningCouplingC2Alpha(663);
     kcbk_parent.SetRunningCouplingScheme(PARENT);
     kcbk_parent.SetOrder(NLO);
@@ -36,9 +36,8 @@ int main(int argc, char* argv[]) {
     cout << endl;
 
     cout << " == KCBK, smallest ==" << endl;
-    BKDipole kcbk_smallestdipole("/Users/hejajama/code/nlodisfit_bayesian/data/balsd/bk_map.dat");
     NLODIS kcbk_smallest;
-    kcbk_smallest.SetDipole(std::make_unique<BKDipole>(kcbk_smallestdipole));
+    kcbk_smallest.SetDipole(std::make_unique<BKDipole>("/Users/hejajama/code/nlodisfit_bayesian/data/balsd/bk_map.dat"));
     kcbk_smallest.SetRunningCouplingC2Alpha(1.7);
     kcbk_smallest.SetRunningCouplingScheme(SMALLEST);
     kcbk_smallest.SetOrder(NLO);
@@ -50,9 +49,8 @@ int main(int argc, char* argv[]) {
 
     cout << "== NLOBK, smallest, MV ==" << endl;
 
-    BKDipole mv_dipole("/Users/hejajama/Downloads/mv_bk.dat");
     NLODIS mv;
-    mv.SetDipole(std::make_unique<BKDipole>(mv_dipole));
+    mv.SetDipole(std::make_unique<BKDipole>("/Users/hejajama/Downloads/mv_bk.dat"));
     mv.SetRunningCouplingC2Alpha(23);
     mv.SetRunningCouplingScheme(SMALLEST);
     mv.SetOrder(NLO);
@@ -65,9 +63,8 @@ int main(int argc, char* argv[]) {
     cout << endl;
 
     cout << "== NLOBK, smallest, mvgamma ==" << endl;
-    BKDipole mvgamma_dipole("/Users/hejajama/Downloads/mvgam_bk.dat");
     NLODIS mvgamma;
-    mvgamma.SetDipole(std::make_unique<BKDipole>(mvgamma_dipole));
+    mvgamma.SetDipole(std::make_unique<BKDipole>("/Users/hejajama/Downloads/mvgam_bk.dat"));
     mvgamma.SetRunningCouplingC2Alpha(std::pow(10,2.9));
     mvgamma.SetRunningCouplingScheme(SMALLEST);
     mvgamma.SetQuarkMass(Quark::Type::C, 1.16 );
@@ -78,9 +75,8 @@ int main(int argc, char* argv[]) {
     cout << endl;
 
     cout << "== NLOBK, parent, mvgamma ==" << endl;
-    BKDipole mvgamma_parent_dipole("/Users/hejajama/Downloads/pd_nlo_bk.dat");
     NLODIS mvgamma_parent;
-    mvgamma_parent.SetDipole(std::make_unique<BKDipole>(mvgamma_parent_dipole));
+    mvgamma_parent.SetDipole(std::make_unique<BKDipole>("/Users/hejajama/Downloads/pd_nlo_bk.dat"));
     mvgamma_parent.SetRunningCouplingC2Alpha(std::pow(10.0, 3.88));
     mvgamma_parent.SetRunningCouplingScheme(PARENT);
     mvgamma_parent.SetQuarkMass(Quark::Type::C, 1.2);

@@ -1,13 +1,6 @@
-#include <gsl/gsl_integration.h>
-#include <gsl/gsl_spline.h>
+
 #include <gsl/gsl_errno.h>
-#include <gsl/gsl_odeiv.h> // odeiv2 Requires GSL 1.15
-#include <gsl/gsl_sf_bessel.h>
-#include <gsl/gsl_monte.h>
-#include <gsl/gsl_monte_vegas.h>
-#include <gsl/gsl_monte_miser.h>
-#include <gsl/gsl_monte_plain.h>
-#include <gsl/gsl_errno.h>
+#include <memory>
 
 #include "nlodis.hpp"
 #include "qcd.hpp"
@@ -96,7 +89,7 @@ double NLODIS::Photon_proton_cross_section_d2b(double Q2, double xbj, Polarizati
 
     if (order==LO)
     {
-        return 2.0*transverse_area*Photon_proton_cross_section_LO_d2b(Q2, xbj, pol);
+        return Photon_proton_cross_section_LO_d2b(Q2, xbj, pol);
     }
     
     // NLO calculation
@@ -107,7 +100,7 @@ double NLODIS::Photon_proton_cross_section_d2b(double Q2, double xbj, Polarizati
 
     cout <<"# Note: Pol " << PolarizationString(pol) << " Sigma_LO: " << sigma_LO << " , Sigma_dip: " << sigma_dip << " , Sigma_qg: " << sigma_qg << endl;
 
-    return sigma_LO + sigma_dip + sigma_qg; // sigma_0/2 * 2 = \int d^2 b
+    return sigma_LO + sigma_dip + sigma_qg; 
 }
 
 /*
@@ -466,7 +459,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
 
     res *=  jac*alphafac/z2;
 
-    if(gsl_finite(res)==1){
+    if(std::isfinite(res)){
         *f=res;
     }else{
         *f=0;
@@ -496,7 +489,9 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
  }
  
  double NLODIS::Alphas(double r) const
- {double scalefactor = 4.0*C2_alpha;
+ {
+    /*
+    double scalefactor = 4.0*C2_alpha;
     const double alphas_mu0=2.5;    // mu0/lqcd
     const double alphas_freeze_c=0.2;
     double b0 = (11.0*3 - 2.0*3)/3.0;
@@ -505,8 +500,8 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     std::pow( std::pow(alphas_mu0, 2.0/alphas_freeze_c) + std::pow(scalefactor/(r*r*0.241*0.241), 1.0/alphas_freeze_c), alphas_freeze_c)
     ) );
     return AlphaSres;
-
-    /*
+*/
+    
     const double LambdaQCD = 0.241; // GeV
     const double b0 = (11.0*NC - 2.0*quarks.size())/(12.0*M_PI);
     double mu2 = 4.0*C2_alpha/(r*r);
@@ -515,7 +510,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     {
         as = 0.7; // Freeze coupling
     }
-    return as;*/
+    return as;
  }
 
  double NLODIS::z2_lower_bound(double xbj, double Q2)

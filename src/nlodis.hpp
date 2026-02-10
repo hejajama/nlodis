@@ -17,6 +17,7 @@
 #include "datatypes.hpp"
 #include <vector>
 #include <string>
+#include <memory>
 #include <gsl/gsl_integration.h>
 
 class NLODIS

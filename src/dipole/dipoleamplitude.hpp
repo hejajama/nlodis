@@ -12,6 +12,7 @@
 class Dipole
 {
     public:
+    virtual ~Dipole() = default;
     /**
      * @brief Dipole-target scattering amplitude 
      * 
