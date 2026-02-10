@@ -15,7 +15,7 @@ using std::endl;
  */
 double NLODIS::Photon_proton_cross_section_LO_d2b(double Q2, double xbj, Polarization pol)
 {
-    if (scheme != SubtractionScheme::UNSUB)
+    if (config.scheme != SubtractionScheme::UNSUB)
     {
         throw std::runtime_error("Only UNSUB scheme is implemented.");
     }
@@ -71,7 +71,7 @@ double NLODIS::Photon_proton_cross_section_LO_d2b(double Q2, double xbj, Polariz
 
 
 
-    result *= 4.0*ALPHA_EM*NC/SQR(2.0*M_PI); // Include prefactors as needed
+    result *= 4.0*Constants::AlphaEM*Constants::NC/SQR(2.0*M_PI); // Include prefactors as needed
     // Note: 1/(2pi)^2 because 1708.07328 (1) includes 2pi to transverse coordiante measures
     
     // \int d^2b not included in here
@@ -99,7 +99,7 @@ double NLODIS::Photon_proton_cross_section_LO_d2b(double Q2, double xbj, Polariz
 */
 double NLODIS::Integrand_photon_target_LO(double r, double z, double x, double Q2, Polarization pol )
 {
-    if (scheme != SubtractionScheme::UNSUB)
+    if (config.scheme != SubtractionScheme::UNSUB)
     {
         throw std::runtime_error("Only UNSUB scheme is implemented.");
     }

@@ -3,6 +3,7 @@
 #include <memory>
 #include <algorithm>
 #include <stdexcept>
+#include <cmath>
 
 #include "nlodis.hpp"
 #include "qcd.hpp"
@@ -18,7 +19,7 @@ double NLODIS::F2(double Q2, double xbj)
     double sigmaT = Photon_proton_cross_section_d2b(Q2, xbj, Polarization::T);
     double sigmaL = Photon_proton_cross_section_d2b(Q2, xbj, Polarization::L);
 
-    double res = Q2 / (4.0 * M_PI * M_PI * ALPHA_EM) * (sigmaT + sigmaL);
+    double res = Q2 / (4.0 * M_PI * M_PI * Constants::AlphaEM) * (sigmaT + sigmaL);
 
     res *= ProtonTransverseArea(); // Include \int d^2 b
     return res;
@@ -27,7 +28,7 @@ double NLODIS::F2(double Q2, double xbj)
 double NLODIS::FL(double Q2, double xbj)
 {
     double sigmaL = Photon_proton_cross_section_d2b(Q2, xbj, Polarization::L);
-    double res = Q2 / (4.0 * M_PI * M_PI * ALPHA_EM) * sigmaL;
+    double res = Q2 / (4.0 * M_PI * M_PI * Constants::AlphaEM) * sigmaL;
     res *= ProtonTransverseArea(); // Include \int d^2 b
     return res;
 }
@@ -35,7 +36,7 @@ double NLODIS::FL(double Q2, double xbj)
 double NLODIS::FT(double Q2, double xbj)
 {
     double sigmaT = Photon_proton_cross_section_d2b(Q2, xbj, Polarization::T);
-    double res = Q2 / (4.0 * M_PI * M_PI * ALPHA_EM) * sigmaT;
+    double res = Q2 / (4.0 * M_PI * M_PI * Constants::AlphaEM) * sigmaT;
     res *= ProtonTransverseArea(); // Include \int d^2 b
     return res;
 }   
@@ -46,13 +47,14 @@ double NLODIS::TripoleAmplitude(double x01, double x02, double x21, double Y)
     double S02 = 1-dipole->DipoleAmplitude(x02, Y);
     double S12 = 1-dipole->DipoleAmplitude(x21, Y);
 
-    if (nc_scheme == NcScheme::LargeNC)
+    if (config.nc_scheme == NcScheme::LargeNC)
     {
+        cerr << "Warning: Using large-Nc scheme for qqg-target amplitude, but this does not set CF to NC/2 in other parts of the code, i.e. is not fully consistent large-nc limit!" << endl;
         return 1.0 - S02*S12;
     }
-    else if (nc_scheme == NcScheme::FiniteNC)
+    else if (config.nc_scheme == NcScheme::FiniteNC)
     {
-        return NC/(2.0*CF)*(S02*S12 - 1./SQR(NC)*S01);
+        return 1.0- Constants::NC/(2.0*Constants::CF)*(S02*S12 - 1./SQR(Constants::NC)*S01);
     }
     else
     {
@@ -63,16 +65,16 @@ double NLODIS::TripoleAmplitude(double x01, double x02, double x21, double Y)
 double NLODIS::EvolutionRapidity(double xbj, double Q2, double z2) const
 {
     double W2 = Q2 / xbj;
-    return std::log(W2*z2/Q0sqr);
+    return std::log(W2*z2/NLODISConfig::Q0sqr);
 }
 
 double NLODIS::RunningCouplinScale(double x01, double x02, double x21) const
 {
-    if (rc_scheme == RunningCouplingScheme::SMALLEST)
+    if (config.rc_scheme == RunningCouplingScheme::SMALLEST)
     {
         return std::min({x01, x02, x21});
     }
-    else if (rc_scheme == RunningCouplingScheme::PARENT)
+    else if (config.rc_scheme == RunningCouplingScheme::PARENT)
     {
         return x01;
     }
@@ -84,12 +86,12 @@ double NLODIS::RunningCouplinScale(double x01, double x02, double x21) const
 
 double NLODIS::Photon_proton_cross_section_d2b(double Q2, double xbj, Polarization pol)
 {
-    if (scheme != SubtractionScheme::UNSUB)
+    if (config.scheme != SubtractionScheme::UNSUB)
     {
         throw std::runtime_error("Only UNSUB scheme is implemented.");
     }
 
-    if (order==Order::LO)
+    if (config.order==Order::LO)
     {
         return Photon_proton_cross_section_LO_d2b(Q2, xbj, pol);
     }
@@ -118,7 +120,7 @@ double NLODIS::Sigma_dip_d2b(double Q2, double xbj, Polarization pol)
     // Note on factors: the transverse integration measures are defined with 1/(2pi), see
     // 2103.14549. This measure is not visible in the note, but should be there. Therefore
     // we have 1/(2pi)^2 below (from d^2x_{01} d^2b)
-    double fac=4.0*NC*ALPHA_EM/SQR(2.0*M_PI); 
+    double fac=4.0*Constants::NC*ALPHA_EM/SQR(2.0*M_PI); 
     
 
     for (const auto& quark : quarks) {
@@ -228,7 +230,7 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
     
     
 
-    double alphabar=p->nlodis->Alphas(x01)*CF/M_PI;
+    double alphabar=p->nlodis->Alphas(x01)*Constants::CF/M_PI;
 
     // TODO: add more user control for evolution rapidity
     double evolution_rapidity = std::log(1/xbj); 
@@ -292,7 +294,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     // Note on factors: the transverse integration measures are defined with 1/(2pi), see
     // 2103.14549. This measure is not visible in the note, but should be there. Therefore
     // we have 1/(2pi)^3 below (from d^2x_{01} d^2x_{02} d^2b)
-    double fac=4.0*NC*ALPHA_EM/std::pow(2.0*M_PI,3.0);
+    double fac=4.0*Constants::NC*ALPHA_EM/std::pow(2.0*M_PI,3.0);
     
 
     double result=0;
@@ -391,7 +393,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     double x02sq=SQR(x02);
     double x21sq=x01sq+x02sq-2.0*sqrt(x01sq*x02sq)*cos(phix0102);
 
-    double alphabar = p->nlodis->Alphas(p->nlodis->RunningCouplinScale(x01, x02, std::sqrt(x21sq))) * CF / NC;
+    double alphabar = p->nlodis->Alphas(p->nlodis->RunningCouplinScale(x01, x02, std::sqrt(x21sq))) * Constants::CF / Constants::NC;
 
     // Check if any integration variable is NaN
     if (!std::isfinite(z1) || !std::isfinite(z2) || !std::isfinite(x01) || !std::isfinite(x02) || 
@@ -417,7 +419,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     double SKernel_tripole = p->nlodis->TripoleAmplitude(x01,x02, std::sqrt(x21sq), evolution_rapidity);
     double SKernel_dipole = p->nlodis->GetDipole().DipoleAmplitude(x01, evolution_rapidity);
 
-    double alphafac=p->nlodis->Alphas(p->nlodis->RunningCouplinScale(x01,x02,std::sqrt(x21sq)))*CF/NC;
+    double alphafac=p->nlodis->Alphas(p->nlodis->RunningCouplinScale(x01,x02,std::sqrt(x21sq)))*Constants::CF/Constants::NC;
 
     double res=0;
 
@@ -492,15 +494,17 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
  
  double NLODIS::Alphas(double r) const
  {
-    const double b0 = (11.0*NC - 2.0*quarks.size())/(12.0*M_PI);
+    const double b0 = (11.0*Constants::NC - 2.0*quarks.size())/(12.0*M_PI);
+    const double scalefactor = 4.0*config.C2_alpha; // Convention: 4C^2/r^2 is the scale at which alpha_s is evaluated in coordinate space
 
-    switch (rc_ir_scheme)
+    switch (config.rc_ir_scheme)
     {
         case RunningCouplingIRScheme::FREEZE: {
-            const double LambdaQCD = 0.241; // GeV
-            double mu2 = 4.0*C2_alpha/(r*r);
-            double as = 1.0/(b0*log(mu2/(LambdaQCD*LambdaQCD)));
-            if (as > 0.7 or log(mu2/(LambdaQCD*LambdaQCD))<0)
+            double mu2 = scalefactor/(r*r);
+            double log_arg = mu2/(Constants::LambdaQCD*Constants::LambdaQCD);
+
+            double as = 1.0/(b0*log(log_arg));
+            if (as > 0.7 or log_arg < 1.0)
             {
                 as = 0.7; // Freeze coupling
             }
@@ -508,22 +512,19 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
             break;
         }
         case RunningCouplingIRScheme::SMOOTH: {
-            double scalefactor = 4.0*C2_alpha;
+            double scalefactor = 4.0*config.C2_alpha;
             const double alphas_mu0=2.5;    // mu0/lqcd
             const double alphas_freeze_c=0.2;
 
-            double AlphaSres = 1. / ( b0 * std::log(
-            std::pow( std::pow(alphas_mu0, 2.0/alphas_freeze_c) + std::pow(scalefactor/(r*r*0.241*0.241), 1.0/alphas_freeze_c), alphas_freeze_c)
+            double as = 1. / ( b0 * std::log(
+            std::pow( std::pow(alphas_mu0, 2.0/alphas_freeze_c) + std::pow(scalefactor/SQR(r*Constants::LambdaQCD), 1.0/alphas_freeze_c), alphas_freeze_c)
             ) );
-            return AlphaSres;
+            return as;
             break;
         }
         default:
             throw std::runtime_error("NLODIS::Alphas: unknown IR scheme");
     }
-    /*
-    
-*/
     
    
  }
@@ -531,24 +532,34 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
  double NLODIS::z2_lower_bound(double xbj, double Q2) const
 {
     double W2 = Q2 / xbj;
-    return Q0sqr / W2;
+    return NLODISConfig::Q0sqr / W2;
 }
 
 
 
 void NLODIS::SetQuarkMass(Quark::Type type, double mass)
 {
+    if (mass <= 0)
+    {
+        throw std::runtime_error("Quark mass must be positive. Routines for exactly m=0 quarks have not been implemented.");
+    }
+    bool found = false;
     for (auto& quark : quarks) {
         if (quark.type == type) {
             quark.mass = mass;
-            return;
+            found=true;
         }
     }
-    throw std::runtime_error("Quark type not found in SetQuarkMass");
+    if (!found) {
+        throw std::runtime_error("Quark type not found in SetQuarkMass");
+    }
 }
-
 void NLODIS::SetProtonTransverseArea(double transverse_area_, Unit unit)
 {
+    if (transverse_area_ <= 0)
+    {
+        throw std::runtime_error("Transverse area must be positive");
+    }
     if (unit == Unit::MB)
     {
         // Convert from mb to GeV^-2
@@ -567,4 +578,81 @@ void NLODIS::SetProtonTransverseArea(double transverse_area_, Unit unit)
 void NLODIS::SetDipole(std::unique_ptr<Dipole> dipole_)
 {
     dipole = std::move(dipole_);
+}
+
+void NLODIS::PrintConfiguration() const
+{
+    std::cout << "\n=== NLODIS Configuration Summary ===" << std::endl;
+    
+    // Order
+    std::cout << "Order: ";
+    if (config.order == Order::LO) {
+        std::cout << "LO" << std::endl;
+    } else if (config.order == Order::NLO) {
+        std::cout << "NLO" << std::endl;
+    } else {
+        std::cout << "Unknown" << std::endl;
+    }
+    
+    // Subtraction Scheme
+    std::cout << "Subtraction Scheme: ";
+    if (config.scheme == SubtractionScheme::UNSUB) {
+        std::cout << "Unsubstracted (UNSUB)" << std::endl;
+    } else {
+        std::cout << "Unknown" << std::endl;
+    }
+    
+    // Nc Scheme
+    std::cout << "Nc Scheme: ";
+    if (config.nc_scheme == NcScheme::LargeNC) {
+        std::cout << "Large Nc" << std::endl;
+    } else if (config.nc_scheme == NcScheme::FiniteNC) {
+        std::cout << "Finite Nc" << std::endl;
+    } else {
+        std::cout << "Unknown" << std::endl;
+    }
+    
+    // Running Coupling Scheme
+    std::cout << "Running Coupling Scale: ";
+    if (config.rc_scheme == RunningCouplingScheme::SMALLEST) {
+        std::cout << "Smallest dipole" << std::endl;
+    } else if (config.rc_scheme == RunningCouplingScheme::PARENT) {
+        std::cout << "Parent dipole" << std::endl;
+    } else {
+        std::cout << "Unknown" << std::endl;
+    }
+    
+    // IR Freezing Scheme
+    std::cout << "IR Freezing Scheme: ";
+    if (config.rc_ir_scheme == RunningCouplingIRScheme::FREEZE) {
+        std::cout << "Freeze" << std::endl;
+    } else if (config.rc_ir_scheme == RunningCouplingIRScheme::SMOOTH) {
+        std::cout << "Smooth" << std::endl;
+    } else {
+        std::cout << "Unknown" << std::endl;
+    }
+    
+    // Numerical parameters
+    std::cout << "Maximum dipole size (maxr): " << config.maxr << " GeV^-1" << std::endl;
+    std::cout << "Running coupling C^2 factor: " << config.C2_alpha << std::endl;
+    std::cout << "Non-perturbative scale (Q0^2): " << NLODISConfig::Q0sqr << " GeV^2" << std::endl;
+    
+    // Proton parameters
+    std::cout << "Proton transverse area: " << transverse_area << " GeV^-2" << std::endl;
+    
+    // Quark flavors
+    std::cout << "Quark flavors and masses:" << std::endl;
+    for (const auto& q : quarks) {
+        std::cout << "  ";
+        if (q.type == Quark::U) std::cout << "u: ";
+        else if (q.type == Quark::D) std::cout << "d: ";
+        else if (q.type == Quark::S) std::cout << "s: ";
+        else if (q.type == Quark::C) std::cout << "c: ";
+        else if (q.type == Quark::B) std::cout << "b: ";
+        else if (q.type == Quark::T) std::cout << "t: ";
+        else std::cout << "Unknown: ";
+        std::cout << q.mass << " GeV" << std::endl;
+    }
+    
+    std::cout << "===================================\n" << std::endl;
 }

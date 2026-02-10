@@ -47,3 +47,11 @@ enum class RunningCouplingIRScheme
     FREEZE,
     SMOOTH
 };
+
+namespace Constants
+{
+    constexpr double LambdaQCD = 0.241; // GeV
+    constexpr double AlphaEM = 1.0/137.035999084; // Fine-structure constant
+    constexpr int NC = 3;
+    constexpr double CF = (NC*NC - 1.0)/(2.0*NC);
+};

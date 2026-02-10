@@ -1,11 +1,12 @@
 /*
  * General purpose interpolation class
+ * Wrapper for GSL interpolator
  * Heikki Mäntysaari <heikki.mantysaari@jyu.fi>, 2011-2014
  */
 
 #pragma once
 
-
+#include <memory>
 #include <gsl/gsl_bspline.h>
 #include <gsl/gsl_multifit.h>
 #include <gsl/gsl_spline.h>
@@ -20,25 +21,31 @@ using std::cerr;
 
 
 /**
- * Interpolation method, spline goes trough every
- * datapoint, bspline fits a noisy dataset.
+ * Interpolation method
  */
-enum INTERPOLATION_METHOD {
-    INTERPOLATE_SPLINE
+enum class InterpolationMethod {
+    SPLINE
 };
 
-// Enable support for bspline interpolation, requires gsl 1.x, not gsl 2
-// #define ENABLE_BSPLINE
+/// Custom deleters for GSL resources
+struct GslSplineDeleter {
+    void operator()(gsl_spline* s) const noexcept {
+        if (s) gsl_spline_free(s);
+    }
+};
 
-/**
- * Interpolates given data using spline (goes trough every data point)
- * or bspline (=noisy data) using the GSL routines.
- */
+struct GslInterpAccelDeleter {
+    void operator()(gsl_interp_accel* a) const noexcept {
+        if (a) gsl_interp_accel_free(a);
+    }
+};
+
+
 class Interpolator
 {
     public:
         /**
-         * Create interpolator from two arrays.
+         * @brief Create interpolator from two arrays.
          *
          * Pointers to the arrays are saved and used when Interpolator::Initialize()
          * is called. Also these pointers can be asked from the class later (see GetXData()
@@ -47,7 +54,7 @@ class Interpolator
          * @param y array of y coordinates
          * @param p number of points in arrays
          */
-        Interpolator(double* x, double* y, int p);
+        Interpolator(double* x, double* y, std::size_t p);
 
         /**
          * Create interpolator from two std::vectors.
@@ -63,19 +70,19 @@ class Interpolator
         /**
          * Evaluate interpolator f(x)
          */
-        double Evaluate(double x);
+        double Evaluate(double x) const;
         /**
          * Evaluate 1st derivative of the interpolated function f'(x)
          */
-        double Derivative(double x);    
+        double Derivative(double x) const;    
         /**
          * Evaluate 2nd derivative of the interpolated function f''(x)
          */
-        double Derivative2(double x);   
+        double Derivative2(double x) const;   
         /**
          * Select interpolation method (spline or bspline)
          */
-        void SetMethod(INTERPOLATION_METHOD m);
+        void SetMethod(InterpolationMethod m);
 
         /**
          * Initialize interpolator.
@@ -87,21 +94,21 @@ class Interpolator
         int Initialize();
 
         /**
-         * Largest x value supported
+         * Smallest x value supported
          */
-        double MinX();
+        constexpr double MinX() const noexcept;
         /**
-         * Smallest x-value supported
+         * Largest x-value supported
          */
-        double MaxX();
+        constexpr double MaxX() const noexcept;
 
-        std::vector<double> GetXData();
-        std::vector<double> GetYData();
+        std::vector<double> GetXData() const noexcept;
+        std::vector<double> GetYData() const noexcept;
         gsl_spline* GetGslSpline() const;
-        int GetNumOfPoints() const;
-        INTERPOLATION_METHOD GetMethod() const;
+        std::size_t GetNumOfPoints() const noexcept;
+        InterpolationMethod GetMethod() const noexcept;
         
-        bool Freeze();
+        constexpr bool Freeze() const noexcept;
 
         /**
          * Set what to do when interpolated function is evaluated
@@ -120,8 +127,8 @@ class Interpolator
          * x>maxx
          */
         void SetOverflow(double max);
-        double UnderFlow();
-        double OverFlow();
+        double UnderFlow() const noexcept;
+        double OverFlow() const noexcept;
 
         /**
          * Set interpolation range (maxx), default is upper limit of the
@@ -141,19 +148,21 @@ class Interpolator
         void SetOutOfRangeErrors(bool set);
 
     private:
-        INTERPOLATION_METHOD method;
+        /// Check that x values are monotonically increasing, throw on error
+        void ValidateMonotonicIncreasing() const;
+        InterpolationMethod method;
         std::vector<double> xdata, ydata;
-        double minx,maxx;
-        int points;
+        double minx, maxx;
+        std::size_t points;
         bool ready;
         
         bool freeze;		// true if return freeze_under/overflow if
         double freeze_underflow;	// asked to evaluate interpolation
 		double freeze_overflow;	// outside the spesified range
         
-        // spline
-        gsl_interp_accel *acc=NULL;
-        gsl_spline *spline=NULL;
+        // spline with RAII cleanup via unique_ptr
+        std::unique_ptr<gsl_interp_accel, GslInterpAccelDeleter> acc;
+        std::unique_ptr<gsl_spline, GslSplineDeleter> spline;
         static const int k=4;
         static const int ncoeffs = 12;
         static const int nbreak = ncoeffs-k+2;

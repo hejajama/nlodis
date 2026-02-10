@@ -1,12 +1,13 @@
 #include "unit_test_framework.hpp"
-#include "interpolation.hpp"
+#include "../dipole/bkdipole/interpolation.hpp"
+#include <cmath>
 
 TEST(interpolate_square)
 {
     double x[5] = {0, 1, 2, 3, 4};
     double y[5] = {0, 1, 4, 9, 16};
     Interpolator inter(x,y,5);
-    inter.SetMethod(INTERPOLATE_SPLINE);
+    inter.SetMethod(InterpolationMethod::SPLINE);
     inter.Initialize();
     
     ASSERT_ALMOST_EQUAL(inter.Evaluate(0),0,1e-6);
@@ -19,7 +20,7 @@ TEST(interpolate_square)
     std::vector<double> xvec(x, x + 5);
     std::vector<double> yvec(y, y + 5);
     Interpolator inter2(xvec, yvec);
-    inter2.SetMethod(INTERPOLATE_SPLINE);
+    inter2.SetMethod(InterpolationMethod::SPLINE);
     inter2.Initialize();
     ASSERT_ALMOST_EQUAL(inter2.Evaluate(0),0,1e-6);
     ASSERT_ALMOST_EQUAL(inter2.Evaluate(1),1,1e-6);
@@ -33,7 +34,7 @@ TEST(interpolate_out_of_range)
     double x[5] = {0, 1, 2, 3, 4};
     double y[5] = {0, 1, 4, 9, 16};
     Interpolator inter(x,y,5);
-    inter.SetMethod(INTERPOLATE_SPLINE);
+    inter.SetMethod(InterpolationMethod::SPLINE);
     inter.SetFreeze(true); // Freeze below and above the given data
     inter.Initialize();
     
@@ -41,7 +42,7 @@ TEST(interpolate_out_of_range)
     ASSERT_ALMOST_EQUAL(inter.Evaluate(5),16,1e-6);
 
     Interpolator inter2(x,y,5);
-    inter2.Initialize();
+    inter2.SetMethod(InterpolationMethod::SPLINE);
     try {
         inter2.Evaluate(-1);
         ASSERT_TRUE(false); // Should not reach here

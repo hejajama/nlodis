@@ -82,11 +82,11 @@ TEST(ALPHAS_COORDINATE_SPACE)
 {
     NLODIS dis;
     double C2=8;
-    dis.SetRunningCouplingC2Alpha(C2); 
+    dis.SetRunningCouplingC2(C2); 
     
     const double LambdaQCD = 0.241; // GeV
     const int Nf = 4; // number of flavors (u,d,s,c)
-    const double b0 = (11.0*NC - 2.0*Nf)/(12.0*M_PI);
+    const double b0 = (11.0*Constants::NC - 2.0*Nf)/(12.0*M_PI);
 
     
     // Test at r = 2 GeV^-1 

@@ -29,32 +29,17 @@ int Interpolator::Initialize()
     out_of_range_errors = true;
     if (ready)
     {
-        // Interpolator is already initialized: clear it (GSL part)
-        // and re-initialize
-        switch(method)
-        {
-            case INTERPOLATE_SPLINE:
-                if (spline != NULL)
-                {
-                    gsl_spline_free(spline);
-                    spline=NULL;
-                }
-                if (acc != NULL)
-                {
-                    gsl_interp_accel_free(acc);
-                    acc=NULL;
-                }
-                break;
-        }
+        // unique_ptr will automatically clean up old resources
+        acc.reset();
+        spline.reset();
         ready=false;
-        
     }
     switch(method)
     {
-        case INTERPOLATE_SPLINE:
-            acc = gsl_interp_accel_alloc();
-            spline = gsl_spline_alloc(gsl_interp_cspline, points);
-            status = gsl_spline_init(spline, xdata.data(), ydata.data(), points);
+        case InterpolationMethod::SPLINE:
+            acc.reset(gsl_interp_accel_alloc());
+            spline.reset(gsl_spline_alloc(gsl_interp_cspline, points));
+            status = gsl_spline_init(spline.get(), xdata.data(), ydata.data(), points);
             break;
     }
     ready=true;
@@ -67,18 +52,16 @@ int Interpolator::Initialize()
 }
 
 
-double Interpolator::Evaluate(double x)
+double Interpolator::Evaluate(double x) const
 {
     if (isnan(x) or isinf(x))
     {
-        cerr << "Trying to evaluate interpolator with x=" << x << " at " << LINEINFO << endl;
-        exit(1);
+        throw std::invalid_argument("Interpolator::Evaluate: invalid argument x=" + std::to_string(x));
     }
     
     if (!ready)
     {
-        cerr << "Interpolator is not ready! Did you forget to call Interpolator::Initialize()?" << endl;
-        return 0;
+        throw std::logic_error("Interpolator not initialized. Call Initialize() first.");
     }
 
     if (x<minx or x>maxx)
@@ -98,104 +81,95 @@ double Interpolator::Evaluate(double x)
 
     }
     
-    double res, yerr; int status;
+    double res; int status;
     res=0;
     switch(method)
     {
-        case INTERPOLATE_SPLINE:
-            status = gsl_spline_eval_e(spline, x, acc, &res);
+        case InterpolationMethod::SPLINE:
+            status = gsl_spline_eval_e(spline.get(), x, acc.get(), &res);
             if (status)
             {
-                cerr << "Interpolation failed at " << LINEINFO << ", error " << gsl_strerror(status)
-                 << " (" << status << "), x=" << x << ", minx=" << xdata[0]
-                 << ", maxx=" << xdata[points-1] << ", result=" << res << endl;
-                 exit(1);
+                throw std::runtime_error("Interpolation failed: " + std::string(gsl_strerror(status)) + ", x=" + std::to_string(x));
             }
             break;
         default:
-            cerr << "Interpolation method is invalid! " << LINEINFO << endl;
-            exit(1);
+            throw std::logic_error("Invalid interpolation method");
     }
 
     if (isnan(res) or isinf(res))
     {
-        cerr << "Interpolation at x=" << x << " gives " << res << endl;
-		return 0;
-        exit(1);
+        throw std::runtime_error("Interpolation produced invalid result at x=" + std::to_string(x));
     }
 
     
     return res;   
 }
 
-double Interpolator::Derivative(double x)
+double Interpolator::Derivative(double x) const
 {
     double res=0; int status=0;
     switch(method)
     {
-        case INTERPOLATE_SPLINE:
-            status = gsl_spline_eval_deriv_e(spline, x, acc, &res);
+        case InterpolationMethod::SPLINE:
+            status = gsl_spline_eval_deriv_e(spline.get(), x, acc.get(), &res);
             break;
         default:
-            cerr << "Derivative is not implemented for this interpolation method!" << " " << LINEINFO << endl;
-            exit(1);
+            throw std::logic_error("Derivative not implemented for this interpolation method");
     }
     if (status)
-        cerr << "An error occurred while evaluating the derivative at x=" << x
-        << " result " << res << " " << LINEINFO << endl;
+        throw std::runtime_error("Derivative evaluation failed at x=" + std::to_string(x));
 
     return res;
 }
 
-double Interpolator::Derivative2(double x)
+double Interpolator::Derivative2(double x) const
 {
     double res; int status=0;
     switch(method)
     {
-        case INTERPOLATE_SPLINE:
-            status = gsl_spline_eval_deriv2_e(spline, x, acc, &res);
+        case InterpolationMethod::SPLINE:
+            status = gsl_spline_eval_deriv2_e(spline.get(), x, acc.get(), &res);
             break;
+        default:
+            throw std::logic_error("2nd derivative not implemented for this interpolation method");
     }
 
     if (status)
     {
-        cerr << "2nd derivative interpolation failed at x=" << x <<", result "
-        << res << " " << LINEINFO << endl;
+        throw std::runtime_error("2nd derivative evaluation failed at x=" + std::to_string(x));
     }
     return res;
 
 }
 
-Interpolator::Interpolator(double *x, double *y, int p)
+Interpolator::Interpolator(double *x, double *y, std::size_t p)
 {
     points=p;
     xdata.assign(x, x + p);
     ydata.assign(y, y + p);
     minx = xdata.front();
     maxx = xdata.back();
-    method = INTERPOLATE_SPLINE;
+    method = InterpolationMethod::SPLINE;
 
     ready=false;
     freeze=false;
     freeze_underflow = ydata.front();
     freeze_overflow = ydata.back();
 
-    for (int i=0; i<p; i++)
-    {
-        // Check that x values are monotonically increasing
-        if (i>0)
-        {
-            if (xdata[i-1]>=xdata[i])
-            {
-                cerr << "Grid points are not monotonically increasing! grid["
-                    << i-1 <<"]=" << xdata[i-1] <<", grid["<<i<<"]="<< xdata[i]
-                    << " " << LINEINFO << endl;
-                exit(1);
-            }
-        }
-    }
+    ValidateMonotonicIncreasing();
 
     Initialize();
+}
+
+void Interpolator::ValidateMonotonicIncreasing() const
+{
+    for (std::size_t i = 1; i < xdata.size(); ++i)
+    {
+        if (xdata[i-1] >= xdata[i])
+        {
+            throw std::invalid_argument("Grid points are not monotonically increasing at index " + std::to_string(i));
+        }
+    }
 }
 
 Interpolator& Interpolator::operator=(const Interpolator& inter)
@@ -225,33 +199,18 @@ Interpolator::Interpolator(const std::vector<double> &x, const std::vector<doubl
     minx = xdata.front();
     maxx = xdata.back();
 
-    for (uint i=0; i<x.size(); i++)
-    {
-        xdata[i]=x[i];
-        ydata[i]=y[i];
-
-        // Check that x values are monotonically increasing
-        if (i>0)
-        {
-            if (xdata[i-1]>=xdata[i])
-            {
-                cerr << "Grid points are not monotonically increasing! grid["
-                    << i-1 <<"]=" << xdata[i-1] <<", grid["<<i<<"]="<< xdata[i]
-                    << " " << LINEINFO << endl;
-                exit(1);
-            }
-        }
-    }
-    method = INTERPOLATE_SPLINE;
+    method = InterpolationMethod::SPLINE;
     ready=false;
     freeze=false;
     freeze_underflow = ydata.front();
     freeze_overflow = ydata.back();
 
+    ValidateMonotonicIncreasing();
+
     Initialize();
 }
 
-void Interpolator::SetMethod(INTERPOLATION_METHOD m)
+void Interpolator::SetMethod(InterpolationMethod m)
 {
     method = m;
     
@@ -259,21 +218,8 @@ void Interpolator::SetMethod(INTERPOLATION_METHOD m)
 
 void Interpolator::Clear()
 {
-    switch(method)
-    {
-        case INTERPOLATE_SPLINE:
-            if (spline != NULL)
-            {
-                gsl_spline_free(spline);
-                spline=NULL;
-            }
-            if (acc != NULL)
-            {
-                gsl_interp_accel_free(acc);
-                acc=NULL;
-            }
-            break;
-    }
+    acc.reset();
+    spline.reset();
 }
 
 Interpolator::~Interpolator()
@@ -282,19 +228,19 @@ Interpolator::~Interpolator()
 
 }
 
-std::vector<double> Interpolator::GetXData()
+std::vector<double> Interpolator::GetXData() const noexcept
 {
     return xdata;
 }
-std::vector<double> Interpolator::GetYData()
+std::vector<double> Interpolator::GetYData() const noexcept
 {
     return ydata;
 }
-int Interpolator::GetNumOfPoints() const
+std::size_t Interpolator::GetNumOfPoints() const noexcept
 {
     return points;
 }
-INTERPOLATION_METHOD Interpolator::GetMethod() const
+InterpolationMethod Interpolator::GetMethod() const noexcept
 {
     return method;
 }
@@ -320,26 +266,25 @@ Interpolator::Interpolator(const Interpolator& inter)
 
 gsl_spline* Interpolator::GetGslSpline() const
 {
-    if (spline == NULL)
+    if (!spline)
     {
-        cerr << "GSL spline is not initialized! " << LINEINFO << endl;
-        exit(1);
+        throw std::logic_error("GSL spline is not initialized");
     }
-    return spline;
+    return spline.get();
 }
 
-double Interpolator::MinX()
+constexpr double Interpolator::MinX() const noexcept
 {
 	return minx;
 }
 
-double Interpolator::MaxX()
+constexpr double Interpolator::MaxX() const noexcept
 {
 	return maxx;
 }
 
 
-bool Interpolator::Freeze()
+constexpr bool Interpolator::Freeze() const noexcept
 {
 	return freeze;
 }
@@ -355,11 +300,11 @@ void Interpolator::SetUnderflow(double min)
  {
 	 freeze_overflow=max;
  }
-double Interpolator::UnderFlow()
+double Interpolator::UnderFlow() const noexcept
 {
 	 return freeze_underflow;
 }
-double Interpolator::OverFlow()
+double Interpolator::OverFlow() const noexcept
 {
 	return freeze_overflow;
 }
