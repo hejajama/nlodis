@@ -41,6 +41,7 @@ add_executable(
     tests/test_massivedishelpers.cpp
     tests/test_nlodis_helpers.cpp
     tests/vector_tests.cpp
+    tests/test_interpolation.cpp
     )
 	
 include_directories(.)
