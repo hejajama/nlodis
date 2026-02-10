@@ -33,7 +33,7 @@ REAL Vec::GetX() const { return x; }
 REAL Vec::GetY() const { return y; }
 REAL Vec::GetZ() const { return z; }
 
-Vec& Vec::operator+=(Vec& v)
+Vec& Vec::operator+=(const Vec& v)
 {
     x+=v.GetX();
     y+=v.GetY();
@@ -42,7 +42,7 @@ Vec& Vec::operator+=(Vec& v)
     return *this;
 }
 
-Vec& Vec::operator-=(Vec& v)
+Vec& Vec::operator-=(const Vec& v)
 {
     x-=v.GetX();
     y-=v.GetY();
@@ -59,7 +59,7 @@ Vec& Vec::operator=(const Vec& v)
     return *this;
 } 
 
-Vec  Vec::operator+(const Vec& v)
+Vec  Vec::operator+(const Vec& v) const
 {
     Vec sum;
     sum.SetX(x+v.GetX());
@@ -68,7 +68,7 @@ Vec  Vec::operator+(const Vec& v)
     return sum; 
 }
 
-Vec Vec::operator-(const Vec& v)
+Vec Vec::operator-(const Vec& v) const
 {
     Vec sum;
     sum.SetX(x-v.GetX());
@@ -84,28 +84,28 @@ Vec& Vec::operator*=(REAL c)
     return *this;
 }
 
-double Vec::operator*(Vec& v)
+double Vec::operator*(const Vec& v) const
 {
     return x*v.GetX() + y*v.GetY() + z*v.GetZ();
 }
 
-Vec Vec::operator*(REAL c)
+Vec Vec::operator*(REAL c) const
 {
     Vec tmp(x*c,y*c,z*c);
     return tmp;
 }
 
-REAL Vec::LenSqr()
+REAL Vec::LenSqr() const
 {
     return SQR(x)+SQR(y)+SQR(z);
 }
 
-REAL Vec::Len()
+REAL Vec::Len() const
 {
     return sqrt(LenSqr());
 }
 
-std::ostream& operator<<(std::ostream& os, Vec& ic)
+std::ostream& operator<<(std::ostream& os, const Vec& ic)
 {
     return os << "Vector (" << ic.GetX() << ", " << ic.GetY() <<
         ", " << ic.GetZ() << "), |vec| = " << ic.Len() << " ";

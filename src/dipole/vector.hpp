@@ -25,24 +25,24 @@ class Vec
         void SetX(REAL x_);
         void SetY(REAL y_);
         void SetZ(REAL z_);
-        Vec& operator+=(Vec& v);
-        Vec& operator-=(Vec& v);
+        Vec& operator+=(const Vec& v);
+        Vec& operator-=(const Vec& v);
         Vec& operator=(const Vec& v);
-        Vec operator+(const Vec& v);
-        Vec operator-(const Vec& v);
+        Vec operator+(const Vec& v) const;
+        Vec operator-(const Vec& v) const;
         Vec& operator*=(REAL c);
-        Vec operator*(REAL c);
+        Vec operator*(REAL c) const;
     
         void Rotate2D(double angle);  // rotate x,y coords counterclockwise
     
-        double operator*(Vec &v);   // dot product
+        double operator*(const Vec &v) const;   // dot product
     
-        REAL Len();
-        REAL LenSqr();
+        REAL Len() const;
+        REAL LenSqr() const;
     
     private:
         REAL x,y,z;
 };
 
-std::ostream& operator<<(std::ostream& os, Vec& ic);
+std::ostream& operator<<(std::ostream& os, const Vec& ic);
 

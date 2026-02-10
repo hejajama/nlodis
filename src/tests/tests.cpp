@@ -1,6 +1,9 @@
 #include "unit_test_framework.hpp"
 #include <cmath>
 #include <string>
+#include <dipole/vector.hpp>
+#include <dipole/dipoleamplitude.hpp>
+#include <gsl/gsl_rng.h>
 #include "../nlodis.hpp"
 #include "../integration.hpp"
 
@@ -101,6 +104,21 @@ TEST(GBW_DIPOLE_SATSCALE)
     N.InitializeInterpolation(Y);
     ASSERT_ALMOST_EQUAL(N.SaturationScale(Y, Ns), std::exp(1./3.*Y), 1e-3);
 
+}
+
+TEST(vector_class) {
+    gsl_rng *global_rng = gsl_rng_alloc(gsl_rng_default);
+    Vec v1(1,2);
+    Vec v2(5,-1);
+    double eps=1e-7;
+    ASSERT_ALMOST_EQUAL(v1*v2, 3,eps);
+    ASSERT_ALMOST_EQUAL((v1+v2).GetX(), 6, eps)
+    ASSERT_ALMOST_EQUAL((v1+v2*(-4)).GetY(), 2+(-1)*(-4), eps)
+    ASSERT_ALMOST_EQUAL(v1.Len(), std::sqrt(1*1+2*2),eps);
+
+    
+
+    gsl_rng_free(global_rng);
 }
 
 TEST_MAIN()
