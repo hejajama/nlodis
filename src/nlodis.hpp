@@ -27,7 +27,7 @@
 struct NLODISConfig {
     Order order = Order::LO;                                                ///< LO or NLO
     SubtractionScheme scheme = SubtractionScheme::UNSUB;                   ///< Subtraction scheme
-    NcScheme nc_scheme = NcScheme::FiniteNC;                                 ///< Nc counting scheme
+    NcScheme nc_scheme = NcScheme::FiniteNC;                                 ///< Nc scheme
     RunningCouplingScheme rc_scheme = RunningCouplingScheme::SMALLEST;     ///< Running coupling scale choice
     RunningCouplingIRScheme rc_ir_scheme = RunningCouplingIRScheme::FREEZE; ///< IR freezing scheme for coupling
     double maxr = 99.0;                                                     ///< Maximum dipole size [GeV^-1]

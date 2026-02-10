@@ -76,7 +76,7 @@ TEST(TRIPOLE_AMPLITUDE)
     double tripole_finiteNC = dis.TripoleAmplitude(x01, x02, x21, Y);
     double N01 = dis.GetDipole().DipoleAmplitude(x01, Y);
 
-    double expected_finiteNC = Constants::NC/(2.0*Constants::CF)*((1.0 - N02)*(1.0 - N12) - 1.0/(Constants::NC*Constants::NC)*(1.0 - N01));
+    double expected_finiteNC = 1.-Constants::NC/(2.0*Constants::CF)*((1.0 - N02)*(1.0 - N12) - 1.0/(Constants::NC*Constants::NC)*(1.0 - N01));
     ASSERT_ALMOST_EQUAL(tripole_finiteNC, expected_finiteNC, 1e-6);
 }
  
