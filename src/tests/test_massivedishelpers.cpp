@@ -5,6 +5,7 @@
 #include "../nlodis.hpp"
 #include "../integration.hpp"
 #include <cuba.h>
+#include <algorithm>
 
 using namespace std;
 

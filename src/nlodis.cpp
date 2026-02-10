@@ -1,6 +1,7 @@
 
 #include <gsl/gsl_errno.h>
 #include <memory>
+#include <algorithm>
 
 #include "nlodis.hpp"
 #include "qcd.hpp"
