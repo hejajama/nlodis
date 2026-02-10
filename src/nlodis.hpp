@@ -186,6 +186,13 @@ class NLODIS
          */
         double RunningCouplinScale(double x01, double x02, double x21) const;
 
+        /**
+         * @brief Set scale factor C^2 in the coordinate space running coupling
+         * 
+         * \alpha_s(r) = \alpha_s(4C^2/r^2 Lambda_QCD^2)
+         * 
+         * @param c2 Scale factor C^2
+         */
         void SetRunningCouplingC2Alpha(double c2) { C2_alpha = c2; }
 
         void SetQuarks(const std::vector<Quark>& quark_list) { quarks = quark_list; }
@@ -196,6 +203,14 @@ class NLODIS
          * @param mass Quark mass [GeV].
          */
         void SetQuarkMass(Quark::Type type, double mass);
+
+        /**
+         * @brief Control alpha_s in IR
+         * 
+         * In the FREEZE scheme, the coupling is frozen to a constant value when the scale is below a certain value.
+         * In the SMOOTH scheme, the coupling smoothly freezes to a constant value in the IR, without a sharp cutoff.
+         */
+        void SetRunningCouplingIRScheme(RunningCouplingIRScheme rc_ir_scheme_) { rc_ir_scheme = rc_ir_scheme_; }
     private:
     
         /* Integrand for LO cross section
@@ -217,6 +232,7 @@ class NLODIS
         RunningCouplingScheme rc_scheme = RunningCouplingScheme::SMALLEST;
         const double Q0sqr = 1; // Non-perturbative target scale, should match the one used in the NLO DIS fit!
         double C2_alpha = 1.0; // Scale factor in the coordinate space running coupling
+        RunningCouplingIRScheme rc_ir_scheme = RunningCouplingIRScheme::FREEZE;
       
 };
 

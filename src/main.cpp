@@ -9,14 +9,52 @@
 
 using namespace std;
 
+/// Model configuration parameters
+struct ModelConfig {
+    std::string name;
+    std::string datafile;
+    double c2_alpha;
+    double charm_mass;
+    double sigma0_2;
+    RunningCouplingScheme rc_scheme;
+};
+
 int main(int argc, char* argv[]) {
     
     // Suppress GSL error handler for underflow errors during integration
     gsl_error_handler_t *old_handler = gsl_set_error_handler_off();
 
+    std::vector<ModelConfig> configs{
+        {"KCBK parent", "/Users/hejajama/code/nlodisfit_bayesian/data/pd/bk_map.dat", 663, 1.4, 20.7, RunningCouplingScheme::PARENT},
+        {"KCBK smallest", "/Users/hejajama/code/nlodisfit_bayesian/data/balsd/bk_map.dat", 1.7, 1.25, 8.75, RunningCouplingScheme::SMALLEST},
+        {"NLOBK MV smallest", "/Users/hejajama/Downloads/mv_bk.dat", 23, 1.04, 23.5, RunningCouplingScheme::SMALLEST},
+        {"NLOBK MVgamma smallest", "/Users/hejajama/Downloads/mvgam_bk.dat", std::pow(10, 2.9), 1.17, 22.4, RunningCouplingScheme::SMALLEST},
+        {"NLOBK MVgamma parent", "/Users/hejajama/Downloads/mvgam_bk.dat", std::pow(10, 3.88), 1.20, 24.3, RunningCouplingScheme::PARENT}
+    };
+    
+    double Q2 = 4.5;
+    double xbj = 3e-3;
 
+    cout <<"Computing at Q^2=" << Q2 << " GeV^2 and xbj=" << xbj << endl;
+                                                
+    for (const auto& cfg : configs) {
+        NLODIS dis;
+        dis.SetDipole(std::make_unique<BKDipole>(cfg.datafile));
+        dis.SetRunningCouplingC2Alpha(cfg.c2_alpha);
+        dis.SetRunningCouplingScheme(cfg.rc_scheme);
+        dis.SetOrder(Order::NLO);
+        dis.SetQuarkMass(Quark::Type::C, cfg.charm_mass);
+        dis.SetProtonTransverseArea(cfg.sigma0_2, Unit::MB);
 
+        dis.SetRunningCouplingIRScheme(RunningCouplingIRScheme::FREEZE); // Set IR scheme to FREEZE for this test
+        double F2_result_sharp = dis.F2(Q2, xbj);
+        dis.SetRunningCouplingIRScheme(RunningCouplingIRScheme::SMOOTH); // Set IR scheme to SMOOTH for this test
+        double F2_result_smooth = dis.F2(Q2, xbj);
+        cout << cfg.name << " F2 = " << F2_result_sharp << " (FREEZE), " << F2_result_smooth << " (SMOOTH)" << std::endl;
+        cout << endl;
+    }
 
+    /*
     cout <<" == KCBK, parent ==" << endl;
     NLODIS kcbk_parent;
     kcbk_parent.SetDipole(std::make_unique<BKDipole>("/Users/hejajama/code/nlodisfit_bayesian/data/pd/bk_map.dat"));
@@ -85,7 +123,7 @@ int main(int argc, char* argv[]) {
     double F2_mvgamma_parent = mvgamma_parent.F2(Q2, xbj);
     std::cout << "NLOBK MV gamma parent F2(Q2="<< Q2 << ", xbj="<< xbj << ") = " << F2_mvgamma_parent << std::endl;
     cout << endl;
-    
+    */
 
     /*
     // H1 data points for FL

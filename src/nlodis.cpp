@@ -100,7 +100,7 @@ double NLODIS::Photon_proton_cross_section_d2b(double Q2, double xbj, Polarizati
     double sigma_dip = Sigma_dip_d2b(Q2, xbj, pol);
     double  sigma_qg = Sigma_qg_d2b(Q2,xbj,pol);
 
-    cout <<"# Note: Pol " << PolarizationString(pol) << " Sigma_LO: " << sigma_LO << " , Sigma_dip: " << sigma_dip << " , Sigma_qg: " << sigma_qg << endl;
+    //cout <<"# Note: Pol " << PolarizationString(pol) << " Sigma_LO: " << sigma_LO << " , Sigma_dip: " << sigma_dip << " , Sigma_qg: " << sigma_qg << endl;
 
     return sigma_LO + sigma_dip + sigma_qg; 
 }
@@ -492,27 +492,40 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
  
  double NLODIS::Alphas(double r) const
  {
-    /*
-    double scalefactor = 4.0*C2_alpha;
-    const double alphas_mu0=2.5;    // mu0/lqcd
-    const double alphas_freeze_c=0.2;
-    double b0 = (11.0*3 - 2.0*3)/3.0;
+    const double b0 = (11.0*NC - 2.0*quarks.size())/(12.0*M_PI);
 
-    double AlphaSres = 4.0*M_PI / ( b0 * std::log(
-    std::pow( std::pow(alphas_mu0, 2.0/alphas_freeze_c) + std::pow(scalefactor/(r*r*0.241*0.241), 1.0/alphas_freeze_c), alphas_freeze_c)
-    ) );
-    return AlphaSres;
+    switch (rc_ir_scheme)
+    {
+        case RunningCouplingIRScheme::FREEZE: {
+            const double LambdaQCD = 0.241; // GeV
+            double mu2 = 4.0*C2_alpha/(r*r);
+            double as = 1.0/(b0*log(mu2/(LambdaQCD*LambdaQCD)));
+            if (as > 0.7 or log(mu2/(LambdaQCD*LambdaQCD))<0)
+            {
+                as = 0.7; // Freeze coupling
+            }
+            return as;
+            break;
+        }
+        case RunningCouplingIRScheme::SMOOTH: {
+            double scalefactor = 4.0*C2_alpha;
+            const double alphas_mu0=2.5;    // mu0/lqcd
+            const double alphas_freeze_c=0.2;
+
+            double AlphaSres = 1. / ( b0 * std::log(
+            std::pow( std::pow(alphas_mu0, 2.0/alphas_freeze_c) + std::pow(scalefactor/(r*r*0.241*0.241), 1.0/alphas_freeze_c), alphas_freeze_c)
+            ) );
+            return AlphaSres;
+            break;
+        }
+        default:
+            throw std::runtime_error("NLODIS::Alphas: unknown IR scheme");
+    }
+    /*
+    
 */
     
-    const double LambdaQCD = 0.241; // GeV
-    const double b0 = (11.0*NC - 2.0*quarks.size())/(12.0*M_PI);
-    double mu2 = 4.0*C2_alpha/(r*r);
-    double as = 1.0/(b0*log(mu2/(LambdaQCD*LambdaQCD)));
-    if (as > 0.7 or log(mu2/(LambdaQCD*LambdaQCD))<0)
-    {
-        as = 0.7; // Freeze coupling
-    }
-    return as;
+   
  }
 
  double NLODIS::z2_lower_bound(double xbj, double Q2) const

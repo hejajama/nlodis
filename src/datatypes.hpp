@@ -41,3 +41,9 @@ enum class RunningCouplingScheme
     SMALLEST,
     PARENT
 };
+
+enum class RunningCouplingIRScheme
+{
+    FREEZE,
+    SMOOTH
+};
