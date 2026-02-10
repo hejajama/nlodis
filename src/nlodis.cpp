@@ -2,6 +2,7 @@
 #include <gsl/gsl_errno.h>
 #include <memory>
 #include <algorithm>
+#include <stdexcept>
 
 #include "nlodis.hpp"
 #include "qcd.hpp"
@@ -14,8 +15,8 @@ static const std::string cubamethod = "suave";
 
 double NLODIS::F2(double Q2, double xbj)
 {
-    double sigmaT = Photon_proton_cross_section_d2b(Q2, xbj, T);
-    double sigmaL = Photon_proton_cross_section_d2b(Q2, xbj, L);
+    double sigmaT = Photon_proton_cross_section_d2b(Q2, xbj, Polarization::T);
+    double sigmaL = Photon_proton_cross_section_d2b(Q2, xbj, Polarization::L);
 
     double res = Q2 / (4.0 * M_PI * M_PI * ALPHA_EM) * (sigmaT + sigmaL);
 
@@ -25,7 +26,7 @@ double NLODIS::F2(double Q2, double xbj)
 
 double NLODIS::FL(double Q2, double xbj)
 {
-    double sigmaL = Photon_proton_cross_section_d2b(Q2, xbj, L);
+    double sigmaL = Photon_proton_cross_section_d2b(Q2, xbj, Polarization::L);
     double res = Q2 / (4.0 * M_PI * M_PI * ALPHA_EM) * sigmaL;
     res *= ProtonTransverseArea(); // Include \int d^2 b
     return res;
@@ -33,7 +34,7 @@ double NLODIS::FL(double Q2, double xbj)
 
 double NLODIS::FT(double Q2, double xbj)
 {
-    double sigmaT = Photon_proton_cross_section_d2b(Q2, xbj, T);
+    double sigmaT = Photon_proton_cross_section_d2b(Q2, xbj, Polarization::T);
     double res = Q2 / (4.0 * M_PI * M_PI * ALPHA_EM) * sigmaT;
     res *= ProtonTransverseArea(); // Include \int d^2 b
     return res;
@@ -45,11 +46,11 @@ double NLODIS::TripoleAmplitude(double x01, double x02, double x21, double Y)
     double S02 = 1-dipole->DipoleAmplitude(x02, Y);
     double S12 = 1-dipole->DipoleAmplitude(x21, Y);
 
-    if (nc_scheme == LargeNC)
+    if (nc_scheme == NcScheme::LargeNC)
     {
         return 1.0 - S02*S12;
     }
-    else if (nc_scheme == FiniteNC)
+    else if (nc_scheme == NcScheme::FiniteNC)
     {
         return NC/(2.0*CF)*(S02*S12 - 1./SQR(NC)*S01);
     }
@@ -65,13 +66,13 @@ double NLODIS::EvolutionRapidity(double xbj, double Q2, double z2) const
     return std::log(W2*z2/Q0sqr);
 }
 
-double NLODIS::RunningCouplinScale(double x01, double x02, double x21)
+double NLODIS::RunningCouplinScale(double x01, double x02, double x21) const
 {
-    if (rc_scheme == SMALLEST)
+    if (rc_scheme == RunningCouplingScheme::SMALLEST)
     {
         return std::min({x01, x02, x21});
     }
-    else if (rc_scheme == PARENT)
+    else if (rc_scheme == RunningCouplingScheme::PARENT)
     {
         return x01;
     }
@@ -83,12 +84,12 @@ double NLODIS::RunningCouplinScale(double x01, double x02, double x21)
 
 double NLODIS::Photon_proton_cross_section_d2b(double Q2, double xbj, Polarization pol)
 {
-    if (scheme != UNSUB)
+    if (scheme != SubtractionScheme::UNSUB)
     {
         throw std::runtime_error("Only UNSUB scheme is implemented.");
     }
 
-    if (order==LO)
+    if (order==Order::LO)
     {
         return Photon_proton_cross_section_LO_d2b(Q2, xbj, pol);
     }
@@ -128,7 +129,7 @@ double NLODIS::Sigma_dip_d2b(double Q2, double xbj, Polarization pol)
         intparams.pol=pol;
 
         intparams.quark=quark;
-        if (pol == L)
+        if (pol == Polarization::L)
         {
             // 1st line
             double I, Ierr, Iprob;
@@ -146,7 +147,7 @@ double NLODIS::Sigma_dip_d2b(double Q2, double xbj, Polarization pol)
             Cuba(cubamethod, 4, integrand_dip_massive, &intparams, &Icd, &Icderr, &Icdprob);
             result += Iab + Icd;
         }
-        else if (pol == T)
+        else if (pol == Polarization::T)
         {
             // T0 contribution
             intparams.contribution="T0";
@@ -196,7 +197,7 @@ double NLODIS::Sigma_dip_d2b(double Q2, double xbj, Polarization pol)
 int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, double *f, void *userdata) {
     auto* const p = static_cast<IntegrationParams*>(userdata);
 
-    if (p->pol == L)
+    if (p->pol == Polarization::L)
     {
         if (!( (*ndim ==4 and p->contribution=="cd") or (*ndim == 3 and p->contribution =="ab") 
         or (*ndim ==2 and p->contribution=="Omega_L_const") ) )
@@ -234,31 +235,31 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
     double dipole = p->nlodis->GetDipole().DipoleAmplitude(x01,evolution_rapidity);
     double res;
     /////////////// Longitudinal part ///////////////
-    if (p->contribution=="ab" and p->pol == L) {
+    if (p->contribution=="ab" and p->pol == Polarization::L) {
         // "ab" contribution does not have the x integration variable
         double xi=x[2]; 
         res = dipole*(ILdip_massive_Iab(Q2,z1,x01,mf,xi));
-    } else if (p->contribution=="cd" and p->pol == L) {
+    } else if (p->contribution=="cd" and p->pol == Polarization::L) {
         double xi=x[2]; 
         double intx=x[3];
         res = dipole*(ILdip_massive_Icd(Q2,z1,x01,mf,xi,intx));
     }
-    else if (p->contribution=="Omega_L_const" and p->pol == L)
+    else if (p->contribution=="Omega_L_const" and p->pol == Polarization::L)
     {
         // only z and r integration
         res = dipole*ILdip_massive_Omega_L_Const(Q2, z1, x01, mf);
     }
     /////////////// Transverse part ///////////////
-    else if (p->contribution=="T0" and p->pol == T)
+    else if (p->contribution=="T0" and p->pol == Polarization::T)
     {
         res = dipole*ITdip_massive_0(Q2, z1, SQR(x01)  , mf);
     }
-    else if (p->contribution=="T1" and p->pol == T)
+    else if (p->contribution=="T1" and p->pol == Polarization::T)
     {
         double xi=x[2]; 
         res = dipole*ITdip_massive_1(Q2, z1, SQR(x01), mf, xi);
     }
-    else if (p->contribution=="T2" and p->pol == T)
+    else if (p->contribution=="T2" and p->pol == Polarization::T)
     {
         double xi=x[2]; 
         double intx=x[3];
@@ -266,7 +267,7 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
     }
     else 
     {
-        cerr << "integrand_dip_massive: unknown contribution " << p->contribution << " pol " << p->pol << endl;
+        cerr << "integrand_dip_massive: unknown contribution " << p->contribution << " pol " << PolarizationString(p->pol) << endl;
         exit(1);
     }
 
@@ -420,33 +421,33 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
 
     double res=0;
 
-    if (p->contribution == "I1" and p->pol == L)
+    if (p->contribution == "I1" and p->pol == Polarization::L)
     {
         double dipole_term  = SKernel_dipole  * ILNLOqg_massive_dipole_part_I1(Q2,mf,z1,z2,x01sq,x02sq,x21sq); // Terms proportional to N_01
         double tripole_term = SKernel_tripole * ILNLOqg_massive_tripole_part_I1(Q2,mf,z1,z2,x01sq,x02sq,x21sq); // Terms proportional to N_012
 
         res = ( dipole_term + tripole_term );
     }
-    else if (p->contribution == "I1" and p->pol == T)
+    else if (p->contribution == "I1" and p->pol == Polarization::T)
     {
         double dipole_term = SKernel_dipole * ITNLOqg_massive_dipole_part_I1(Q2,mf,z1,z2,x01sq,x02sq,x21sq);
         double tripole_term = SKernel_tripole * ITNLOqg_massive_tripole_part_I1(Q2,mf,z1,z2,x01sq,x02sq,x21sq);
     }
-    else  if (p->contribution == "I2" and p->pol == L) {
+    else  if (p->contribution == "I2" and p->pol == Polarization::L) {
         double y_t1 = x[5];
        res = SKernel_tripole * ILNLOqg_massive_tripole_part_I2_fast(Q2,mf,z1,z2,x01sq,x02sq,x21sq,y_t1); 
     }
-    else if (p->contribution == "I2" and p->pol == T) {
+    else if (p->contribution == "I2" and p->pol == Polarization::T) {
         double y_t1 = x[5];
         res = SKernel_tripole * ITNLOqg_massive_tripole_part_I2_fast(Q2,mf,z1,z2,x01sq,x02sq,x21sq,y_t1); 
     }
-    else if (p->contribution == "I3" and p->pol == L)
+    else if (p->contribution == "I3" and p->pol == Polarization::L)
     {
         double y_t1 = x[5];
         double y_t2 = x[6];
         res = SKernel_dipole * ILNLOqg_massive_tripole_part_I3_fast(Q2, mf, z1, z2, x01sq, x02sq, x21sq, y_t1, y_t2);
     }
-    else if (p->contribution == "I3" and p->pol == T)
+    else if (p->contribution == "I3" and p->pol == Polarization::T)
     {
         double y_t1 = x[5];
         double y_t2 = x[6];
@@ -514,7 +515,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     return as;
  }
 
- double NLODIS::z2_lower_bound(double xbj, double Q2)
+ double NLODIS::z2_lower_bound(double xbj, double Q2) const
 {
     double W2 = Q2 / xbj;
     return Q0sqr / W2;
@@ -535,12 +536,12 @@ void NLODIS::SetQuarkMass(Quark::Type type, double mass)
 
 void NLODIS::SetProtonTransverseArea(double transverse_area_, Unit unit)
 {
-    if (unit == MB)
+    if (unit == Unit::MB)
     {
         // Convert from mb to GeV^-2
         transverse_area = transverse_area_ * 2.5684624; 
     }
-    else if (unit == GEVm2)
+    else if (unit == Unit::GEVm2)
     {
         transverse_area = transverse_area_;
     }

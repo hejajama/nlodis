@@ -31,7 +31,7 @@ const std::string gbw_datafile = "gbw.dat";
     double Q2 = 10.0; // GeV^2
     double xbj = 1;  // Test case datafile is generated such that it starts from x0=1
     
-    dis.SetOrder(LO);
+    dis.SetOrder(Order::LO);
 
     
 
@@ -58,7 +58,7 @@ TEST(TRIPOLE_AMPLITUDE)
     BKDipole gbwdatafile("gbw.dat");
     dis.SetDipole(std::make_unique<BKDipole>(gbwdatafile));
 
-    dis.SetNcScheme(LargeNC);
+    dis.SetNcScheme(NcScheme::LargeNC);
     double x01 = 1.0;
     double x02 = 2.0;
     double x21 = std::sqrt( SQR(x01) + SQR(x02) - 2.0*x01*x02*0.5 ); // angle cos=0.5
@@ -69,7 +69,7 @@ TEST(TRIPOLE_AMPLITUDE)
     double N12 = dis.GetDipole().DipoleAmplitude(x21, Y);
     double expected_largeNC = 1.0 - (1.0 - N02)*(1.0 - N12);
     ASSERT_ALMOST_EQUAL(tripole_largeNC, expected_largeNC, 1e-6);
-    dis.SetNcScheme(FiniteNC);
+    dis.SetNcScheme(NcScheme::FiniteNC);
     double tripole_finiteNC = dis.TripoleAmplitude(x01, x02, x21, Y);
     double N01 = dis.GetDipole().DipoleAmplitude(x01, Y);
 

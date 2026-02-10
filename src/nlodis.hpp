@@ -9,8 +9,7 @@
  * Modified by J. Penttala, H. Mäntysaari
  */
 
-#ifndef _NLODIS_HPP_
-#define _NLODIS_HPP_
+#pragma once
 
 #include "dipole/dipoleamplitude.hpp"
 #include "qcd.hpp"
@@ -136,14 +135,14 @@ class NLODIS
          * @param unit Unit of transverse_area, default is GeV^-2. If unit is MB, the value will be converted to GeV^-2 internally.
          * 
          */
-        void SetProtonTransverseArea(double transverse_area_, Unit unit=GEVm2);
+        void SetProtonTransverseArea(double transverse_area_, Unit unit=Unit::GEVm2);
 
         /**
          * @brief Proton transverse area in GeV^-2
          */
         double ProtonTransverseArea() const { return transverse_area; }
 
-        Dipole& GetDipole() { return *dipole; }
+        Dipole& GetDipole() const { return *dipole; }
 
         /**
          * @brief Lower bound for the z2 integral.
@@ -153,7 +152,7 @@ class NLODIS
          *
          * Ref https://arxiv.org/pdf/2007.01645 eq (18)
          */
-        double z2_lower_bound(double xbj, double Q2);
+        double z2_lower_bound(double xbj, double Q2) const;
 
         /**
          * @brief qqg-target scattering amplitude.
@@ -185,7 +184,7 @@ class NLODIS
          * @param x02 Dipole size [GeV^-1].
          * @param x21 Dipole size [GeV^-1].
          */
-        double RunningCouplinScale(double x01, double x02, double x21);
+        double RunningCouplinScale(double x01, double x02, double x21) const;
 
         void SetRunningCouplingC2Alpha(double c2) { C2_alpha = c2; }
 
@@ -210,12 +209,12 @@ class NLODIS
         double transverse_area=1; // \sigma_0/2 = \int d^2b in GeV^-2 (proton transverse area)
         //AmplitudeLib dipole;
         std::unique_ptr<Dipole> dipole;
-        Scheme scheme = UNSUB;
+        SubtractionScheme scheme = SubtractionScheme::UNSUB;
         std::vector<Quark> quarks;
-        Order order = LO;
+        Order order = Order::LO;
         double maxr = 99;
-        NcScheme nc_scheme = LargeNC;
-        RunningCouplingScheme rc_scheme = SMALLEST;
+        NcScheme nc_scheme = NcScheme::LargeNC;
+        RunningCouplingScheme rc_scheme = RunningCouplingScheme::SMALLEST;
         const double Q0sqr = 1; // Non-perturbative target scale, should match the one used in the NLO DIS fit!
         double C2_alpha = 1.0; // Scale factor in the coordinate space running coupling
       
@@ -233,7 +232,7 @@ struct IntegrationParams {
         std::string contribution;
     };
 
-inline double SQR(double x) { return x*x; }
+constexpr double SQR(double x) noexcept { return x*x; }
 
 //// TODO NOTE: Inconsistency: some functions take r^2, some functions take r as an argumetn. This should be fixed at some point to avoid confusion.
 
@@ -289,6 +288,4 @@ double IT_tripole_Fm_I2_fast(double Q, double mf, double z1, double z2, double x
 double IT_tripole_jkm_I3_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
 double IT_tripole_jk_I3_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
 double IT_tripole_F_I3_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
-double IT_tripole_Fm_I3_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
-
-#endif 
+double IT_tripole_Fm_I3_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2); 

@@ -21,10 +21,10 @@ int main(int argc, char* argv[]) {
     NLODIS kcbk_parent;
     kcbk_parent.SetDipole(std::make_unique<BKDipole>("/Users/hejajama/code/nlodisfit_bayesian/data/pd/bk_map.dat"));
     kcbk_parent.SetRunningCouplingC2Alpha(663);
-    kcbk_parent.SetRunningCouplingScheme(PARENT);
-    kcbk_parent.SetOrder(NLO);
+    kcbk_parent.SetRunningCouplingScheme(RunningCouplingScheme::PARENT);
+    kcbk_parent.SetOrder(Order::NLO);
     kcbk_parent.SetQuarkMass(Quark::Type::C, 1.4);
-    kcbk_parent.SetProtonTransverseArea(20.7, MB); // Set \sigma_0/2 = 20.7 mb
+    kcbk_parent.SetProtonTransverseArea(20.7, Unit::MB); // Set \sigma_0/2 = 20.7 mb
     double Q2=4.5;
     double xbj=3e-3;
     //double FL_kcbk_parent = kcbk_parent.FL(Q2, xbj);
@@ -39,10 +39,10 @@ int main(int argc, char* argv[]) {
     NLODIS kcbk_smallest;
     kcbk_smallest.SetDipole(std::make_unique<BKDipole>("/Users/hejajama/code/nlodisfit_bayesian/data/balsd/bk_map.dat"));
     kcbk_smallest.SetRunningCouplingC2Alpha(1.7);
-    kcbk_smallest.SetRunningCouplingScheme(SMALLEST);
-    kcbk_smallest.SetOrder(NLO);
+    kcbk_smallest.SetRunningCouplingScheme(RunningCouplingScheme::SMALLEST);
+    kcbk_smallest.SetOrder(Order::NLO);
     kcbk_smallest.SetQuarkMass(Quark::Type::C, 1.25);
-    kcbk_smallest.SetProtonTransverseArea(8.75, MB);
+    kcbk_smallest.SetProtonTransverseArea(8.75, Unit::MB);
     double F2_kcbk_smallest = kcbk_smallest.F2(Q2, xbj);
     std::cout << "KCBK smallest dipole F2(Q2="<< Q2 << ", xbj="<< xbj << ") = " << F2_kcbk_smallest << std::endl;
     cout << endl;
@@ -52,10 +52,10 @@ int main(int argc, char* argv[]) {
     NLODIS mv;
     mv.SetDipole(std::make_unique<BKDipole>("/Users/hejajama/Downloads/mv_bk.dat"));
     mv.SetRunningCouplingC2Alpha(23);
-    mv.SetRunningCouplingScheme(SMALLEST);
-    mv.SetOrder(NLO);
+    mv.SetRunningCouplingScheme(RunningCouplingScheme::SMALLEST);
+    mv.SetOrder(Order::NLO);
     mv.SetQuarkMass(Quark::Type::C, 1.04);
-    mv.SetProtonTransverseArea(23.5, MB); // Set \sigma_0/2 = 23.5 mb
+    mv.SetProtonTransverseArea(23.5, Unit::MB); // Set \sigma_0/2 = 23.5 mb
     //double FL_mv = mv.FL(Q2, xbj);
     double F2_mv = mv.F2(Q2, xbj);
     std::cout << "NLOBK MV smallest F2(Q2="<< Q2 << ", xbj="<< xbj << ") = " << F2_mv << std::endl;
@@ -66,10 +66,10 @@ int main(int argc, char* argv[]) {
     NLODIS mvgamma;
     mvgamma.SetDipole(std::make_unique<BKDipole>("/Users/hejajama/Downloads/mvgam_bk.dat"));
     mvgamma.SetRunningCouplingC2Alpha(std::pow(10,2.9));
-    mvgamma.SetRunningCouplingScheme(SMALLEST);
+    mvgamma.SetRunningCouplingScheme(RunningCouplingScheme::SMALLEST);
     mvgamma.SetQuarkMass(Quark::Type::C, 1.16 );
-    mvgamma.SetOrder(NLO);
-    mvgamma.SetProtonTransverseArea(22.5, MB); // Set \sigma_0/2 = 22.5 mb
+    mvgamma.SetOrder(Order::NLO);
+    mvgamma.SetProtonTransverseArea(22.5, Unit::MB); // Set \sigma_0/2 = 22.5 mb
     double F2_mvgamma = mvgamma.F2(Q2, xbj);
     std::cout << "NLOBK MV gamma smallest F2(Q2="<< Q2 << ", xbj="<< xbj << ") = " << F2_mvgamma << std::endl;
     cout << endl;
@@ -78,10 +78,10 @@ int main(int argc, char* argv[]) {
     NLODIS mvgamma_parent;
     mvgamma_parent.SetDipole(std::make_unique<BKDipole>("/Users/hejajama/Downloads/pd_nlo_bk.dat"));
     mvgamma_parent.SetRunningCouplingC2Alpha(std::pow(10.0, 3.88));
-    mvgamma_parent.SetRunningCouplingScheme(PARENT);
+    mvgamma_parent.SetRunningCouplingScheme(RunningCouplingScheme::PARENT);
     mvgamma_parent.SetQuarkMass(Quark::Type::C, 1.2);
-    mvgamma_parent.SetOrder(NLO);
-    mvgamma_parent.SetProtonTransverseArea(24.3, MB); //
+    mvgamma_parent.SetOrder(Order::NLO);
+    mvgamma_parent.SetProtonTransverseArea(24.3, Unit::MB); //
     double F2_mvgamma_parent = mvgamma_parent.F2(Q2, xbj);
     std::cout << "NLOBK MV gamma parent F2(Q2="<< Q2 << ", xbj="<< xbj << ") = " << F2_mvgamma_parent << std::endl;
     cout << endl;
@@ -126,7 +126,7 @@ int main(int argc, char* argv[]) {
     /*NLODIS dis(argv[1]);
     dis.SetRunningCouplingC2Alpha(std::stod(argv[2]));
     double sigma0_2 = std::stod(argv[3])*2.5684624; // Convert mb to GeV^-2
-    dis.SetOrder(NLO);
+    dis.SetOrder(Order::NLO);
     double Q2=10;
     double xbj=2e-4;
 

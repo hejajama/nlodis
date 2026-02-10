@@ -1,6 +1,7 @@
 #include "nlodis.hpp"
 #include <gsl/gsl_sf_dilog.h>
 #include <gsl/gsl_sf_bessel.h>
+#include <stdexcept>
 
 // Various helper functions defined in this file 
 // after they are referenced 

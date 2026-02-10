@@ -3,9 +3,7 @@
  * Heikki Mäntysaari <heikki.mantysaari@jyu.fi>, 2011-2014
  */
 
-#ifndef _INTERPOLATION_H
-#define _INTERPOLATION_H
-
+#pragma once
 
 
 #include <gsl/gsl_bspline.h>
@@ -166,6 +164,3 @@ class Interpolator
 };
 
 
-
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef _QCD_HPP_
-#define _QCD_HPP_
+#pragma once
 
 #include <string>
 
@@ -27,6 +26,4 @@ std::string QuarkString(Quark q);
 
 
 const int NC = 3; 
-const double CF = (NC*NC - 1.0)/(2.0*NC);  
-
-#endif 
+const double CF = (NC*NC - 1.0)/(2.0*NC); 

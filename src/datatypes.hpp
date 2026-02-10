@@ -1,13 +1,12 @@
-#ifndef _DATATYPES_H
-#define _DATATYPES_H
+#pragma once
 
-enum Polarization
+enum class Polarization
 {
     T,
     L
 };
 
-enum Unit
+enum class Unit
 {
     MB,     // millibarn
     GEVm2 // GeV^-2
@@ -20,27 +19,25 @@ enum Unit
 std::string PolarizationString(Polarization pol);
 
 
-enum Scheme
+enum class SubtractionScheme
 {
     UNSUB
 };
 
-enum Order
+enum class Order
 {
     LO,
     NLO
 };
 
-enum NcScheme
+enum class NcScheme
 {
     FiniteNC,
     LargeNC
 };
 
-enum RunningCouplingScheme
+enum class RunningCouplingScheme
 {
     SMALLEST,
     PARENT
 };
-
-#endif

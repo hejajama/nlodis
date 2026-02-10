@@ -1,5 +1,4 @@
-#ifndef VEC_H
-#define VEC_H
+#pragma once
 
 /*
  * Simple class for 2D/3D vectors
@@ -46,8 +45,4 @@ class Vec
 };
 
 std::ostream& operator<<(std::ostream& os, Vec& ic);
-
-
-
-#endif //VEC_H
 

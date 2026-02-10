@@ -1,5 +1,4 @@
-#ifndef _INTEGRATION_CPP_
-#define _INTEGRATION_CPP_
+#pragma once
 
 #include <string>
 #include <cuba.h>
@@ -13,7 +12,4 @@ namespace cuba_config{
 
 // Wrapper that allows user to specify the Cuba method to use
 void Cuba(std::string method, int ndim, integrand_t integrand,
-    void *userdata, double *integral, double *error, double *prob);
-
-
-#endif 
+    void *userdata, double *integral, double *error, double *prob); 

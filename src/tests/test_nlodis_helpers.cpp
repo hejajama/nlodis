@@ -50,12 +50,12 @@ TEST(RUNNING_COUPLING_SCALE)
     double x21 = 1.5;
     
     // Test SMALLEST scheme 
-    dis.SetRunningCouplingScheme(SMALLEST);
+    dis.SetRunningCouplingScheme(RunningCouplingScheme::SMALLEST);
     double scale = dis.RunningCouplinScale(x01, x02, x21);
     ASSERT_ALMOST_EQUAL(scale, x01, 1e-10);
     
     // Test PARENT scheme
-    dis.SetRunningCouplingScheme(PARENT);
+    dis.SetRunningCouplingScheme(RunningCouplingScheme::PARENT);
     scale = dis.RunningCouplinScale(x01, x02, x21);
     ASSERT_ALMOST_EQUAL(scale, x01, 1e-10);
     
@@ -63,12 +63,12 @@ TEST(RUNNING_COUPLING_SCALE)
     x01 = 0.5;
     x02 = 3.0;
     x21 = 0.1;
-    
-    dis.SetRunningCouplingScheme(SMALLEST);
+
+    dis.SetRunningCouplingScheme(RunningCouplingScheme::SMALLEST);
     scale = dis.RunningCouplinScale(x01, x02, x21);
     ASSERT_ALMOST_EQUAL(scale, x21, 1e-10);
     
-    dis.SetRunningCouplingScheme(PARENT);
+    dis.SetRunningCouplingScheme(RunningCouplingScheme::PARENT);
     scale = dis.RunningCouplinScale(x01, x02, x21);
     ASSERT_ALMOST_EQUAL(scale, x01, 1e-10);
 }

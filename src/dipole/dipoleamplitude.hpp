@@ -4,8 +4,7 @@
  * Virtual class for the dipole amplitude
  */
 
-#ifndef _DIPOLEAMPLITUDE_HPP_
-#define _DIPOLEAMPLITUDE_HPP_
+#pragma once
 
 #include "vector.hpp"
 
@@ -42,7 +41,3 @@ class Dipole
         virtual void InitializeInterpolation(double Y) {};
 
 };
-
-
-
-#endif

@@ -3,8 +3,7 @@
  * Heikki Mäntysaari <heikki.mantysaari@jyu.fi>, 2020-2025
  */
 
-#ifndef _AMPLITUDELIB_H
-#define _AMPLITUDELIB_H
+#pragma once
 
 #include "interpolation.hpp"
 #include "../dipoleamplitude.hpp"
@@ -182,5 +181,3 @@ const int INTERPOLATION_POINTS = 6;
 
 
 const std::string AMPLITUDELIB_VERSION = "Bayesian NLO DIS fit (Casuga et al) 2025";
-
-#endif

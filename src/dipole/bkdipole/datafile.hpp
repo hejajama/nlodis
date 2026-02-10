@@ -2,9 +2,7 @@
  * Heikki Mäntysaari <heikki.mantysaari@jyu.fi>, 2011-2020
  */
 
-#ifndef _DATAFILE_H
-#define _DATAFILE_H
-
+#pragma once
 
 #include <sstream>
 #include <vector>
@@ -45,5 +43,3 @@ class DataFile
         double y0;
 
 };
-
-#endif

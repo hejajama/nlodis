@@ -1,13 +1,14 @@
 #include <string>
+#include <stdexcept>
 #include "datatypes.hpp"
 
 std::string PolarizationString(Polarization pol)
 {
-    if (pol == T)
+    if (pol == Polarization::T)
     {
         return "T";
     }
-    else if (pol == L)
+    else if (pol == Polarization::L)
     {
         return "L";
     }
