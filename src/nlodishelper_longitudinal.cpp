@@ -20,14 +20,6 @@
 * This term corresponds to second line of 2103.14549 (166)
 * i.e. 4 Q^2 z^2(1-z)^2 alpha_s*Nc/pi*K_0(r*eps)*I_{v, part (c)+(d)}
 * I_{v, part (c)+(d)} is given in (114)
- */
-
-double ILdip_massive_Icd(double Q, double z1, double x01sq, double mf, double xi, double x);
-
-
-
-/*
- * https://arxiv.org/pdf/2103.14549 (114) 
 */
 double ILdip_massive_Icd(double Q2, double z1, double r, double mf, double xi, double x) {
     // Note that this now uses the earlier parametrization (xi,x) instead of (chi,u). This should be better for numerics.

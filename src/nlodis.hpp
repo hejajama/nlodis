@@ -35,6 +35,15 @@ struct NLODISConfig {
     static constexpr double Q0sqr = 1.0;                                   ///< Non-perturbative target scale [GeV^2]
 };
 
+/**
+ * @class NLODIS
+ * @brief Next-to-Leading Order Deep Inelastic Scattering in Dipole Picture.
+ * 
+ * This class provides methods for calculating structure functions and cross sections
+ * in the color glass condensate framework for deep inelastic scattering processes.
+ * It supports both leading order (LO) and next-to-leading order (NLO) calculations.
+ * 
+ */
 class NLODIS
 {
     public:
@@ -43,22 +52,39 @@ class NLODIS
 
         /**
          * @brief Structure function F2 
-         * @param Q2 Photon virtuality [GeV^2].
-         * @param xbj Bjorken-x.
          * 
-         * @return F2
+         * Calculates the total F2 structure function, F2 = FL + FT, by combining
+         * longitudinal and transverse photon contributions.
+         * 
+         * @param Q2 Photon virtuality [GeV^2]
+         * @param xbj Bjorken-x
+         * 
+         * @return F2 structure function (dimensionless)
          */
         double F2(double Q2, double xbj);
+        
         /**
-         * @brief Structure function FL.
-         * @param Q2 Photon virtuality [GeV^2].
-         * @param xbj Bjorken-x.
+         * @brief Longitudinal structure function FL
+         * 
+         * Calculates the contribution from longitudinally polarized virtual photons.
+         * 
+         * @param Q2 Photon virtuality [GeV^2]
+         * @param xbj Bjorken-x
+         * 
+         * @return FL structure function (dimensionless)
          */
         double FL(double Q2, double xbj);
+        
         /**
-         * @brief Structure function FT.
-         * @param Q2 Photon virtuality [GeV^2].
-         * @param xbj Bjorken-x.
+         * @brief Transverse structure function FT
+         * 
+         * Calculates the contribution from transversely polarized virtual photons.
+         * Note: F2 = FL + FT
+         * 
+         * @param Q2 Photon virtuality [GeV^2]
+         * @param xbj Bjorken-x
+         * 
+         * @return FT structure function (dimensionless)
          */
         double FT(double Q2, double xbj);
         /** 
@@ -130,113 +156,242 @@ class NLODIS
          */
         double Sigma_qg_d2b(double Q2, double xbj, Polarization pol);
 
+        /**
+         * @brief Set the dipole amplitude model to use for calculations
+         * 
+         * This method sets the dipole amplitude object that will be used to calculate
+         * the dipole-target scattering amplitude N
+         * The NLODIS object takes ownership of the passed pointer via 
+         * std::unique_ptr, which ensures automatic cleanup when the NLODIS object is
+         * destroyed or when SetDipole is called again.
+         * 
+         * @param dipole_ Unique pointer to a Dipole object. The lifetime of the Dipole object
+         *               is managed by NLODIS after this call.
+         * 
+         * @note This method must be called before performing any structure function
+         *       calculations (F2, FL, FT) or cross section calculations. Attempting
+         *       calculations without setting a dipole model will result in dereferencing
+         *       a null pointer and undefined behavior.
+         * 
+         * @see Dipole, BKDipole
+         */
         void SetDipole(std::unique_ptr<Dipole> dipole_);
         
+        /**
+         * @brief Set the perturbative order for calculations
+         * 
+         * @param o Order::LO for leading order or Order::NLO for next-to-leading order
+         */
         void SetOrder(Order o) { config.order = o; }
+        
+        /**
+         * @brief Get maximum dipole size used in integrations
+         * 
+         * @return Maximum dipole size in GeV^-1
+         */
         double GetMaxR() const noexcept { return config.maxr; }
         
         /**
-         * @brief Coordinate space coupling.
+         * @brief Coordinate space running coupling constant
          * 
-         * TODO: implement n_f dependence
+         * Calculates the running coupling α_s evaluated at the scale 4C²/r².
+         * The number of active flavors n_f is determined by the number of quarks
+         * in the quark list (set via SetQuarks).
          * 
-         * @param r Dipole size [GeV^-1].
+         * The coupling can freeze in the IR according to the scheme set by
+         * SetRunningCouplingIRScheme().
+         * 
+         * @param r Dipole size [GeV^-1]
+         * 
+         * @return α_s(4C²/r²) (dimensionless)
          */
         double Alphas(double r) const;
 
         /**
-         * @brief Set proton transverse area = \sigma_0/2
+         * @brief Set proton transverse area (σ₀/2)
          * 
-         * @param transverse_area Proton transverse area \int d^2 b
-         * @param unit Unit of transverse_area, default is GeV^-2. If unit is MB, the value will be converted to GeV^-2 internally.
+         * Sets the proton transverse area ∫d²b, which is used to convert the
+         * differential cross sections d²σ/d²b to total cross sections.
          * 
+         * @param transverse_area Proton transverse area ∫d²b
+         * @param unit Unit of transverse_area. Default is GeV^-2. If Unit::MB is specified,
+         *             the value will be converted to GeV^-2 internally using the conversion
+         *             factor 1 mb = 2.5684624 GeV^-2
          */
         void SetProtonTransverseArea(double transverse_area_, Unit unit=Unit::GEVm2);
 
         /**
-         * @brief Proton transverse area in GeV^-2
+         * @brief Get proton transverse area
+         * 
+         * @return Proton transverse area σ₀/2 = ∫d²b in GeV^-2
          */
         double ProtonTransverseArea() const noexcept { return transverse_area; }
 
 
         /**
-         * @brief Lower bound for the z2 integral.
-         * @param xbj Bjorken-x.
-         * @param Q2 Photon virtuality [GeV^2].
-         * @return Lower bound for z2.
+         * @brief Lower bound for the gluon momentum fraction z₂ integral
+         * 
+         * In NLO calculations, the gluon longitudinal momentum fraction z₂ must
+         * satisfy z₂ > Q₀²/W², where W² is the photon-proton center-of-mass energy
+         * squared. This ensures the dipole amplitude is evaluated at positive rapidity.
+         * 
+         * @param xbj Bjorken-x
+         * @param Q2 Photon virtuality [GeV^2]
+         * 
+         * @return Lower bound for z₂ = Q₀²/W² (dimensionless)
          *
-         * Ref https://arxiv.org/pdf/2007.01645 eq (18)
+         * @see EvolutionRapidity()
+         * 
+         * Ref: https://arxiv.org/pdf/2007.01645 eq (18)
          */
         double z2_lower_bound(double xbj, double Q2) const;
 
         /**
-         * @brief qqg-target scattering amplitude.
+         * @brief qqg-target scattering amplitude (tripole)
          *
-         * Ref. https://arxiv.org/pdf/2211.03504 (4). In that notation, this is 1-S_{012}.
+         * Calculates the scattering amplitude for a quark-antiquark-gluon (qqg) state
+         * interacting with the target. This corresponds to 1-S₀₁₂ in the notation of
+         * the reference, where S₀₁₂ is the S-matrix element for the three-parton state.
+         * 
+         * The implementation accounts for different Nc schemes (large Nc vs finite Nc).
          *
-         * @param x01 Dipole size [GeV^-1].
-         * @param x02 Dipole size [GeV^-1].
-         * @param x21 Dipole size [GeV^-1].
-         * @param Y Evolution rapidity.
+         * @param x01 Dipole size between quark and antiquark [GeV^-1]
+         * @param x02 Dipole size between quark and gluon [GeV^-1]
+         * @param x21 Dipole size between antiquark and gluon [GeV^-1]
+         * @param Y Evolution rapidity
+         * 
+         * @return Tripole amplitude 1-S₀₁₂ (dimensionless)
+         * 
+         * Ref: https://arxiv.org/pdf/2211.03504 eq (4)
          */
         double TripoleAmplitude(double x01, double x02, double x21, double Y);
 
         /**
-         * @brief Evolution rapidity (in the qqg contribution).
+         * @brief Evolution rapidity for NLO qqg contribution
          * 
-         *  Ref https://arxiv.org/pdf/2007.01645 eq (19)
+         * Calculates the rapidity Y at which the dipole/tripole amplitude should be
+         * evaluated in the NLO qqg contribution. The rapidity depends on the photon-proton
+         * center-of-mass energy W² = Q²/xbj and the gluon momentum fraction z₂.
          * 
-         * @param xbj Bjorken-x.
-         * @param Q2 Photon virtuality [GeV^2].
-         * @param z2 Gluon longitudinal momentum fraction.
+         * Y = ln(W²z₂/Q₀²), where Q₀² is the non-perturbative scale.
+         * 
+         * @param xbj Bjorken-x
+         * @param Q2 Photon virtuality [GeV^2]
+         * @param z2 Gluon longitudinal momentum fraction
          *
-         * @return Rapidity at which one evalutes the dipole amplitude in the qqg contribution
+         * @return Evolution rapidity Y = ln(W²z₂/Q₀²) (dimensionless)
+         * 
+         * @see z2_lower_bound()
+         * 
+         * Ref: https://arxiv.org/pdf/2007.01645 eq (19)
          */
         double EvolutionRapidity(double xbj, double Q2, double z2) const;
 
-        void SetNcScheme(NcScheme scheme_) { config.nc_scheme = scheme_; }
-        void SetRunningCouplingScheme(RunningCouplingScheme rc_) { config.rc_scheme = rc_; }
         /**
-         * @brief Running coupling scale depending on the RC scheme used.
-         * @param x01 Dipole size [GeV^-1].
-         * @param x02 Dipole size [GeV^-1].
-         * @param x21 Dipole size [GeV^-1].
+         * @brief Set Nc counting scheme for tripole amplitude
+         * 
+         * @param scheme_ NcScheme::LargeNC for large Nc approximation,
+         *                NcScheme::FiniteNC for finite Nc (Nc=3) treatment
+         */
+        void SetNcScheme(NcScheme scheme_) { config.nc_scheme = scheme_; }
+        
+        /**
+         * @brief Set running coupling scale choice for tripole/multi-dipole configurations
+         * 
+         * @param rc_ RunningCouplingScheme::SMALLEST to use the smallest dipole size,
+         *            RunningCouplingScheme::PARENT to use the parent dipole size
+         */
+        void SetRunningCouplingScheme(RunningCouplingScheme rc_) { config.rc_scheme = rc_; }
+        
+        /**
+         * @brief Get running coupling scale for tripole configuration
+         * 
+         * Returns the scale at which α_s should be evaluated based on the running
+         * coupling scheme (smallest dipole or parent dipole).
+         * 
+         * @param x01 Dipole size between quark and antiquark [GeV^-1]
+         * @param x02 Dipole size between quark and gluon [GeV^-1]
+         * @param x21 Dipole size between antiquark and gluon [GeV^-1]
+         * 
+         * @return Dipole size to use for α_s evaluation [GeV^-1]
          */
         double RunningCouplinScale(double x01, double x02, double x21) const;
 
         /**
-         * @brief Set scale factor C^2 in the coordinate space running coupling
+         * @brief Set scale factor C² in coordinate space running coupling
          * 
-         * \alpha_s(r) = \alpha_s(4C^2/r^2 Lambda_QCD^2)
+         * The running coupling in coordinate space is evaluated at the scale
+         * μ² = 4C²/r², where r is the dipole size. This method sets the C² factor.
          * 
-         * @param c2 Scale factor C^2
+         * α_s(r) = α_s(4C²/r²)
+         * 
+         * @param c2 Scale factor C² (dimensionless, parametrically ~1)
          */
         void SetRunningCouplingC2(double c2) { config.C2_alpha = c2; }
 
+        /**
+         * @brief Set list of active quark flavors and their masses
+         * 
+         * @param quark_list Vector of Quark objects containing flavor type, mass, and charge
+         * 
+         * @see SetQuarkMass()
+         */
         void SetQuarks(const std::vector<Quark>& quark_list) { quarks = quark_list; }
 
         /**
-         * @brief Set mass of the given quark flavor.
-         * @param type Quark flavor.
-         * @param mass Quark mass [GeV].
+         * @brief Set mass for a specific quark flavor
+         * 
+         * Updates the mass of an existing quark in the quark list. The quark must
+         * already exist in the list (added via SetQuarks).
+         * 
+         * @param type Quark flavor (Quark::U, Quark::D, Quark::S, Quark::C, Quark::B, Quark::T)
+         * @param mass Quark mass [GeV]
+         * 
+         * @see SetQuarks()
          */
         void SetQuarkMass(Quark::Type type, double mass);
 
         /**
-         * @brief Control alpha_s in IR
+         * @brief Set infrared behavior of running coupling α_s
          * 
-         * In the FREEZE scheme, the coupling is frozen to a constant value when the scale is below a certain value.
-         * In the SMOOTH scheme, the coupling smoothly freezes to a constant value in the IR, without a sharp cutoff.
+         * Controls how the running coupling behaves at small scales (large dipole sizes).
+         * 
+         * - FREEZE: Coupling is frozen to a constant value (typically 0.7) when the
+         *           argument of the logarithm becomes too small
+         * - SMOOTH: Coupling smoothly freezes using a prescription without sharp cutoff
+         * 
+         * @param rc_ir_scheme_ RunningCouplingIRScheme::FREEZE or RunningCouplingIRScheme::SMOOTH
+         * 
+         * @see Alphas()
          */
         void SetRunningCouplingIRScheme(RunningCouplingIRScheme rc_ir_scheme_) { config.rc_ir_scheme = rc_ir_scheme_; }
 
         /**
-         * @brief Print configuration parameters summary to stdout
+         * @brief Print detailed configuration summary to stdout
+         * 
+         * Displays all configuration parameters including:
+         * - Calculation order (LO/NLO)
+         * - Subtraction scheme
+         * - Nc counting scheme
+         * - Running coupling settings
+         * - Numerical parameters (maxr, C², Q₀²)
+         * - Proton transverse area
+         * - Active quark flavors and masses
          */
         void PrintConfiguration() const;
 
+        /**
+         * @brief Get reference to dipole amplitude object (non-const)
+         * 
+         * @return Non-const reference to Dipole object
+         */
          Dipole& GetDipole() { return *dipole; }
-        // Const version - called on const NLODIS  
+         
+        /**
+         * @brief Get const reference to dipole amplitude object
+         * 
+         * @return Const reference to Dipole object
+         */
         const Dipole& GetDipole() const { return *dipole; }
     private:
     
@@ -280,7 +435,9 @@ struct IntegrationParams {
 
 constexpr double SQR(double x) noexcept { return x*x; }
 
-//// TODO NOTE: Inconsistency: some functions take r^2, some functions take r as an argumetn. This should be fixed at some point to avoid confusion.
+//// Note:
+// Internal helper functions typically take Q [GeV] or squared distances as arguments
+// Everything visible to outside from NLODIS always uses Q^2
 
 // Helper functions in nlodishelper.cpp that need to be accessed outside
 // e.g. for unit tests
