@@ -24,6 +24,12 @@ enum class SubtractionScheme
     UNSUB
 };
 
+enum class SigmaDipScheme
+{
+    AnalyticalZ2Int,            // z2 integration is done analytically
+    ExplicitZ2int       // z2 integration explicitly, allows one to have z_2 dependent evolution rapidity, ref 2112.08818 sec 3.3.3 (for glight quarks)
+};
+
 enum class Order
 {
     LO,

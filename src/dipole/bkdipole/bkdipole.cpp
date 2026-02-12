@@ -8,10 +8,10 @@
 #include "datafile.hpp"
 #include <string>
 #include <cmath>
-#include <gsl/gsl_roots.h>
-#include <gsl/gsl_min.h>
+
 #include <string>
 #include <sstream>
+#include <stdexcept>
 
 
 #include <algorithm>
@@ -32,7 +32,9 @@ BKDipole::BKDipole(std::string datafile)
     // Read BK solution
     datafilename = datafile;
     DataFile data(datafile);
-    data.GetData(n, yvals);
+    auto [n_data, y_data] = data.GetData();
+    n = n_data;
+    yvals = y_data;
 
     // Initialize
     interpolation_method = SPLINE_LINEAR;
@@ -41,70 +43,58 @@ BKDipole::BKDipole(std::string datafile)
     rmultiplier = data.RMultiplier();
     rpoints = data.RPoints();
 
-
-    for (int i=0; i<rpoints; i++)
+    for (int i = 0; i < rpoints; i++)
     {
-        double tmpr = minr*std::pow(rmultiplier, i);
+        double tmpr = minr * std::pow(rmultiplier, i);
         lnrvals.push_back(std::log(tmpr));
         rvals.push_back(tmpr);
     }
 
+    interpolator_Y = -1;  // if >=0, interpolator is initialized
 
-    interpolator_Y=-1;  // if >=0, interpolator is initialized
-    //  must free the memory at the end
-
-
-	std::stringstream ss;
+    std::stringstream ss;
     ss << "Data read from file " << datafile << ", minr: " << minr
         << " maxr: " << MaxR() << " rpoints: " << rpoints << " initial rapidity " << MinY() << ", maximum rapidity "
-        << yvals[yvals.size()-1]
-        << " Q_{s,0}^2(initial rapidity) = " << SaturationScale(0, 1-std::exp(-0.5)) << " GeV^2 [ N(r^2=2/Q_s^2) = " << 1-std::exp(-0.5) << "]";
+        << yvals[yvals.size() - 1]
+        << " Q_{s,0}^2(initial rapidity) = " << SaturationScale(0, 1 - std::exp(-0.5)) << " GeV^2 [ N(r^2=2/Q_s^2) = " << 1 - std::exp(-0.5) << "]";
     info_string = ss.str();
-    
-    
 }
 
 /*
  * Constructor, dipole data is given in an array
  *
  */
-BKDipole::BKDipole(std::vector< std::vector< double > > data, std::vector<double> yvals_, std::vector<double> rvals_)
+BKDipole::BKDipole(std::vector<std::vector<double>> data, std::vector<double> yvals_, std::vector<double> rvals_)
 {
     interpolation_method = SPLINE_LINEAR;
     minr = rvals_[0];
     rmultiplier = rvals_[1] / rvals_[0];
     rpoints = rvals_.size();
     
-    rvals = rvals_;
-    n = data;
-    yvals = yvals_;
+    rvals = std::move(rvals_);
+    n = std::move(data);
+    yvals = std::move(yvals_);
     
-    for (int i=0; i<rpoints; i++)
+    for (int i = 0; i < rpoints; i++)
     {
-        double tmpr = std::log(minr*std::pow(rmultiplier, i));
+        double tmpr = std::log(minr * std::pow(rmultiplier, i));
         double tmpr2 = rvals[i];
-        if ( abs(std::exp(tmpr)/tmpr2-1.0) > 0.01)
+        if (std::abs(std::exp(tmpr) / tmpr2 - 1.0) > 0.01)
         {
-            cerr << "WARNING: Dipole sizes does not form a logarithmic grid! tmpr " << tmpr << " r2 " << rvals[i] << " BKDipole::BKDipole()" << endl;
+            throw std::runtime_error("Dipole sizes do not form a logarithmic grid! tmpr " + std::to_string(tmpr) + " r2 " + std::to_string(rvals[i]));
         }
         lnrvals.push_back(tmpr);
     }
     
-   
-    interpolator_Y=-1;
-    
+    interpolator_Y = -1;
     
     std::stringstream ss;
     ss << "#BKDipole initialized , minr: " << minr
-    << " maxr: " << MaxR() << " rpoints: " << rpoints << " Y0=" << MinY() << ", max Y=" << MaxY()
-    << " Q_{s,0}^2(Y=0) = " << SaturationScale(0, 1.-std::exp(-0.5)) << " GeV^2 [ N(r^2=2/Q_s^2, Y=0) = " << 1-std::exp(-0.5) << "]";
+       << " maxr: " << MaxR() << " rpoints: " << rpoints << " Y0=" << MinY() << ", max Y=" << MaxY()
+       << " Q_{s,0}^2(Y=0) = " << SaturationScale(0, 1. - std::exp(-0.5)) << " GeV^2 [ N(r^2=2/Q_s^2, Y=0) = " << 1 - std::exp(-0.5) << "]";
     info_string = ss.str();
     
-    cout << ss.str() << endl;
-    
-    
 }
-
 
 /*
  * Release reserved memory
@@ -129,8 +119,6 @@ double BKDipole::DipoleAmplitude(double r, double y)  const
     if (isnan(r) or isinf(r))
     {
 	throw std::invalid_argument("r=" + std::to_string(r) + ", y=" + std::to_string(y) + " at BKDipole::DipoleAmplitude()");    
-        cerr << "r=" << r << " at BKDipole::DipoleAmplitude(): " << LINEINFO << endl;
-        exit(1);
     }
     
     if (r < MinR() or r > MaxR() )
@@ -150,10 +138,7 @@ double BKDipole::DipoleAmplitude(double r, double y)  const
     if (y<MinY() or y>MaxY() )
     {
         //if (out_of_range_errors)
-            cerr << "y must be between limits [" << 0 << ", "
-                << yvals[yvals.size()-1] << "], asked y=" << y << " datafile " << datafilename << " "
-                << LINEINFO << endl;
-            exit(1);
+            throw std::runtime_error("y must be between limits [" + std::to_string(0) + ", " + std::to_string(yvals[yvals.size()-1]) + "], asked y=" + std::to_string(y) + " datafile " + datafilename);
     }
 
     
@@ -263,67 +248,6 @@ bool BKDipole::InterpolatorInitialized(double Y) const
 }
 
 
-/*
- * Calculate saturation scale, definition is
- * N(r_s, y) = Ns = (for example) 0.5
- */
-struct SatscaleSolverHelper
-{
-    double Y;
-    double Ns;
-    const BKDipole* N;
-};
-double SatscaleSolverHelperf(double r, void* p)
-{
-    SatscaleSolverHelper* par = (SatscaleSolverHelper*)p;
-    return par->N->DipoleAmplitude(r, par->Y) - par->Ns;
-}
-
-/*
- * Saturation scale
- * Defined as N(r^2=2/Q_s^2) = Ns
- * 
- * Returns Q_s^2 in GeV^2
- */
-double BKDipole::SaturationScale(double Y, double Ns) const
-{
-    
-    SatscaleSolverHelper helper;
-    helper.Y=Y; helper.Ns=Ns; helper.N=this;
-    const int MAX_ITER = 1000;
-    const double ROOTFINDACCURACY = 0.00001;
-    gsl_function f;
-    f.params = &helper;
-        
-    f.function = &SatscaleSolverHelperf;
-
-    const gsl_root_fsolver_type *T = gsl_root_fsolver_bisection;
-    gsl_root_fsolver *s = gsl_root_fsolver_alloc(T);
-        
-    gsl_root_fsolver_set(s, &f, MinR()*1.0001, MaxR()*0.999);
-    int iter=0; int status; double min,max;
-    do
-    {
-        iter++;
-        gsl_root_fsolver_iterate(s);
-        min = gsl_root_fsolver_x_lower(s);
-        max = gsl_root_fsolver_x_upper(s);
-        status = gsl_root_test_interval(min, max, 0, ROOTFINDACCURACY);    
-    } while (status == GSL_CONTINUE and iter < MAX_ITER);
-
-    if (iter>=MAX_ITER)
-        cerr << "Solving failed at Y=" << Y << " " << LINEINFO << endl;
-
-
-    double sat = gsl_root_fsolver_root(s);
-
-    gsl_root_fsolver_free(s);
-
-    return 2.0/(sat*sat);
-    
-}
-
-
 
 
 /*
@@ -336,15 +260,12 @@ void BKDipole::InitializeInterpolation(double Y)
     
 	if (Y < 0)
 	{
-		cerr << "Asked to initialize interpolator at negative Y=" << Y
-             << ", I don't know what to do, panicking... " << LINEINFO << endl;
-		exit(1);
+		throw std::runtime_error("Asked to initialize interpolator at negative Y=" + std::to_string(Y));
 	}
 
 	if (Y>MaxY())
 	{
-		cerr << "Asked to initialize interpolator with too large y=" << Y <<", maxy=" << MaxY() << endl;
-		exit(1);
+		throw std::runtime_error("Asked to initialize interpolator with too large y=" + std::to_string(Y) + ", maxy=" + std::to_string(MaxY()));
 	}
 	
     if (InterpolatorInitialized(Y)) return;    // Already done it
@@ -376,7 +297,7 @@ void BKDipole::InitializeInterpolation(double Y)
     const int MAXITER=40;
     for (double r=0.01; r<=MaxR(); r+=step)
     {
-        if (DipoleAmplitude(r,Y)>=0.99999)		//
+        if (DipoleAmplitude(r,Y)>=0.99999)
         {
             if (step<1e-2)
             {
@@ -468,7 +389,7 @@ double BKDipole::YValue(int yind) const
 {
     if (yind >= YPoints() or yind<0)
     {
-        cerr << "Asked rapidity of index " << yind <<", but the maximum index is " << YPoints()-1 << " " << LINEINFO << endl;
+        throw std::runtime_error("Asked rapidity of index " + std::to_string(yind) +", but the maximum index is " + std::to_string(YPoints()-1) );
         exit(1);
     }
     return yvals[yind];

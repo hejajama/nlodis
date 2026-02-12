@@ -27,8 +27,24 @@ class Dipole
          * b-dependence is ignored
          */
         virtual double DipoleAmplitude(double r, double b, double Y) const;
-        virtual double SaturationScale(double Y, double Ns) const = 0;
 
+        /**
+         * Saturation scale
+         *
+         * Solve saturation scale defined as N(r^2=2/Q_s^2) = N_s
+         * 
+         * @return Saturation scale in GeV^2
+         */
+        virtual double SaturationScale(double Y, double Ns) const;
+
+        /**
+         * @brief X0 parameter: initial condition of fit
+         * 
+         * The initial condition is taken at evolution rapidity Y = ln 1/X0
+         * 
+         * TODO: it has not been tested that this code works for fits with X0 != 1
+         * 
+         */
         virtual double X0() const = 0;
 
         /**
@@ -39,5 +55,28 @@ class Dipole
          * @param Y Evolution rapidity
          */
         virtual void InitializeInterpolation(double Y) {};
+
+        /**
+         * @brief Informative string about the dipole amplitude
+         */
+        virtual std::string GetString() const;
+
+        /**
+         * @brief Minimum dipole size where dipole amplitude is available
+         * 
+         * One can assume that N(r<r_min)=0
+         * 
+         * @return Minimum dipole size [GeV^-1]
+         */
+        virtual double MinR() const { return 1e-10; }
+
+        /**
+         * @brief Maximum dipole size where dipole amplitude is available
+         * 
+         * One can assume that N(r>r_max)=1
+         * 
+         * @return Maximum dipole size [GeV^-1]
+         */
+        virtual double MaxR() const { return 1e3; }
 
 };

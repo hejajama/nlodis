@@ -4,7 +4,6 @@
 
 // Basic constants and structures
 
-const double ALPHA_EM = 1.0/137.035999084; // Fine-structure constant
 
 struct Quark
 {

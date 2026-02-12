@@ -71,6 +71,22 @@ TEST(RUNNING_COUPLING_SCALE)
     dis.SetRunningCouplingScheme(RunningCouplingScheme::PARENT);
     scale = dis.RunningCouplinScale(x01, x02, x21);
     ASSERT_ALMOST_EQUAL(scale, x01, 1e-10);
+
+    // Check with original code
+    dis.SetRunningCouplingScheme(RunningCouplingScheme::SMALLEST);
+    dis.SetRunningCouplingC2(std::pow(10.0, 2.96));
+    x01 = 2.8125;
+    x02 = 4.6875;
+    x21 = 55.7434;
+    cout << "Sharp cutoff:" << endl;
+    dis.SetRunningCouplingIRScheme(RunningCouplingIRScheme::FREEZE);
+    scale = dis.RunningCouplinScale(x01, x02, x21);
+    cout << "Note: as with x01=" << x01 << ", x02=" << x02 << ", x21=" << x21 << " ,  scale = " << scale << ": alpaha_s(scale) = " << dis.Alphas(scale) << " alphabar_s " << dis.Alphas(scale)*Constants::NC/M_PI << endl;
+
+    cout << "Smooth cutoff:" << endl;
+    dis.SetRunningCouplingIRScheme(RunningCouplingIRScheme::SMOOTH);
+    scale = dis.RunningCouplinScale(x01, x02, x21);
+    cout << "Note: as with x01=" << x01 << ", x02=" << x02 << ", x21=" << x21 << " ,  scale = " << scale << ": alpaha_s(scale^2) = " << dis.Alphas(sqrt(scale)) << " alphabar_s " << dis.Alphas(sqrt(scale))*Constants::NC/M_PI << endl;
 }
 
 /*

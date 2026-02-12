@@ -33,6 +33,7 @@ struct NLODISConfig {
     double maxr = 99.0;                                                     ///< Maximum dipole size [GeV^-1]
     double C2_alpha = 1.0;                                                  ///< Scale factor C^2 in coordinate space running coupling
     static constexpr double Q0sqr = 1.0;                                   ///< Non-perturbative target scale [GeV^2]
+    SigmaDipScheme sigma_dip_scheme = SigmaDipScheme::AnalyticalZ2Int;   ///< Scheme for calculating the qq part of the NLO cross section, whether to do the z2 integration analytically or explicitly. Explicit integration allows one to have z2 dependent evolution rapidity
 };
 
 /**
@@ -453,11 +454,11 @@ double ITdip_massive_2(double Q2, double z1, double x01sq, double mf, double y_c
 
 // Sigma_qg longitudinal part helper
 int integrand_qgunsub_massive(const int *ndim, const double x[], const int *ncomp,double *f, void *userdata);
-double ILNLOqg_massive_tripole_part_I2_fast(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);
+double ILNLOqg_massive_tripole_part_I2(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);
 double G_integrand_simplified(int a, int b, double Qbar, double mf, double x2, double x3, double omega, double lambda, double y);
-double ILNLOqg_massive_dipole_part_I1(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
+double ILNLOqg_massive_dipole_uvsub(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
 double ILNLOqg_massive_tripole_part_I1(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
-double ILNLOqg_massive_tripole_part_I3_fast(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
+double ILNLOqg_massive_tripole_part_I3(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
 
 // Sigma qg T
 double ITNLOqg_massive_dipole_part_I1(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);

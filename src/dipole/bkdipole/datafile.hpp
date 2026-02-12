@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include <sstream>
 #include <vector>
+#include <string>
 
 /**
  * Read BK equation solution from a given file.
@@ -16,30 +16,28 @@ class DataFile
         /**
          * Read BK equation solution from the given file
          */
-        DataFile(std::string fname);
-        double MinR();
-        double RMultiplier();
-        int RPoints();
+        explicit DataFile(const std::string& fname);
         
-        double MaxY();
-        double Y0();
+        double MinR() const;
+        double RMultiplier() const;
+        int RPoints() const;
+        
+        double MaxY() const;
+        double Y0() const;
 
         /**
-         * Return data in a given vector and evolution y values
+         * Return dipole amplitudes and evolution rapidities
          *
-         * @param n n[yind][rind]: dipole amplitude values
-         * @param rapidities: evolution rapidity values
+         * @return pair of (amplitudes, rapidities)
          */
-        void GetData(std::vector< std::vector<double> > &n,
-            std::vector<double> &rapidities);
+        std::pair<std::vector<std::vector<double>>, std::vector<double>> GetData() const;
 
     private:
         std::string filename;
-        std::vector<std::vector <double> > data;
+        std::vector<std::vector<double>> data;
         std::vector<double> yvals;
-        double minr;
-        double r_multiplier;
-        int rpoints;
-        double y0;
-
+        double minr = 0.0;
+        double r_multiplier = 0.0;
+        int rpoints = 0;
+        double y0 = 0.0;
 };

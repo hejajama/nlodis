@@ -78,16 +78,16 @@ double ILdip_massive_Iab(double Q2, double z1, double r, double mf, double xi) {
  */
 double OmegaL_V( double Q2, double z, double mf );
 double L_dip( double Q2, double z, double mf );
-double ILdip_massive_Omega_L_Const(double Q2, double z1, double r, double mf) 
+double ILdip_massive_Omega_L_Const(double Q2, double z, double r, double mf) 
 {
-    double front_factor = 4.0*Q2*SQR(z1*(1.0-z1));
-    double bessel_inner_fun = sqrt( Q2*z1*(1.0-z1) + SQR(mf))*r;
+    double front_factor = 4.0*Q2*SQR(z*(1.0-z));
+    double bessel_inner_fun = sqrt( Q2*z*(1.0-z) + SQR(mf))*r;
     double dip_res = 0;
     if (bessel_inner_fun < 1e-7){
         dip_res = 0;
     }else{
         dip_res = front_factor * SQR(gsl_sf_bessel_K0( bessel_inner_fun )) * 
-        ( 5.0/2.0 - SQR(M_PI)/3.0 + SQR(log( z1/(1.0-z1) )) + OmegaL_V(Q2,z1,mf) + L_dip(Q2,z1,mf) );
+        ( 5.0/2.0 - SQR(M_PI)/3.0 + SQR(log( z/(1.0-z) )) + OmegaL_V(Q2,z,mf) + L_dip(Q2,z,mf) );
     }   
 
     return dip_res;
@@ -131,6 +131,14 @@ double L_dip( double Q2, double z, double mf ) {
  */
 
 
+/* sigma_qg is divided into three parts. 
+
+* First we have terms that do not contain additioan lintegrals.
+* These are further divided into terms proportional to N_01 (I1)
+* And proportional to N_012 (I2)
+* 
+*/
+
 double ILNLOqg_massive_tripole_part_I1(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq) {
     // sigma_qg divided into three parts. This part has no additional integrals. Only contains the part proportional to N_012
 
@@ -164,10 +172,8 @@ double ILNLOqg_massive_tripole_part_I1(double Q2, double mf, double z1, double z
 }
 
 
-
-double ILNLOqg_massive_dipole_part_I1(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq) {
-    // sigma_qg divided into three parts. This part has no additional integrals. Only contains the part proportional to N_01
-
+double ILNLOqg_massive_dipole_uvsub(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq) 
+{
     double front_factor = 4.0*Q2;
     double x20x21 = -0.5*(x01sq - x21sq - x02sq);
 
@@ -176,14 +182,6 @@ double ILNLOqg_massive_dipole_part_I1(double Q2, double mf, double z1, double z2
     double Q = std::sqrt(Q2);
     double Qbar_k = Q*sqrt(z1*(1.0-z1));
     double Qbar_l = Q*sqrt(z0*(1.0-z0));
-    double omega_k = z0*z2/(z1*SQR(z0+z2));
-    double omega_l = z1*z2/(z0*SQR(z1+z2));
-    double lambda_k = z1*z2/z0;
-    double lambda_l = z0*z2/z1;
-
-    double x3_k = sqrt( SQR(z0) / SQR(z0+z2) * x02sq + x21sq - 2.0 * z0/(z0+z2) *x20x21 );
-    double x3_l = sqrt( SQR(z1) / SQR(z1+z2) * x21sq + x02sq - 2.0 * z1/(z1+z2) *x20x21 );
-
 
 
     double term_k = -1.0/x02sq * SQR(z1) * ( 2.0*z0*(z0+z2) +SQR(z2) ) * exp( -x02sq / x01sq / exp(M_EULER) ) * SQR( gsl_sf_bessel_K0( sqrt( SQR(Qbar_k) + SQR(mf) ) * sqrt(x01sq) )  );
@@ -195,9 +193,8 @@ double ILNLOqg_massive_dipole_part_I1(double Q2, double mf, double z1, double z2
 
 /*
  * (23) in the note docs/NLO_DIS_cross_section_with_massive_quarks.pdf
- * But with one integral performed analytically, only y_t integral remaining
 */ 
-double ILNLOqg_massive_tripole_part_I2_fast(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t) {
+double ILNLOqg_massive_tripole_part_I2(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t) {
     // sigma_qg divided into three parts. This part has one additional integral.
 
     double front_factor = 4.0*Q2;
@@ -217,6 +214,7 @@ double ILNLOqg_massive_tripole_part_I2_fast(double Q2, double mf, double z1, dou
     double x3_k = sqrt( SQR(z0) / SQR(z0+z2) * x02sq + x21sq - 2.0 * z0/(z0+z2) *x20x21 );
     double x3_l = sqrt( SQR(z1) / SQR(z1+z2) * x21sq + x02sq - 2.0 * z1/(z1+z2) *x20x21 );
 
+    // Note: here we subtract the case lambda=0, which corresponds to the contribution from the "-1" part of \overline{g)} 
     double int_12_bar_k = G_integrand_simplified( 1, 2, Qbar_k, mf, x2_k, x3_k, omega_k, lambda_k, y_t)-G_integrand_simplified( 1, 2, Qbar_k, mf, x2_k, x3_k, omega_k, 0.0, y_t);
     double int_12_bar_l = G_integrand_simplified( 1, 2, Qbar_l, mf, x2_l, x3_l, omega_l, lambda_l, y_t)-G_integrand_simplified( 1, 2, Qbar_l, mf, x2_l, x3_l, omega_l, 0.0, y_t);
 
@@ -235,10 +233,9 @@ double ILNLOqg_massive_tripole_part_I2_fast(double Q2, double mf, double z1, dou
 
 /*
  * I3 for qqg contribution
- * Note 24 but some integrals performed analytically 
  * */
 
-double ILNLOqg_massive_tripole_part_I3_fast(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2) {
+double ILNLOqg_massive_tripole_part_I3(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2) {
     // sigma_qg divided into three parts. This part has two additional integrals.
 
     double front_factor = 4.0*Q2;
@@ -293,7 +290,7 @@ double ILNLOqg_massive_tripole_part_I3_fast(double Q2, double mf, double z1, dou
 */
 double G_integrand_simplified(int a, int b, double Qbar, double mf, double x2, double x3, double omega, double lambda, double y) {
     // Integrands of the functions G^(a;b)_(x) that appear in the qqg-part. Here the u-integral has been done, and only one integral remains.
-    // The integration variable is y = omega * t
+    // The integration variable is y = omega * t/u
 
     double value = 1.0/pow( y, 0.5*(2.0-a+b) ) * pow( 2.0, a+b-1.0 ) * pow(omega, b-1.0) 
                     * pow(( y*lambda * SQR(mf) + SQR(Qbar) + SQR(mf) ) / ( y*SQR(x3) + omega*SQR(x2) ), 0.5*(a+b-2.0) )

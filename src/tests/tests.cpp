@@ -84,12 +84,24 @@ TEST(TRIPOLE_AMPLITUDE)
  * Test that the GBW dipole behaves as expected
  */
 
-TEST(GBW_DIPOLE_SATSCALE)
+TEST(DipoleAmplitude_GBW)
 {
     // file gbw.dat corresponds to the GBW dipole amplitude
     // N(r,Y) = 1 - exp(-r^2 Q_s^2(Y)/4)
-    // with Q_s^2(Y) = 1.0*exp(-lambda*Y) [GeV^2] and lambda=1/3
+    // with Q_s^2(Y) = 1.0*exp(lambda*Y) [GeV^2] and lambda=1/3
     BKDipole N(gbw_datafile);
+
+
+    // Test dipole amplitude values 
+    auto gbw_amplitude = [](double r, double Y) {
+        double Qs2 = std::exp(Y / 3.0);  // Q_s^2(Y) = exp(-lambda*Y) with lambda=1/3
+        return 1.0 - std::exp(-r * r * Qs2 / 4.0);
+    };
+    ASSERT_ALMOST_EQUAL(N.DipoleAmplitude(0.1, 0.0), gbw_amplitude(0.1, 0.0), gbw_amplitude(0.1, 0.0)/100);
+    ASSERT_ALMOST_EQUAL(N.DipoleAmplitude(2.0, 1.0), gbw_amplitude(2.0, 1.0), gbw_amplitude(2.0, 1.0)/100);
+    N.InitializeInterpolation(2.05);
+    ASSERT_ALMOST_EQUAL(N.DipoleAmplitude(15.0, 2.05), gbw_amplitude(15.0, 2.05), gbw_amplitude(15.0, 2.05)/100);
+
 
     double Ns=1-std::exp(-0.5);
 

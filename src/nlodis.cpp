@@ -120,7 +120,12 @@ double NLODIS::Sigma_dip_d2b(double Q2, double xbj, Polarization pol)
     // Note on factors: the transverse integration measures are defined with 1/(2pi), see
     // 2103.14549. This measure is not visible in the note, but should be there. Therefore
     // we have 1/(2pi)^2 below (from d^2x_{01} d^2b)
-    double fac=4.0*Constants::NC*ALPHA_EM/SQR(2.0*M_PI); 
+    double fac=4.0*Constants::NC*Constants::AlphaEM/SQR(2.0*M_PI); 
+
+    if (config.sigma_dip_scheme != SigmaDipScheme::AnalyticalZ2Int)
+    {
+        throw std::runtime_error("Only AnalyticalZ2Int scheme for sigma_dip is implemented in Sigma_dip_d2b.");
+    }
     
 
     for (const auto& quark : quarks) {
@@ -294,7 +299,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     // Note on factors: the transverse integration measures are defined with 1/(2pi), see
     // 2103.14549. This measure is not visible in the note, but should be there. Therefore
     // we have 1/(2pi)^3 below (from d^2x_{01} d^2x_{02} d^2b)
-    double fac=4.0*Constants::NC*ALPHA_EM/std::pow(2.0*M_PI,3.0);
+    double fac=4.0*Constants::NC*Constants::AlphaEM/std::pow(2.0*M_PI,3.0);
     
 
     double result=0;
@@ -425,7 +430,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
 
     if (p->contribution == "I1" and p->pol == Polarization::L)
     {
-        double dipole_term  = SKernel_dipole  * ILNLOqg_massive_dipole_part_I1(Q2,mf,z1,z2,x01sq,x02sq,x21sq); // Terms proportional to N_01
+        double dipole_term  = SKernel_dipole  * ILNLOqg_massive_dipole_uvsub(Q2,mf,z1,z2,x01sq,x02sq,x21sq); // Terms proportional to N_01 = UV subtraction terms
         double tripole_term = SKernel_tripole * ILNLOqg_massive_tripole_part_I1(Q2,mf,z1,z2,x01sq,x02sq,x21sq); // Terms proportional to N_012
 
         res = ( dipole_term + tripole_term );
@@ -437,7 +442,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     }
     else  if (p->contribution == "I2" and p->pol == Polarization::L) {
         double y_t1 = x[5];
-       res = SKernel_tripole * ILNLOqg_massive_tripole_part_I2_fast(Q2,mf,z1,z2,x01sq,x02sq,x21sq,y_t1); 
+       res = SKernel_tripole * ILNLOqg_massive_tripole_part_I2(Q2,mf,z1,z2,x01sq,x02sq,x21sq,y_t1); 
     }
     else if (p->contribution == "I2" and p->pol == Polarization::T) {
         double y_t1 = x[5];
@@ -447,7 +452,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     {
         double y_t1 = x[5];
         double y_t2 = x[6];
-        res = SKernel_dipole * ILNLOqg_massive_tripole_part_I3_fast(Q2, mf, z1, z2, x01sq, x02sq, x21sq, y_t1, y_t2);
+        res = SKernel_dipole * ILNLOqg_massive_tripole_part_I3(Q2, mf, z1, z2, x01sq, x02sq, x21sq, y_t1, y_t2);
     }
     else if (p->contribution == "I3" and p->pol == Polarization::T)
     {
@@ -653,6 +658,6 @@ void NLODIS::PrintConfiguration() const
         else std::cout << "Unknown: ";
         std::cout << q.mass << " GeV" << std::endl;
     }
-    
+    std::cout << "Dipole: " << (dipole ? dipole->GetString() : "None") << std::endl;
     std::cout << "===================================\n" << std::endl;
 }

@@ -19,7 +19,7 @@ enum AMPLITUDE_INTERPOLATION_METHOD
 };
 
 /**
- * Amplitude class
+ * BK-evolved dipole amplitude class
  *
  * Stores the loaded dipole amplitude (loaded by DataFile class), and
  * evaluates the amplitude at given r,Y.
@@ -70,17 +70,6 @@ class BKDipole : public Dipole
          * Create interpolator at given evolution rapidity nd return it
          */
         Interpolator* ConstructInterpolator(double Y) const;
-
-    
-        /**
-         * Saturation scale
-         *
-         * Solve saturation scale defined as N(r^2=2/Q_s^2) = N_s
-         * 
-         * @return Saturation scale in GeV^2
-         */
-        double SaturationScale(double Y, double Ns) const;
-
         
         /**
          * Number or rapidity values in the BK solution

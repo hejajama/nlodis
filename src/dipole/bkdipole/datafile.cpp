@@ -2,29 +2,24 @@
  * Heikki Mäntysaari <heikki.mantysaari@jyu.fi>, 2011-2019
  */
 
-
 #include "datafile.hpp"
 #include <fstream>
 #include <sstream>
 #include <iostream>
-#include <cstdlib>
+#include <stdexcept>
 #include <cmath>
-using std::ifstream;
-using std::getline;
-using std::stringstream;
-using std::string;
-using std::cerr;
-using std::endl;
-
 #define LINEINFO __FILE__ << ":" << __LINE__
 
-DataFile::DataFile(string fname)
+using namespace std;
+
+
+DataFile::DataFile(const std::string& fname)
 {
     filename=fname;
     ifstream file(fname.c_str());
     if (!file.is_open())
     {
-        cerr <<  "ERROR! Coudn't read BK solution file " << fname << " " << LINEINFO << endl ;
+        throw runtime_error("ERROR! Coudn't read BK solution file " + fname);
         exit(1);
     }
     int confid=0;
@@ -38,7 +33,7 @@ DataFile::DataFile(string fname)
             switch (confid)
             {
                 case 0:
-                    minr = std::stod(line.substr(3,line.length()-3));
+                    minr = std::stod(line.substr(3));
                     break;
                 case 1:
                     r_multiplier = std::stod(line.substr(3,line.length()-3));
@@ -59,13 +54,12 @@ DataFile::DataFile(string fname)
                     }
                     break;
                 default:
-                    cerr << "File " << fname << " is formatted incorrectly!" << endl;
+                    throw runtime_error("File " + fname + " is formatted incorrectly!");
                     break;
             }
             confid++; 
         }
     }
-
     // Ok, configurations are read, then read all yvals
     double y=-1;
     std::vector<double> tmpvec;
@@ -73,6 +67,9 @@ DataFile::DataFile(string fname)
     {
         string line;
         getline(file, line);
+
+        if (line.empty())
+            continue;
 
         // New rapidity?
         if (line.substr(0,3)=="###")
@@ -82,23 +79,21 @@ DataFile::DataFile(string fname)
 
             if (tmpvec.size()>0 and tmpvec.size() != rpoints)
             {
-                cerr << "File " << fname << ": read " << tmpvec.size() << " points, but "
-                << "there should have been " << rpoints << " points, y=" 
-                << y << ". " << LINEINFO << endl;
+                throw runtime_error("File " + fname + ": read " + std::to_string(tmpvec.size()) + " points, but "
+                + "there should have been " + std::to_string(rpoints) + " points, y=" 
+                + std::to_string(y) + ". ");
             }
+            
+            y = y0 + std::stod(line.substr(3));
 
-            y = y0 + std::stod(line.substr(3,line.length()-3));
             yvals.push_back(y);
             tmpvec.clear();
-            continue;   // Next line is probably new amplitude value
+            continue;
         }
         else if (line.substr(0,1)=="#")
             continue;   // Comment
-
-        // Ok, so this a new amplitude value
-        if (line.length()==0)
-            continue;   // Skip empty lines
-        tmpvec.push_back(std::stod(line));
+        else // new amplitude value
+            tmpvec.push_back(std::stod(line));
     }
 
     // Add last entry
@@ -108,54 +103,37 @@ DataFile::DataFile(string fname)
 
     if (data[0].size() != rpoints)
     {
-        cerr << "File " << fname << ": read " << data.size() << " rpoints, but "
-        << "there should have been " << rpoints << " points???" << LINEINFO << endl;
+        throw runtime_error("File " + fname + ": read " + std::to_string(data.size()) + " rpoints, but "
+        + "there should have been " + std::to_string(rpoints) + " points! ");
     }
 }
 
-void DataFile::GetData(std::vector< std::vector<double> > &n,
-                        std::vector<double> &rapidities)
+std::pair<std::vector<std::vector<double>>, std::vector<double>> DataFile::GetData() const
 {
-    n.clear();
-    rapidities.clear();
-    // Return vector where indexes are vec[y][r] containing amplitude
-
-    for (uint yind=0; yind < data.size(); yind++)
-    {
-        std::vector<double> tmpvec;
-        for (uint rind=0; rind<rpoints; rind++)
-        {
-            tmpvec.push_back(data[yind][rind]);
-        }
-        n.push_back(tmpvec);
-
-        rapidities.push_back(yvals[yind]);
-        
-    }
-    
+    return {data, yvals};
 }
 
-double DataFile::MinR()
+double DataFile::MinR() const
 {
     return minr;
 }
 
-double DataFile::RMultiplier()
+double DataFile::RMultiplier() const
 {
     return r_multiplier;
 }
 
-int DataFile::RPoints()
+int DataFile::RPoints() const
 {
-        return rpoints;
+    return rpoints;
 }
 
-double DataFile::MaxY()
+double DataFile::MaxY() const
 {
-    return yvals[yvals.size()-1];
+    return yvals.empty() ? 0.0 : yvals.back();
 }
 
-double DataFile::Y0()
+double DataFile::Y0() const
 {
     return y0;
 }

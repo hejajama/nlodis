@@ -40,9 +40,23 @@ int main(int argc, char* argv[]) {
     double xbj = 3.2e-3;
 
     cout <<"Computing at Q^2=" << Q2 << " GeV^2 and xbj=" << xbj << endl;
+
+    NLODIS dis;
+    dis.SetDipole(std::make_unique<BKDipole>("/Users/hejajama/code/nlodisfit_bayesian/data/pd/bk_map.dat"));
+    // Running coupling scale
+    dis.SetRunningCouplingC2(1); 
+    // The distance scale is set by the smallest dipole size
+    dis.SetRunningCouplingScheme(RunningCouplingScheme::SMALLEST);
+    // Perform NLO calculation
+    dis.SetOrder(Order::NLO);
+    // Set charm quark mass to 1.4 GeV.
+    dis.SetQuarkMass(Quark::Type::C, 1.4);
+    // Set the proton transverse area to 14 mb
+    dis.SetProtonTransverseArea(14, Unit::MB);
+    dis.PrintConfiguration();
                                                 
     for (const auto& cfg : configs) {
-        NLODIS dis;
+        //NLODIS dis;
         dis.SetDipole(std::make_unique<BKDipole>(cfg.datafile));
         dis.SetRunningCouplingC2(cfg.c2_alpha);
         dis.SetRunningCouplingScheme(cfg.rc_scheme);
