@@ -97,6 +97,7 @@ TEST(ALPHAS_COORDINATE_SPACE)
     double r = 2.0;
     double mu2 = 4.0*C2/(r*r);
     double expected_as = 1.0/(b0*log(mu2/(LambdaQCD*LambdaQCD)));
+    dis.SetRunningCouplingIRScheme(RunningCouplingIRScheme::FREEZE);
     double as = dis.Alphas(r);
     ASSERT_ALMOST_EQUAL(as, expected_as, 1e-6);
     

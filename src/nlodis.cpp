@@ -495,7 +495,16 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
  
  double NLODIS::Alphas(double r) const
  {
-    const double b0 = (11.0*Constants::NC - 2.0*quarks.size())/(12.0*M_PI);
+    // TODO: Implement possibility to have r dependent Nf
+    int nf=0;
+    for (const auto& quark : quarks) {
+        if (quark.type == Quark::Type::LIGHT) 
+            nf += 3;
+        else
+            nf += 1;
+    }
+
+    const double b0 = (11.0*Constants::NC - 2.0*nf)/(12.0*M_PI);
     //cout << endl << "b0 " <<4.0*M_PI*b0 << endl;
     const double scalefactor = 4.0*config.C2_alpha; // Convention: 4C^2/r^2 is the scale at which alpha_s is evaluated in coordinate space
 
