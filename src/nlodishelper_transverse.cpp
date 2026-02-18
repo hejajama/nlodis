@@ -6,6 +6,8 @@
 // Various helper functions defined in this file 
 // after they are referenced 
 // See note docs/NLO_DIS_cross_section_with_massive_quarks.pdf for definitions
+double OmegaT_V(double Q, double z, double mf);
+double OmegaT_N(double Q, double z, double mf);
 double OmegaT_V_unsymmetric( double Q, double z, double mf );
 double L_dip( double Q2, double z, double mf ); // defined in nlodishleper_longitudinal.cpp
 double OmegaT_N_unsymmetric( double Q, double z, double mf );
@@ -27,9 +29,9 @@ double ITdip_massive_0(double Q2, double z1, double x01sq, double mf) {
     double Q = sqrt(Q2);
 
     double kappa_z = sqrt( z1*(1.0-z1)*Q2 + SQR(mf) );
-    double term1 = SQR( kappa_z * gsl_sf_bessel_K1( x01 *kappa_z ) ) * ( ( SQR(z1) + SQR(1.0-z1) ) * ( 5.0/2.0 - SQR(M_PI)/3.0 + SQR( log(z1/(1.0-z1)) ) + OmegaT_V_unsymmetric(Q, z1, mf) + OmegaT_V_unsymmetric(Q, 1.0-z1, mf) + L_dip(Q,z1,mf)  ) 
-        + (2.0*z1-1.0)/2.0 * (OmegaT_N_unsymmetric(Q, z1, mf)-OmegaT_N_unsymmetric(Q, 1.0-z1, mf) ) );
-    double term2 = SQR( mf * gsl_sf_bessel_K0( x01 *kappa_z ) ) * ( 3.0 -SQR(M_PI)/3.0 + SQR(log(z1/(1.0-z1))) + OmegaT_V_unsymmetric(Q, z1, mf) + OmegaT_V_unsymmetric(Q, 1.0-z1, mf) + L_dip( Q, z1, mf )  );
+    double term1 = SQR( kappa_z * gsl_sf_bessel_K1( x01 *kappa_z ) ) * ( ( SQR(z1) + SQR(1.0-z1) ) * ( 5.0/2.0 - SQR(M_PI)/3.0 + SQR( log(z1/(1.0-z1)) ) + OmegaT_V(Q, z1, mf) + L_dip(Q,z1,mf)  ) 
+        + (2.0*z1-1.0)/2.0 * OmegaT_N(Q, z1, mf) );
+    double term2 = SQR( mf * gsl_sf_bessel_K0( x01 *kappa_z ) ) * ( 3.0 -SQR(M_PI)/3.0 + SQR(log(z1/(1.0-z1))) + OmegaT_V(Q, z1, mf) + L_dip( Q, z1, mf )  );
 
     double res= term1 + term2;
 
@@ -38,6 +40,11 @@ double ITdip_massive_0(double Q2, double z1, double x01sq, double mf) {
 
 
 // Note Eq (32)
+double OmegaT_V(double Q, double z, double mf) {
+    // The Omega^T_V(gamma; z) function that appears in the transverse NLOdip part.
+    return OmegaT_V_unsymmetric(Q, z, mf) + OmegaT_V_unsymmetric(Q, 1.0-z, mf);
+}
+
 double OmegaT_V_unsymmetric( double Q, double z, double mf ) {
     // The first part of Omega^T_V(gamma; z) function that appears in the transverse NLOdip part.
     // Omega^T_V(gamma; z) = Omega^T_V_unsymmetric(gamma; z) + Omega^T_V_unsymmetric(gamma; 1-z)
@@ -48,6 +55,10 @@ double OmegaT_V_unsymmetric( double Q, double z, double mf ) {
     return res;
 }
 
+double OmegaT_N(double Q, double z, double mf) {
+    // The Omega^T_N(gamma; z) antisymmetric function that appears in the transverse NLOdip part.
+    return OmegaT_N_unsymmetric(Q, z, mf) - OmegaT_N_unsymmetric(Q, 1.0-z, mf);
+}
 // Note eq (31)
 double OmegaT_N_unsymmetric( double Q, double z, double mf ) {
     // The first part of Omega^T_V(gamma; z) function that appears in the transverse NLOdip part.

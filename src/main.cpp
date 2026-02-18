@@ -24,7 +24,6 @@ struct ModelConfig {
 int main(int argc, char* argv[]) {
 
     cout << "# NLODIS code, git commit " << g_GIT_SHA1 << " local repo " << g_GIT_LOCAL_CHANGES << endl;
-    
     // Suppress GSL error handler for underflow errors during integration
     gsl_error_handler_t *old_handler = gsl_set_error_handler_off();
 
@@ -32,28 +31,82 @@ int main(int argc, char* argv[]) {
         {"KCBK parent", "/Users/hejajama/code/nlodisfit_bayesian/data/pd/bk_map.dat", 663, 1.4, 20.7, RunningCouplingScheme::PARENT,0.549267},
         {"KCBK smallest", "/Users/hejajama/code/nlodisfit_bayesian/data/balsd/bk_map.dat", 1.7, 1.25, 8.75, RunningCouplingScheme::SMALLEST,0},
         {"NLOBK MV smallest", "/Users/hejajama/Downloads/mv_bk.dat", 23, 1.04, 23.5, RunningCouplingScheme::SMALLEST,0},
-        {"NLOBK MVgamma smallest", "/Users/hejajama/Downloads/mvgam_bk.dat", std::pow(10, 2.9), 1.17, 22.4, RunningCouplingScheme::SMALLEST,0},
+        {"NLOBK MVgamma smallest", "/Users/hejajama/Downloads/mvgam_bk.dat", 1314.9257306, 1.2049379, 22.9017918, RunningCouplingScheme::SMALLEST,0},
         {"NLOBK MVgamma parent", "/Users/hejajama/Downloads/pd_nlo_bk.dat", std::pow(10, 3.88), 1.20, 24.3, RunningCouplingScheme::PARENT,0.554365}
     };
     
     double Q2 = 4.5;
     double xbj = 3.2e-3;
+    double y =  1.3896E-02;
+    double exp = 5.7189E-01;
+    double experr =  0.009723674103;
 
-    cout <<"Computing at Q^2=" << Q2 << " GeV^2 and xbj=" << xbj << endl;
+
+    //cout <<"Computing at Q^2=" << Q2 << " GeV^2 and xbj=" << xbj << endl;
 
     NLODIS dis;
-    dis.SetDipole(std::make_unique<BKDipole>("/Users/hejajama/code/nlodisfit_bayesian/data/pd/bk_map.dat"));
+    dis.SetDipole(std::make_unique<BKDipole>("/Users/hejajama/Downloads/mvgam_bk.dat"));
     // Running coupling scale
-    dis.SetRunningCouplingC2(1); 
+    dis.SetRunningCouplingC2(1314.9257306); 
     // The distance scale is set by the smallest dipole size
     dis.SetRunningCouplingScheme(RunningCouplingScheme::SMALLEST);
     // Perform NLO calculation
     dis.SetOrder(Order::NLO);
-    // Set charm quark mass to 1.4 GeV.
-    dis.SetQuarkMass(Quark::Type::C, 1.4);
-    // Set the proton transverse area to 14 mb
-    dis.SetProtonTransverseArea(14, Unit::MB);
+    // Set charm quark mass 
+    dis.SetQuarkMass(Quark::Type::C, 1.2049379);
+// Set the proton transverse area
+    dis.SetProtonTransverseArea(22.9017918, Unit::MB);
+    dis.SetRunningCouplingIRScheme(RunningCouplingIRScheme::SMOOTH);
+     dis.PrintConfiguration("# ");
+     double F2 = dis.F2(Q2, xbj);
+     cout << "F2 = " << F2 << endl;
+
+   /* for (double mq = 0.2; mq >= 0.001; mq /= 1.5)
+    {
+        dis.SetQuarkMass(Quark::Type::LIGHT, mq);
+        double FT = dis.FT(Q2, xbj);
+        double FL = dis.FL(Q2, xbj);
+        double F2 = FT + FL;
+        //double FT = dis.FT(Q2, xbj);
+        double sigmar = F2 - y*y/(1+SQR(1-y))*FL;
+        //cout << "mq = " << mq << " GeV: F2 = " << F2 << ", FL = " << FL << ", FT = " << FT << ", sigma_r = " << sigmar << endl;
+        cout << mq << " " << sigmar << endl;
+    }
+    return 0;
+     
+*/
+   
+    /*
+dis.SetQuarkMass(Quark::Type::U, 0.01);
+    dis.SetQuarkMass(Quark::Type::D, 0.01);
+    dis.SetQuarkMass(Quark::Type::S, 0.01);
+  
+  //  Quark light(Quark::Type::LIGHT, 0.01);
+    //dis.SetQuarks({light, Quark(Quark::Type::C, 1.2049379)});
+
+
     dis.PrintConfiguration();
+
+    cout << "== EXP sigma_r(Q^2=" << Q2 << ", x=" << xbj << ") = " << exp << " +/- " << experr << endl;
+    double fy = y*y/(1+SQR(1-y));
+    double FT = dis.FT(Q2, xbj);
+    double FL = dis.FL(Q2, xbj);
+    double F2 = FT+FL;
+    double sigmar = F2 - fy*FL;
+    cout <<  " F2 = " << F2 << ", sigma_r = " << sigmar << endl;
+
+    double photonproton_to_F2 = Q2 / (4.0 * M_PI * M_PI * Constants::AlphaEM);
+    double sigmadip = photonproton_to_F2*(dis.Sigma_dip_d2b(Q2, xbj, Polarization::T) + dis.Sigma_dip_d2b(Q2, xbj, Polarization::L));
+    double sigma_qg = photonproton_to_F2*(dis.Sigma_qg_d2b(Q2, xbj, Polarization::T) + dis.Sigma_qg_d2b(Q2, xbj, Polarization::L));
+    double sigma_IC = photonproton_to_F2*(dis.Photon_proton_cross_section_LO_d2b(Q2, dis.GetDipole().X0(), Polarization::T) + dis.Photon_proton_cross_section_LO_d2b(Q2, dis.GetDipole().X0(), Polarization::L));
+    cout << "Sigma_dip = " << sigmadip*22.9017*2.568 << endl;
+    cout << "Sigma_qg = " << sigma_qg*22.9017*2.568 << endl;
+    cout << "Sigma_IC = " << sigma_IC*22.9017*2.568 << endl;
+
+    cout << sigma_IC << endl;
+
+*/
+        /*
                                                 
     for (const auto& cfg : configs) {
         //NLODIS dis;
@@ -64,12 +117,18 @@ int main(int argc, char* argv[]) {
         dis.SetQuarkMass(Quark::Type::C, cfg.charm_mass);
         dis.SetProtonTransverseArea(cfg.sigma0_2, Unit::MB);
 
-        dis.SetRunningCouplingIRScheme(RunningCouplingIRScheme::FREEZE);
+        double FT = dis.FT(Q2, xbj);
+        double FL = dis.FL(Q2, xbj);
+        double F2 = FT+FL;
+        double sigmar = F2 - fy*FL;
+        cout << cfg.name << " F2 = " << F2 << ", sigma_r = " << sigmar << "," << " -- Carlisle sigma_r = " << cfg.carlisle << endl;
+
+        //dis.SetRunningCouplingIRScheme(RunningCouplingIRScheme::FREEZE);
         //dis.PrintConfiguration(); 
-        double F2_result_sharp = dis.F2(Q2, xbj);
-        dis.SetRunningCouplingIRScheme(RunningCouplingIRScheme::SMOOTH); 
-        double F2_result_smooth = dis.F2(Q2, xbj);
-        cout << cfg.name << " F2 = " << F2_result_sharp << " (FREEZE), " << F2_result_smooth << " (SMOOTH)" <<  " -- Carlisle " << cfg.carlisle << endl;
+        //double F2_result_sharp = dis.F2(Q2, xbj);
+        //dis.SetRunningCouplingIRScheme(RunningCouplingIRScheme::SMOOTH); 
+        //double F2_result_smooth = dis.F2(Q2, xbj);
+        //cout << cfg.name << " F2 = " << F2_result_sharp << " (FREEZE), " << F2_result_smooth << " (SMOOTH)" <<  " -- Carlisle " << cfg.carlisle << endl;
     }
 
     /*
@@ -181,7 +240,7 @@ int main(int argc, char* argv[]) {
 
     /*NLODIS dis(argv[1]);
     dis.SetRunningCouplingC2Alpha(std::stod(argv[2]));
-    double sigma0_2 = std::stod(argv[3])*2.5684624; // Convert mb to GeV^-2
+    double sigma0_2 = std::stod(argv[3])*2.568; // Convert mb to GeV^-2
     dis.SetOrder(Order::NLO);
     double Q2=10;
     double xbj=2e-4;

@@ -6,6 +6,8 @@
 
 using namespace std;
 
+
+
 /*
  * Test EvolutionRapidity function
  * Y = log(W^2 * z2 / Q0^2) where W^2 = Q^2/xbj
@@ -72,21 +74,7 @@ TEST(RUNNING_COUPLING_SCALE)
     scale = dis.RunningCouplinScale(x01, x02, x21);
     ASSERT_ALMOST_EQUAL(scale, x01, 1e-10);
 
-    // Check with original code
-    dis.SetRunningCouplingScheme(RunningCouplingScheme::SMALLEST);
-    dis.SetRunningCouplingC2(std::pow(10.0, 2.96));
-    x01 = 2.8125;
-    x02 = 4.6875;
-    x21 = 55.7434;
-    cout << "Sharp cutoff:" << endl;
-    dis.SetRunningCouplingIRScheme(RunningCouplingIRScheme::FREEZE);
-    scale = dis.RunningCouplinScale(x01, x02, x21);
-    cout << "Note: as with x01=" << x01 << ", x02=" << x02 << ", x21=" << x21 << " ,  scale = " << scale << ": alpaha_s(scale) = " << dis.Alphas(scale) << " alphabar_s " << dis.Alphas(scale)*Constants::NC/M_PI << endl;
-
-    cout << "Smooth cutoff:" << endl;
-    dis.SetRunningCouplingIRScheme(RunningCouplingIRScheme::SMOOTH);
-    scale = dis.RunningCouplinScale(x01, x02, x21);
-    cout << "Note: as with x01=" << x01 << ", x02=" << x02 << ", x21=" << x21 << " ,  scale = " << scale << ": alpaha_s(scale^2) = " << dis.Alphas(sqrt(scale)) << " alphabar_s " << dis.Alphas(sqrt(scale))*Constants::NC/M_PI << endl;
+   
 }
 
 /*
@@ -151,3 +139,22 @@ TEST(ILDIP_MASSIVE_OMEGA_L_CONST)
 }
 
 
+TEST(Transverse_I_Omega_L_massless_limits)
+{
+    /// Massless limit test
+    // https://arxiv.org/pdf/2204.02486 eq (113)
+    // Note that we don't have exactly the I_V term in the numerical implementation,
+    // so that test is not included
+
+
+    double Q=std::sqrt(10);
+    double z=0.3;
+    double mf=0.001; // almost massless
+
+    ASSERT_ALMOST_EQUAL(OmegaT_V(Q,z,mf), 0, 1e-5);
+    
+    double L_expected = M_PI*M_PI/6 - 1./2. * SQR( log( z/(1.0-z) ) );
+    ASSERT_ALMOST_EQUAL(L_dip(Q*Q,z,mf), L_expected, 1e-5);
+    
+
+}

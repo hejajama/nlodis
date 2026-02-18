@@ -21,10 +21,10 @@ const std::string gbw_datafile = "gbw.dat";
     BKDipole gbwdatafile(gbw_datafile);
     NLODIS dis;
     dis.SetDipole(std::make_unique<BKDipole>(gbw_datafile));
-    Quark u; u.type = Quark::U; u.mass = 0.14; u.charge = 2.0/3.0;
-    Quark d; d.type = Quark::D; d.mass = 0.14; d.charge = -1.0/3.0;
-    Quark s; s.type = Quark::S; s.mass = 0.14;  s.charge = -1.0/3.0;
-    Quark c; c.type = Quark::C; c.mass = 1.4;   c.charge = 2.0/3.0;
+    Quark u(Quark::Type::U, 0.14); ; u.type = Quark::U; u.mass = 0.14;
+    Quark d(Quark::Type::D, 0.14); d.type = Quark::D; d.mass = 0.14; 
+    Quark s(Quark::Type::S, 0.14); s.type = Quark::S; s.mass = 0.14; 
+    Quark c(Quark::Type::C, 1.4); c.type = Quark::C; c.mass = 1.4;  
     std::vector<Quark> quark_list = {u,d,s,c};
     dis.SetQuarks(quark_list);
 
@@ -48,6 +48,12 @@ const std::string gbw_datafile = "gbw.dat";
     // Smaller x, tests interpolation and computation of the evolution rapidity
     double f2 = dis.F2(Q2, 1e-4);
     ref = 2.0*(0.120141+0.0538897);
+    ASSERT_ALMOST_EQUAL(f2, ref, ref/100); // light +charm
+
+    // Same, but instead of using u+d+s, use effective light quark datatype
+    Quark light(Quark::Type::LIGHT, 0.14);
+    dis.SetQuarks({light, c});
+    f2 = dis.F2(Q2, 1e-4);
     ASSERT_ALMOST_EQUAL(f2, ref, ref/100); // light +charm
  }
 

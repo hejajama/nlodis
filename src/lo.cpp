@@ -115,12 +115,12 @@ double NLODIS::Integrand_photon_target_LO(double r, double z, double x, double Q
 
         if (pol == Polarization::T)
         {
-            res += SQR(quark.charge)*((1.0-2.0*z+2.0*SQR(z))*SQR(eps)*SQR(gsl_sf_bessel_K1(r*eps)) 
+            res += SQR(quark.Charge())*((1.0-2.0*z+2.0*SQR(z))*SQR(eps)*SQR(gsl_sf_bessel_K1(r*eps)) 
                 + SQR( quark.mass*gsl_sf_bessel_K0( r*eps ) ) );
         }
         else if (pol == Polarization::L)
         { 
-            res += SQR(quark.charge) * 4.0 * Q2 * SQR(z) * SQR(1.0 - z) * SQR(gsl_sf_bessel_K0(r*eps));
+            res += SQR(quark.Charge()) * 4.0 * Q2 * SQR(z) * SQR(1.0 - z) * SQR(gsl_sf_bessel_K0(r*eps));
         }        
         else
         {

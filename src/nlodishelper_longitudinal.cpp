@@ -133,7 +133,7 @@ double L_dip( double Q2, double z, double mf ) {
 
 /* sigma_qg is divided into three parts. 
 
-* First we have terms that do not contain additioan lintegrals.
+* First we have terms that do not contain additional lintegrals.
 * These are further divided into terms proportional to N_01 (I1)
 * And proportional to N_012 (I2)
 * 

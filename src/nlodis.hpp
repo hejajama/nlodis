@@ -217,7 +217,7 @@ class NLODIS
          * @param transverse_area Proton transverse area ∫d²b
          * @param unit Unit of transverse_area. Default is GeV^-2. If Unit::MB is specified,
          *             the value will be converted to GeV^-2 internally using the conversion
-         *             factor 1 mb = 2.5684624 GeV^-2
+         *             factor 1 mb = 2.568 GeV^-2
          */
         void SetProtonTransverseArea(double transverse_area_, Unit unit=Unit::GEVm2);
 
@@ -379,10 +379,10 @@ class NLODIS
          * - Proton transverse area
          * - Active quark flavors and masses
          */
-        void PrintConfiguration() const;
+        void PrintConfiguration(const std::string& lineprefix) const;
 
         /**
-         * @brief Get reference to dipole amplitude object (non-const)
+         * @brief Get reference to the dipole amplitude object (non-const)
          * 
          * @return Non-const reference to Dipole object
          */
@@ -446,6 +446,7 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
 double ILdip_massive_Icd(double Q2, double z1, double r, double mf, double xi, double x); 
 double ILdip_massive_Iab(double Q2, double z1, double r, double mf, double xi);
 double ILdip_massive_Omega_L_Const(double Q2, double z1, double r, double mf);
+double L_dip( double Q2, double z, double mf );
 
 // Sigma_dip transverse
 double ITdip_massive_0(double Q2, double z1, double x01sq, double mf);
@@ -493,3 +494,5 @@ double IT_tripole_jkm_I3_fast(double Q, double mf, double z1, double z2, double 
 double IT_tripole_jk_I3_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
 double IT_tripole_F_I3_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
 double IT_tripole_Fm_I3_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2); 
+double OmegaT_V(double Q, double z, double mf);
+double OmegaT_N(double Q, double z, double mf);

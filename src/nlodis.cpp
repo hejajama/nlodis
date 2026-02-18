@@ -49,7 +49,7 @@ double NLODIS::TripoleAmplitude(double x01, double x02, double x21, double Y)
 
     if (config.nc_scheme == NcScheme::LargeNC)
     {
-        cerr << "Warning: Using large-Nc scheme for qqg-target amplitude, but this does not set CF to NC/2 in other parts of the code, i.e. is not fully consistent large-nc limit!" << endl;
+        cerr << "Warning: Using large-Nc scheme for qqg-target amplitude, but this does not set CF to NC/2 in other parts of the code, i.e. is not a fully consistent large-nc limit!" << endl;
         return 1.0 - S02*S12;
     }
     else if (config.nc_scheme == NcScheme::FiniteNC)
@@ -129,6 +129,8 @@ double NLODIS::Sigma_dip_d2b(double Q2, double xbj, Polarization pol)
     
 
     for (const auto& quark : quarks) {
+        double tmpresult=0; // This quark flavor contribution 
+    
         IntegrationParams intparams;
         intparams.nlodis=this;
         intparams.Q2=Q2;
@@ -142,17 +144,18 @@ double NLODIS::Sigma_dip_d2b(double Q2, double xbj, Polarization pol)
             double I, Ierr, Iprob;
             intparams.contribution="Omega_L_const";
             Cuba("cuhre", 2, integrand_dip_massive, &intparams, &I, &Ierr, &Iprob);
-            result += I;
+            tmpresult += I;
 
             // 2nd line of 2103.14549 (166)
             intparams.contribution="ab";
             double Iab,Iaberr,Iabprob;
             Cuba(cubamethod, 3, integrand_dip_massive, &intparams, &Iab, &Iaberr, &Iabprob);
+            
             intparams.contribution="cd";
-
             double Icd,Icderr,Icdprob;
             Cuba(cubamethod, 4, integrand_dip_massive, &intparams, &Icd, &Icderr, &Icdprob);
-            result += Iab + Icd;
+            tmpresult += Iab + Icd;
+
         }
         else if (pol == Polarization::T)
         {
@@ -160,27 +163,27 @@ double NLODIS::Sigma_dip_d2b(double Q2, double xbj, Polarization pol)
             intparams.contribution="T0";
             double IT0, IT0err, IT0prob;
             Cuba("cuhre", 2, integrand_dip_massive, &intparams, &IT0, &IT0err, &IT0prob);
-            result += IT0;
+            tmpresult += IT0;
 
             // T1 contribution
             intparams.contribution="T1";
             double IT1, IT1err, IT1prob;
             Cuba(cubamethod, 3, integrand_dip_massive, &intparams, &IT1, &IT1err, &IT1prob);
-            result += IT1;
+            tmpresult += IT1;
 
             // T2 contribution
             intparams.contribution="T2";
             double IT2, IT2err, IT2prob;
             Cuba(cubamethod, 4, integrand_dip_massive, &intparams, &IT2, &IT2err, &IT2prob);
-            result += IT2;
+            tmpresult += IT2;            
         }
         else
         {
             throw std::runtime_error("NLODIS::Sigma_dip: unknown polarization");
         }
-
-        result *= SQR(quark.charge);
-
+        //cout << "result " << result << " Quark " << quark.String() << " tmpres " << tmpresult << " chargefact " << SQR(quark.Charge()) << endl;
+        result += tmpresult*SQR(quark.Charge()); // Include electric charge factor for this flavor
+        
     } // Quark flavor loop
 
     // We have factorized out \int d^2 b
@@ -240,7 +243,7 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
     // TODO: add more user control for evolution rapidity
     double evolution_rapidity = std::log(1/xbj); 
     double dipole = p->nlodis->GetDipole().DipoleAmplitude(x01,evolution_rapidity);
-    double res;
+    double res=0;
     /////////////// Longitudinal part ///////////////
     if (p->contribution=="ab" and p->pol == Polarization::L) {
         // "ab" contribution does not have the x integration variable
@@ -278,7 +281,7 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
         exit(1);
     }
 
-    double jacobian = x01 * p->nlodis->GetMaxR() * 2.0 * M_PI; // Jacobian from d^2r and r = u*MAXR
+    double jacobian = x01 * p->nlodis->GetMaxR(); // Jacobian from d^2r and r = u*MAXR
     res *= jacobian*alphabar; 
 
     if(std::isfinite(res)){
@@ -304,6 +307,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
 
     double result=0;
     for (const auto& quark : quarks) {
+        double tmpresult=0; // This quark flavor contribution
         IntegrationParams intparams;
         intparams.nlodis=this;
         intparams.Q2=Q2;
@@ -319,20 +323,20 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
         double I1,I1err,I1prob;
         intparams.contribution="I1";
         Cuba(cubamethod, 5, integrand_qgunsub_massive, &intparams, &I1, &I1err, &I1prob);
-        result += I1;
+        tmpresult += I1;
 
         double I2,I2err,I2prob;
         intparams.contribution="I2";
         Cuba(cubamethod, 6, integrand_qgunsub_massive, &intparams, &I2, &I2err, &I2prob);
-        result += I2;
+        tmpresult += I2;
 
         double I3,I3err,I3prob;
         intparams.contribution="I3";
         Cuba(cubamethod, 7, integrand_qgunsub_massive, &intparams, &I3, &I3err, &I3prob);
            
-        result += I3;
+        tmpresult += I3;
 
-        result *= SQR(quark.charge);
+        result += tmpresult*SQR(quark.Charge());
     }
 
     
@@ -433,12 +437,14 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
         double dipole_term  = SKernel_dipole  * ILNLOqg_massive_dipole_uvsub(Q2,mf,z1,z2,x01sq,x02sq,x21sq); // Terms proportional to N_01 = UV subtraction terms
         double tripole_term = SKernel_tripole * ILNLOqg_massive_tripole_part_I1(Q2,mf,z1,z2,x01sq,x02sq,x21sq); // Terms proportional to N_012
 
-        res = ( dipole_term + tripole_term );
+        res =  dipole_term + tripole_term ;
     }
     else if (p->contribution == "I1" and p->pol == Polarization::T)
     {
         double dipole_term = SKernel_dipole * ITNLOqg_massive_dipole_part_I1(Q2,mf,z1,z2,x01sq,x02sq,x21sq);
         double tripole_term = SKernel_tripole * ITNLOqg_massive_tripole_part_I1(Q2,mf,z1,z2,x01sq,x02sq,x21sq);
+
+        res = dipole_term + tripole_term;
     }
     else  if (p->contribution == "I2" and p->pol == Polarization::L) {
         double y_t1 = x[5];
@@ -482,24 +488,15 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
 
  NLODIS::NLODIS()
  {
-    // Initialize quark flavors and masses
-    Quark u; u.type = Quark::U; u.mass = 0.14; u.charge = 2.0/3.0;
-    Quark d; d.type = Quark::D; d.mass = 0.14; d.charge = -1.0/3.0;
-    Quark s; s.type = Quark::S; s.mass = 0.14;  s.charge = -1.0/3.0;
-    Quark c; c.type = Quark::C; c.mass = 1.27;   c.charge = 2.0/3.0;
-    //Quark b; b.type = Quark::B; b.mass = 4.18;   b.charge = -1.0/3.0;
-
-    quarks.push_back(u);
-    quarks.push_back(d);
-    quarks.push_back(s);
-    quarks.push_back(c);
-    //quarks.push_back(b);
+    // Initialize quarks with default masses
+    quarks = std::vector<Quark> { Quark(Quark::Type::LIGHT), Quark(Quark::Type::C) } ;
 
  }
  
  double NLODIS::Alphas(double r) const
  {
     const double b0 = (11.0*Constants::NC - 2.0*quarks.size())/(12.0*M_PI);
+    //cout << endl << "b0 " <<4.0*M_PI*b0 << endl;
     const double scalefactor = 4.0*config.C2_alpha; // Convention: 4C^2/r^2 is the scale at which alpha_s is evaluated in coordinate space
 
     switch (config.rc_ir_scheme)
@@ -556,7 +553,7 @@ void NLODIS::SetQuarkMass(Quark::Type type, double mass)
         }
     }
     if (!found) {
-        throw std::runtime_error("Quark type not found in SetQuarkMass");
+        throw std::runtime_error("Trying to set mass for the quark flavor " + Quark(type).String() + ", which is not in the quark list. Note: quarks included = " + Quark::QuarkListToString(quarks));
     }
 }
 void NLODIS::SetProtonTransverseArea(double transverse_area_, Unit unit)
@@ -568,7 +565,7 @@ void NLODIS::SetProtonTransverseArea(double transverse_area_, Unit unit)
     if (unit == Unit::MB)
     {
         // Convert from mb to GeV^-2
-        transverse_area = transverse_area_ * 2.5684624; 
+        transverse_area = transverse_area_ * 2.56819; 
     }
     else if (unit == Unit::GEVm2)
     {
@@ -585,12 +582,12 @@ void NLODIS::SetDipole(std::unique_ptr<Dipole> dipole_)
     dipole = std::move(dipole_);
 }
 
-void NLODIS::PrintConfiguration() const
+void NLODIS::PrintConfiguration(const std::string& lineprefix) const
 {
-    std::cout << "\n=== NLODIS Configuration Summary ===" << std::endl;
+    std::cout << lineprefix << "=== NLODIS Configuration Summary ===" << std::endl;
     
     // Order
-    std::cout << "Order: ";
+    std::cout << lineprefix << "Order: ";
     if (config.order == Order::LO) {
         std::cout << "LO" << std::endl;
     } else if (config.order == Order::NLO) {
@@ -600,7 +597,7 @@ void NLODIS::PrintConfiguration() const
     }
     
     // Subtraction Scheme
-    std::cout << "Subtraction Scheme: ";
+    std::cout << lineprefix << "Subtraction Scheme: ";
     if (config.scheme == SubtractionScheme::UNSUB) {
         std::cout << "Unsubstracted (UNSUB)" << std::endl;
     } else {
@@ -608,7 +605,7 @@ void NLODIS::PrintConfiguration() const
     }
     
     // Nc Scheme
-    std::cout << "Nc Scheme: ";
+    std::cout << lineprefix << "Nc Scheme: ";
     if (config.nc_scheme == NcScheme::LargeNC) {
         std::cout << "Large Nc" << std::endl;
     } else if (config.nc_scheme == NcScheme::FiniteNC) {
@@ -618,7 +615,7 @@ void NLODIS::PrintConfiguration() const
     }
     
     // Running Coupling Scheme
-    std::cout << "Running Coupling Scale: ";
+    std::cout << lineprefix << "Running Coupling Scale: ";
     if (config.rc_scheme == RunningCouplingScheme::SMALLEST) {
         std::cout << "Smallest dipole" << std::endl;
     } else if (config.rc_scheme == RunningCouplingScheme::PARENT) {
@@ -628,7 +625,7 @@ void NLODIS::PrintConfiguration() const
     }
     
     // IR Freezing Scheme
-    std::cout << "IR Freezing Scheme: ";
+    std::cout << lineprefix << "IR Freezing Scheme: ";
     if (config.rc_ir_scheme == RunningCouplingIRScheme::FREEZE) {
         std::cout << "Freeze" << std::endl;
     } else if (config.rc_ir_scheme == RunningCouplingIRScheme::SMOOTH) {
@@ -638,26 +635,18 @@ void NLODIS::PrintConfiguration() const
     }
     
     // Numerical parameters
-    std::cout << "Maximum dipole size (maxr): " << config.maxr << " GeV^-1" << std::endl;
-    std::cout << "Running coupling C^2 factor: " << config.C2_alpha << std::endl;
-    std::cout << "Non-perturbative scale (Q0^2): " << NLODISConfig::Q0sqr << " GeV^2" << std::endl;
+    std::cout << lineprefix << "Maximum dipole size (maxr): " << config.maxr << " GeV^-1" << std::endl;
+    std::cout << lineprefix << "Running coupling C^2 factor: " << config.C2_alpha << std::endl;
+    std::cout << lineprefix << "Non-perturbative scale (Q0^2): " << NLODISConfig::Q0sqr << " GeV^2" << std::endl;
     
     // Proton parameters
-    std::cout << "Proton transverse area: " << transverse_area << " GeV^-2" << std::endl;
+    std::cout << lineprefix << "Proton transverse area: " << transverse_area << " GeV^-2 = " << transverse_area/2.568 << " mb" << std::endl;
     
     // Quark flavors
-    std::cout << "Quark flavors and masses:" << std::endl;
+    std::cout << lineprefix << "Quark flavors and masses:" << std::endl;
     for (const auto& q : quarks) {
-        std::cout << "  ";
-        if (q.type == Quark::U) std::cout << "u: ";
-        else if (q.type == Quark::D) std::cout << "d: ";
-        else if (q.type == Quark::S) std::cout << "s: ";
-        else if (q.type == Quark::C) std::cout << "c: ";
-        else if (q.type == Quark::B) std::cout << "b: ";
-        else if (q.type == Quark::T) std::cout << "t: ";
-        else std::cout << "Unknown: ";
-        std::cout << q.mass << " GeV" << std::endl;
+        std::cout << lineprefix << "  " << q.String() << ", m=" << q.mass << " GeV (e=" << q.Charge() << ")" << std::endl;
     }
-    std::cout << "Dipole: " << (dipole ? dipole->GetString() : "None") << std::endl;
-    std::cout << "===================================\n" << std::endl;
+    std::cout << lineprefix << "Dipole: " << (dipole ? dipole->GetString() : "None") << std::endl;
+    std::cout << lineprefix << "===================================\n" << std::endl;
 }
