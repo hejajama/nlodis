@@ -18,6 +18,7 @@
 #include <string>
 #include <memory>
 #include <gsl/gsl_integration.h>
+#include "integration.hpp"
 
 
 
@@ -394,6 +395,24 @@ class NLODIS
          * @return Const reference to Dipole object
          */
         const Dipole& GetDipole() const { return *dipole; }
+
+        /**
+         * @brief Set the number of Monte Carlo integration points for Cuba
+         * 
+         * See Cuba documentation for details on the maxeval parameter, which controls the maximum number of evaluations 
+         * for the Monte Carlo integration. Increasing this can improve accuracy at the cost of longer computation time.
+         */
+        void SetMCIntegrationPoints(int points) { cuba_config.maxeval = points; }
+
+        /**
+         * @brief Set the Monte Carlo integration method for Cuba
+         * 
+         * Cuba offers several integration methods 
+         * This method allows the user to specify which method to use for the Monte Carlo integration. 
+         * 
+         * @param method Name of the Cuba integration method to use ("vegas", "suave", "divonne" or "cuhre")
+         */
+        void SetMCIntegrationMethod(const std::string& method) { cuba_config.method = method; }
     private:
     
         /* Integrand for LO cross section
@@ -408,6 +427,7 @@ class NLODIS
         std::unique_ptr<Dipole> dipole;                ///< Dipole amplitude model
         std::vector<Quark> quarks;                     ///< Quark flavors and masses
         NLODISConfig config;                           ///< Configuration parameters
+        cuba_config cuba_config;                       ///< Configuration for Cuba integration
       
 };
 

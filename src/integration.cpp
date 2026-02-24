@@ -4,7 +4,8 @@ using namespace std;
 
 
 void Cuba(string method, int ndim, integrand_t integrand,
-    void *userdata, double *integral, double *error, double *prob) {
+    void *userdata, double *integral, double *error, double *prob,
+    cuba_config config) {
     // common arguments
     int ncomp=1, nvec=1, seed=0, mineval=0, last=4;
     int nregions, neval, fail;
@@ -13,18 +14,18 @@ void Cuba(string method, int ndim, integrand_t integrand,
     if(method=="vegas"){
     // Vegas-specific arguments
     int nstart=1000, nincrease=500, nbatch=100, gridno=0;
-    Vegas(ndim,ncomp,integrand,userdata,nvec,cuba_config::epsrel,
-        cuba_config::epsabs,cuba_config::verbose,seed,mineval,
-        cuba_config::maxeval,nstart,nincrease,nbatch,gridno,statefile,
+    Vegas(ndim,ncomp,integrand,userdata,nvec,config.epsrel,
+        config.epsabs,config.verbose,seed,mineval,
+        config.maxeval,nstart,nincrease,nbatch,gridno,statefile,
         spin,&neval,&fail,integral,error,prob);
     }
     else if(method=="suave"){
     // Suave-specific arguments
     int nnew=1e3, nmin=10; // nnew=10e3
     double flatness=60; //25;
-    Suave(ndim,ncomp,integrand,userdata,nvec,cuba_config::epsrel,
-        cuba_config::epsabs,cuba_config::verbose | last,seed,mineval,
-        cuba_config::maxeval,nnew,nmin,flatness,statefile,spin,
+    Suave(ndim,ncomp,integrand,userdata,nvec,config.epsrel,
+        config.epsabs,config.verbose | last,seed,mineval,
+        config.maxeval,nnew,nmin,flatness,statefile,spin,
         &nregions,&neval,&fail,integral,error,prob);
     }
     else if(method=="divonne"){
@@ -32,9 +33,9 @@ void Cuba(string method, int ndim, integrand_t integrand,
     // Divonne-specific arguments
     int key1=1*47, key2=1, key3=1, maxpass=5, ngiven=0, nextra=0;
     double border=1e-8, maxchisq=10, mindeviation=0.25;
-    Divonne(ndim,ncomp,integrand,userdata,nvec,cuba_config::epsrel,
-        cuba_config::epsabs,cuba_config::verbose,seed,mineval,
-        cuba_config::maxeval,key1,key2,key3,maxpass,border,maxchisq,
+    Divonne(ndim,ncomp,integrand,userdata,nvec,config.epsrel,
+        config.epsabs,config.verbose,seed,mineval,
+        config.maxeval,key1,key2,key3,maxpass,border,maxchisq,
         mindeviation,ngiven,ndim,NULL,nextra,NULL,statefile,spin,
         &nregions,&neval,&fail,integral,error,prob);
     }
@@ -42,9 +43,9 @@ void Cuba(string method, int ndim, integrand_t integrand,
     if(ndim==1) ndim=2;
     // Cuhre-specific arguments
     int key=0;
-    Cuhre(ndim,ncomp,integrand,userdata,nvec,cuba_config::epsrel,
-        cuba_config::epsabs,cuba_config::verbose | last,mineval,
-        cuba_config::maxeval,key,statefile,spin,
+    Cuhre(ndim,ncomp,integrand,userdata,nvec,config.epsrel,
+        config.epsabs,config.verbose | last,mineval,
+        config.maxeval,key,statefile,spin,
         &nregions,&neval,&fail,integral,error,prob);
     }
 }

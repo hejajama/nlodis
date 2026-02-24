@@ -3,13 +3,15 @@
 #include <string>
 #include <cuba.h>
 
-namespace cuba_config{
-    static const int verbose=0;
-    static const int maxeval=1e4;
-    static const double epsrel=1e-4;
-    static const double epsabs=0;
-}
+struct cuba_config
+{
+    const int verbose=0;
+    int maxeval=5e5;
+    const double epsrel=1e-4;
+    const double epsabs=0;
+    std::string method="suave";
+};
 
 // Wrapper that allows user to specify the Cuba method to use
 void Cuba(std::string method, int ndim, integrand_t integrand,
-    void *userdata, double *integral, double *error, double *prob); 
+    void *userdata, double *integral, double *error, double *prob, cuba_config config = cuba_config()); 

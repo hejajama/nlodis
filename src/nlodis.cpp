@@ -16,8 +16,6 @@ using namespace std;
 // Do not allow z_i < zmin, to avoid numerical instabilities. This is not a physical cutoff, but just a technical one for the numerical integration.
 const double ZMIN=1e-8;
 
-static const std::string cubamethod = "suave";
-
 double NLODIS::F2(double Q2, double xbj)
 {
     double sigmaT = Photon_proton_cross_section_d2b(Q2, xbj, Polarization::T);
@@ -145,17 +143,17 @@ double NLODIS::Sigma_dip_d2b(double Q2, double xbj, Polarization pol)
             // 1st line
             double I, Ierr, Iprob;
             intparams.contribution="Omega_L_const";
-            Cuba("cuhre", 2, integrand_dip_massive, &intparams, &I, &Ierr, &Iprob);
+            Cuba("cuhre", 2, integrand_dip_massive, &intparams, &I, &Ierr, &Iprob, cuba_config);
             tmpresult += I;
 
             // 2nd line of 2103.14549 (166)
             intparams.contribution="ab";
             double Iab,Iaberr,Iabprob;
-            Cuba(cubamethod, 3, integrand_dip_massive, &intparams, &Iab, &Iaberr, &Iabprob);
+            Cuba(cuba_config.method, 3, integrand_dip_massive, &intparams, &Iab, &Iaberr, &Iabprob, cuba_config);
             
             intparams.contribution="cd";
             double Icd,Icderr,Icdprob;
-            Cuba(cubamethod, 4, integrand_dip_massive, &intparams, &Icd, &Icderr, &Icdprob);
+            Cuba(cuba_config.method, 4, integrand_dip_massive, &intparams, &Icd, &Icderr, &Icdprob, cuba_config);
             tmpresult += Iab + Icd;
 
         }
@@ -164,19 +162,19 @@ double NLODIS::Sigma_dip_d2b(double Q2, double xbj, Polarization pol)
             // T0 contribution
             intparams.contribution="T0";
             double IT0, IT0err, IT0prob;
-            Cuba("cuhre", 2, integrand_dip_massive, &intparams, &IT0, &IT0err, &IT0prob);
+            Cuba("cuhre", 2, integrand_dip_massive, &intparams, &IT0, &IT0err, &IT0prob, cuba_config);
             tmpresult += IT0;
 
             // T1 contribution
             intparams.contribution="T1";
             double IT1, IT1err, IT1prob;
-            Cuba(cubamethod, 3, integrand_dip_massive, &intparams, &IT1, &IT1err, &IT1prob);
+            Cuba(cuba_config.method, 3, integrand_dip_massive, &intparams, &IT1, &IT1err, &IT1prob, cuba_config);
             tmpresult += IT1;
 
             // T2 contribution
             intparams.contribution="T2";
             double IT2, IT2err, IT2prob;
-            Cuba(cubamethod, 4, integrand_dip_massive, &intparams, &IT2, &IT2err, &IT2prob);
+            Cuba(cuba_config.method, 4, integrand_dip_massive, &intparams, &IT2, &IT2err, &IT2prob, cuba_config);
             tmpresult += IT2;            
         }
         else
@@ -227,10 +225,10 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
         }   
     }
 
-    // Validata integration variables to avoid some Cuba crashes
+    // Validate integration variables to avoid some Cuba crashes
     // Todo: would be better to understand why Cuba can sometimes sample integration variables to be NaN
     for (int i = 0; i < *ndim; ++i) {
-        if (!std::isfinite(x[i]) or x[1]< 0. or x[1] > 1.) {
+        if (!std::isfinite(x[i]) or x[i] < 0. or x[i] > 1.) {
             //#ifdef DEBUG
             std::cerr << "Warning: integrand_dip_massive: x[" << i << "] = " << x[i] << std::endl;
             //#endif
@@ -339,17 +337,17 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
         // Note (21): this contribution is split into 3 parts I_1, I_2 and I_3
         double I1,I1err,I1prob;
         intparams.contribution="I1";
-        Cuba(cubamethod, 5, integrand_qgunsub_massive, &intparams, &I1, &I1err, &I1prob);
+        Cuba(cuba_config.method, 5, integrand_qgunsub_massive, &intparams, &I1, &I1err, &I1prob, cuba_config);
         tmpresult += I1;
 
         double I2,I2err,I2prob;
         intparams.contribution="I2";
-        Cuba(cubamethod, 6, integrand_qgunsub_massive, &intparams, &I2, &I2err, &I2prob);
+        Cuba(cuba_config.method, 6, integrand_qgunsub_massive, &intparams, &I2, &I2err, &I2prob, cuba_config);
         tmpresult += I2;
 
         double I3,I3err,I3prob;
         intparams.contribution="I3";
-        Cuba(cubamethod, 7, integrand_qgunsub_massive, &intparams, &I3, &I3err, &I3prob);
+        Cuba(cuba_config.method, 7, integrand_qgunsub_massive, &intparams, &I3, &I3err, &I3prob, cuba_config);
            
         tmpresult += I3;
 
@@ -688,6 +686,6 @@ void NLODIS::PrintConfiguration(const std::string& lineprefix) const
     std::cout << lineprefix << "Dipole: " << (dipole ? dipole->GetString() : "None") << std::endl;
     const char* cores_env = std::getenv("CUBACORES");
     std::string cores = cores_env ? cores_env : "not set (using default)";
-    cout << lineprefix << "Cuba integration method: " << cubamethod << ", maxeval " << cuba_config::maxeval <<", relaccuracy " << cuba_config::epsrel << " cores " << cores << std::endl;
+    cout << lineprefix << "Cuba integration method: " << cuba_config.method << ", maxeval " << cuba_config.maxeval <<", relaccuracy " << cuba_config.epsrel << " cores " << cores << std::endl;
     std::cout << lineprefix << "===================================\n" << std::endl;
 }

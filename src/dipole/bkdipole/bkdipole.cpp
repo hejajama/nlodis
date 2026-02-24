@@ -119,7 +119,7 @@ double BKDipole::DipoleAmplitude(double r, double y)  const
 {
     if (isnan(r) or isinf(r))
     {
-	    throw std::invalid_argument("r=" + std::to_string(r) + ", y=" + std::to_string(y) + " at BKDipole::DipoleAmplitude()");    
+	throw std::invalid_argument("r=" + std::to_string(r) + ", y=" + std::to_string(y) + " at BKDipole::DipoleAmplitude()");    
     }
     
     if (r < MinR() or r > MaxR() )
