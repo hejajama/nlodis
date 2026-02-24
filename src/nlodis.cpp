@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <cmath>
+#include <cuba.h>
 
 #include "nlodis.hpp"
 #include "qcd.hpp"
@@ -11,6 +12,9 @@
 #include "datatypes.hpp"
 
 using namespace std;
+
+// Do not allow z_i < zmin, to avoid numerical instabilities. This is not a physical cutoff, but just a technical one for the numerical integration.
+const double ZMIN=1e-8;
 
 static const std::string cubamethod = "suave";
 
@@ -101,8 +105,6 @@ double NLODIS::Photon_proton_cross_section_d2b(double Q2, double xbj, Polarizati
     double sigma_LO = Photon_proton_cross_section_LO_d2b(Q2, dipole->X0(), pol);
     double sigma_dip = Sigma_dip_d2b(Q2, xbj, pol);
     double  sigma_qg = Sigma_qg_d2b(Q2,xbj,pol);
-
-    //cout <<"# Note: Pol " << PolarizationString(pol) << " Sigma_LO: " << sigma_LO << " , Sigma_dip: " << sigma_dip << " , Sigma_qg: " << sigma_qg << endl;
 
     return sigma_LO + sigma_dip + sigma_qg; 
 }
@@ -206,14 +208,14 @@ double NLODIS::Sigma_dip_d2b(double Q2, double xbj, Polarization pol)
  */
 int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, double *f, void *userdata) {
     auto* const p = static_cast<IntegrationParams*>(userdata);
+    *f=0; // Default result is 0, in case of invalid integration variables
 
     if (p->pol == Polarization::L)
     {
         if (!( (*ndim ==4 and p->contribution=="cd") or (*ndim == 3 and p->contribution =="ab") 
         or (*ndim ==2 and p->contribution=="Omega_L_const") ) )
         {
-            cerr << "integrand_dip_massive: ndim " << *ndim << " and contribution " << p->contribution << " do not match" << endl;
-            exit(1);
+            throw std::runtime_error("integrand_dip_massive: ndim " + std::to_string(*ndim) + " and contribution " + p->contribution + " do not match");
         }   
     }
     else
@@ -221,12 +223,21 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
         if (!( (*ndim ==4 and p->contribution=="T2") or (*ndim == 3 and p->contribution =="T1") 
         or (*ndim ==2 and p->contribution=="T0") ) )
         {
-            cerr << "integrand_dip_massive: ndim " << *ndim << " and contribution " << p->contribution << " do not match" << endl;
-            exit(1);
+            throw std::runtime_error("integrand_dip_massive: ndim " + std::to_string(*ndim) + " and contribution " + p->contribution + " do not match");
         }   
     }
 
-   
+    // Validata integration variables to avoid some Cuba crashes
+    // Todo: would be better to understand why Cuba can sometimes sample integration variables to be NaN
+    for (int i = 0; i < *ndim; ++i) {
+        if (!std::isfinite(x[i]) or x[1]< 0. or x[1] > 1.) {
+            //#ifdef DEBUG
+            std::cerr << "Warning: integrand_dip_massive: x[" << i << "] = " << x[i] << std::endl;
+            //#endif
+            return 0;
+        }
+    }
+ 
     
     double Q2=p->Q2;
     double xbj=p->xbj;
@@ -234,13 +245,20 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
 
     double z1=x[0];
     double x01=p->nlodis->GetMaxR()*x[1];
+
+    if (x01 < p->nlodis->GetDipole().MinR() or x01 > p->nlodis->GetDipole().MaxR())
+    {
+        *f=0;
+        return 0;
+    }
+
     double x01sq=SQR(x01);
     
     
 
     double alphabar=p->nlodis->Alphas(x01)*Constants::CF/M_PI;
 
-    // TODO: add more user control for evolution rapidity
+
     double evolution_rapidity = std::log(1/xbj); 
     double dipole = p->nlodis->GetDipole().DipoleAmplitude(x01,evolution_rapidity);
     double res=0;
@@ -277,8 +295,7 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
     }
     else 
     {
-        cerr << "integrand_dip_massive: unknown contribution " << p->contribution << " pol " << PolarizationString(p->pol) << endl;
-        exit(1);
+        throw std::runtime_error("integrand_dip_massive: unknown contribution " + p->contribution + " pol " + PolarizationString(p->pol));
     }
 
     double jacobian = x01 * p->nlodis->GetMaxR(); // Jacobian from d^2r and r = u*MAXR
@@ -374,11 +391,21 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
         (*ndim ==7 and p->contribution=="I3") )
         )
     {
-        cerr << "integrand_qgunsub_massive: ndim " << *ndim << " and contribution " << p->contribution << " do not match" << endl;
+        throw std::runtime_error("integrand_qgunsub_massive: ndim " + std::to_string(*ndim) + " and contribution " + p->contribution + " do not match");
         exit(1);
     }
-    
 
+    // Validate integration variables to avoid some Cuba crashes
+    // Todo: would be better to understand why Cuba can sometimes sample integration variables to be NaN
+    for (int i = 0; i < *ndim; ++i) {
+        if (!std::isfinite(x[i]) or x[1]< 0. or x[1] > 1.) {
+            //#ifdef DEBUG
+            std::cerr << "Warning: integrand_qgunsub_massive: x[" << i << "] = " << x[i] << std::endl;
+            //#endif
+            return 0;
+        }
+    }
+    
 
 
     double Q2=p->Q2;
@@ -394,6 +421,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
 
     double z1=(1.0-z2min)*x[0];
     double z2=((1.0-z1)-z2min)*x[1]+z2min;
+
     double x01=p->nlodis->GetMaxR()*x[2];
     double x02=p->nlodis->GetMaxR()*x[3];
     double phix0102=2.0*M_PI*x[4];
@@ -404,13 +432,15 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
 
     double alphabar = p->nlodis->Alphas(p->nlodis->RunningCouplinScale(x01, x02, std::sqrt(x21sq))) * Constants::CF / Constants::NC;
 
-    // Check if any integration variable is NaN
-    if (!std::isfinite(z1) || !std::isfinite(z2) || !std::isfinite(x01) || !std::isfinite(x02) || 
-        !std::isfinite(phix0102) || !std::isfinite(x01sq) || !std::isfinite(x02sq) || !std::isfinite(x21sq)) {
-            cerr << "Warning: integrand_qgunsub_massive: NaN encountered in integration variables. Setting integrand to 0." << endl;
+    // Validate
+    if (x21sq < 0)
+    {
+        cerr << "Warning: integrand_qgunsub_massive: x21sq is negative: " << x21sq << ". Setting integrand to 0." << endl;
         *f = 0;
         return 0;
     }
+
+
 
     // Jacobians from Cuba variable changes (z's, 2 distances, 1 angle) and d^2x_01 d^2x_02
     // Note: one overall 2pi from angular integral is included in NLODIS::Sigma_qg
@@ -420,7 +450,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     double evolution_rapidity=p->nlodis->EvolutionRapidity(xbj,Q2,z2);
 
     if (evolution_rapidity < 0){
-        cout << "Warning: integrand_ILqgunsub_massive: evolution rapidity < 0: " << evolution_rapidity << ", xbj=" << xbj << ", Q2=" << Q2 << ", z2=" << z2 << endl;
+        cerr << "Warning: integrand_ILqgunsub_massive: evolution rapidity < 0: " << evolution_rapidity << ", xbj=" << xbj << ", Q2=" << Q2 << ", z2=" << z2 << endl;
         *f=0;
         return 0;
     }
@@ -505,7 +535,6 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     }
 
     const double b0 = (11.0*Constants::NC - 2.0*nf)/(12.0*M_PI);
-    //cout << endl << "b0 " <<4.0*M_PI*b0 << endl;
     const double scalefactor = 4.0*config.C2_alpha; // Convention: 4C^2/r^2 is the scale at which alpha_s is evaluated in coordinate space
 
     switch (config.rc_ir_scheme)
@@ -657,5 +686,8 @@ void NLODIS::PrintConfiguration(const std::string& lineprefix) const
         std::cout << lineprefix << "  " << q.String() << ", m=" << q.mass << " GeV (e=" << q.Charge() << ")" << std::endl;
     }
     std::cout << lineprefix << "Dipole: " << (dipole ? dipole->GetString() : "None") << std::endl;
+    const char* cores_env = std::getenv("CUBACORES");
+    std::string cores = cores_env ? cores_env : "not set (using default)";
+    cout << lineprefix << "Cuba integration method: " << cubamethod << ", maxeval " << cuba_config::maxeval <<", relaccuracy " << cuba_config::epsrel << " cores " << cores << std::endl;
     std::cout << lineprefix << "===================================\n" << std::endl;
 }

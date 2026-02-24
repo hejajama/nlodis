@@ -20,8 +20,8 @@ void Cuba(string method, int ndim, integrand_t integrand,
     }
     else if(method=="suave"){
     // Suave-specific arguments
-    int nnew=2e3, nmin=2; // nnew=10e3
-    double flatness=25; //25;
+    int nnew=1e3, nmin=10; // nnew=10e3
+    double flatness=60; //25;
     Suave(ndim,ncomp,integrand,userdata,nvec,cuba_config::epsrel,
         cuba_config::epsabs,cuba_config::verbose | last,seed,mineval,
         cuba_config::maxeval,nnew,nmin,flatness,statefile,spin,

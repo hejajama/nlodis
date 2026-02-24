@@ -54,9 +54,10 @@ BKDipole::BKDipole(std::string datafile)
 
     std::stringstream ss;
     ss << "Data read from file " << datafile << ", minr: " << minr
-        << " maxr: " << MaxR() << " rpoints: " << rpoints << " initial rapidity " << MinY() << ", maximum rapidity "
+        << " GeV^(-1), maxr: " << MaxR() << " GeV^(-1), rpoints: " << rpoints << " initial rapidity " << MinY() << ", maximum rapidity "
         << yvals[yvals.size() - 1]
-        << " Q_{s,0}^2(initial rapidity) = " << SaturationScale(0, 1 - std::exp(-0.5)) << " GeV^2 [ N(r^2=2/Q_s^2) = " << 1 - std::exp(-0.5) << "]";
+        << " Q_{s,0}^2(initial rapidity) = " << SaturationScale(0, 1 - std::exp(-0.5)) << " GeV^2, Q_{s,0}^2(Y=ln 1/0.01) = " 
+        << SaturationScale(std::log(1.0/0.01), 1 - std::exp(-0.5)) << " GeV^2 [ N(r^2=2/Q_s^2) = " << 1 - std::exp(-0.5) << "]";
     info_string = ss.str();
 }
 
@@ -118,7 +119,7 @@ double BKDipole::DipoleAmplitude(double r, double y)  const
 {
     if (isnan(r) or isinf(r))
     {
-	throw std::invalid_argument("r=" + std::to_string(r) + ", y=" + std::to_string(y) + " at BKDipole::DipoleAmplitude()");    
+	    throw std::invalid_argument("r=" + std::to_string(r) + ", y=" + std::to_string(y) + " at BKDipole::DipoleAmplitude()");    
     }
     
     if (r < MinR() or r > MaxR() )

@@ -68,7 +68,7 @@ class Dipole
          * 
          * @return Minimum dipole size [GeV^-1]
          */
-        virtual double MinR() const { return 1e-10; }
+        virtual double MinR() const { return 1e-30; }
 
         /**
          * @brief Maximum dipole size where dipole amplitude is available
