@@ -3,7 +3,7 @@
 #include <string>
 #include <cuba.h>
 
-struct cuba_config
+struct CubaConfig
 {
     const int verbose=0;
     int maxeval=5e5;
@@ -14,4 +14,4 @@ struct cuba_config
 
 // Wrapper that allows user to specify the Cuba method to use
 void Cuba(std::string method, int ndim, integrand_t integrand,
-    void *userdata, double *integral, double *error, double *prob, cuba_config config = cuba_config()); 
+    void *userdata, double *integral, double *error, double *prob, CubaConfig config = CubaConfig()); 

@@ -5,7 +5,7 @@ using namespace std;
 
 void Cuba(string method, int ndim, integrand_t integrand,
     void *userdata, double *integral, double *error, double *prob,
-    cuba_config config) {
+    CubaConfig config) {
     // common arguments
     int ncomp=1, nvec=1, seed=0, mineval=0, last=4;
     int nregions, neval, fail;

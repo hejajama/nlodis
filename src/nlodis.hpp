@@ -427,7 +427,7 @@ class NLODIS
         std::unique_ptr<Dipole> dipole;                ///< Dipole amplitude model
         std::vector<Quark> quarks;                     ///< Quark flavors and masses
         NLODISConfig config;                           ///< Configuration parameters
-        cuba_config cuba_config;                       ///< Configuration for Cuba integration
+        CubaConfig cuba_config;                       ///< Configuration for Cuba integration
       
 };
 
