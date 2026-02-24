@@ -5,7 +5,7 @@
 
 namespace cuba_config{
     static const int verbose=0;
-    static const int maxeval=5e5;
+    static const int maxeval=1e4;
     static const double epsrel=1e-4;
     static const double epsabs=0;
 }

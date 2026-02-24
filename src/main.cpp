@@ -2,79 +2,17 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <stdexcept>
+#include <cmath>
+#include <csignal>
 #include "nlodis.hpp"
 #include "datatypes.hpp"
 #include <gsl/gsl_errno.h>
 #include "dipole/bkdipole/bkdipole.hpp"
 #include "gitsha1.h"
-#include <csignal>
+#include "debug.h"
 
-#ifdef DEBUG
 
-#include <fenv.h>
-
-// Platform-specific floating-point exception handling
-#if defined(__APPLE__)
-    #if defined(__x86_64__) || defined(__i386__)
-        // Intel Mac: Use SSE
-        #include <xmmintrin.h>
-        
-        void EnableFloatingPointExceptions() {
-            _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & 
-                                   ~(_MM_MASK_INVALID | 
-                                     _MM_MASK_DIV_ZERO | 
-                                     _MM_MASK_OVERFLOW));
-        }
-        
-    #elif defined(__aarch64__) || defined(__arm64__)
-        // Apple Silicon: Use fenv (limited support)
-        #include <fenv.h>
-        #pragma STDC FENV_ACCESS ON
-        
-        void EnableFloatingPointExceptions() {
-            // On ARM64 macOS, we can use fenv but it's limited
-            // Enable trapping for invalid operations and division by zero
-            fenv_t env;
-            fegetenv(&env);
-            env.__fpcr = env.__fpcr & ~((1 << 8) | (1 << 9));  // Enable invalid & div-by-zero traps
-            fesetenv(&env);
-            
-            std::cout << "Note: ARM64 FP exception support is limited on macOS\n";
-        }
-        
-    #else
-        void EnableFloatingPointExceptions() {
-            std::cerr << "Warning: Unknown macOS architecture for FP trapping\n";
-        }
-    #endif
-    
-#elif defined(__linux__)
-    #include <fenv.h>
-    
-    void EnableFloatingPointExceptions() {
-        feenableexcept(FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW);
-    }
-    
-#else
-    void EnableFloatingPointExceptions() {
-        std::cerr << "Warning: FP exception trapping not supported on this platform\n";
-    }
-#endif
-
-void FloatingPointExceptionHandler(int signal) {
-    std::cerr << "\n*** FLOATING POINT EXCEPTION CAUGHT ***\n";
-    std::cerr << "Signal: " << signal << "\n";
-    std::cerr << "This usually indicates:\n";
-    std::cerr << "  - sqrt(negative number)\n";
-    std::cerr << "  - Division by zero\n";
-    std::cerr << "  - Overflow/Underflow\n";
-    std::cerr << "Run with debugger to see exact location.\n";
-    std::abort();
-}
-
-#endif // DEBUG
-
-/// Model configuration parameters
 struct ModelConfig {
     std::string name;
     std::string datafile;
@@ -82,128 +20,64 @@ struct ModelConfig {
     double charm_mass;
     double sigma0_2;
     RunningCouplingScheme rc_scheme;
-    double carlisle;
 };
 
+static RunningCouplingScheme ParseRunningCouplingScheme(const std::string& s) {
+    if (s == "PARENT") return RunningCouplingScheme::PARENT;
+    if (s == "SMALLEST") return RunningCouplingScheme::SMALLEST;
+    throw std::runtime_error("Invalid rc_scheme: " + s);
+}
+
+static void PrintUsage(const char* prog) {
+    std::cerr << "Usage:\n";
+    std::cerr << "  " << prog << " [--no-header] "
+              << "name datafile c2_alpha charm_mass sigma0_2 rc_scheme carlisle "
+              << "[name datafile c2_alpha charm_mass sigma0_2 rc_scheme carlisle ...]\n";
+}
+
 int main(int argc, char* argv[]) {
-
-    // Floating point exception trapping for debug builds
-    #ifdef DEBUG
-    cout << "*** DEBUG MODE ***" << endl;
+#ifdef DEBUG
     EnableFloatingPointExceptions();
-    #endif
+#endif
 
-    cout << "# NLODIS code, git commit " << g_GIT_SHA1 << " local repo " << g_GIT_LOCAL_CHANGES << endl;
-    // Suppress GSL error handler for underflow errors during integration
-    gsl_error_handler_t *old_handler = gsl_set_error_handler_off();
+    std::cout << "# NLODIS code, git commit " << g_GIT_SHA1 << " local repo " << g_GIT_LOCAL_CHANGES << std::endl;
+    gsl_error_handler_t* old_handler = gsl_set_error_handler_off();
+    (void)old_handler;
 
-    std::vector<ModelConfig> configs{
-         {"NLOBK_MV_smallest", "/Users/hejajama/Downloads/mv_bk.dat", 11.8, 1.04, 23.5, RunningCouplingScheme::SMALLEST,0.442419},
-        {"KCBK_parent", "/Users/hejajama/code/nlodisfit_bayesian/data/pd/bk_map.dat", 663, 1.4, 20.7, RunningCouplingScheme::PARENT,0.549267},
-        {"KCBK_smallest", "/Users/hejajama/code/nlodisfit_bayesian/data/balsd/bk_map.dat", 1.7, 1.25, 8.75, RunningCouplingScheme::SMALLEST,0},
-       
-        {"NLOBK_MVgamma smallest", "/Users/hejajama/Downloads/mvgam_bk.dat", 1314.9257306, 1.2049379, 22.9017918, RunningCouplingScheme::SMALLEST,0.541681},
-        {"NLOBK_MVgamma parent", "/Users/hejajama/Downloads/pd_nlo_bk.dat", std::pow(10, 3.88), 1.20, 24.3, RunningCouplingScheme::PARENT,0.554365}
-    };
+    bool print_header = true;
+    std::vector<ModelConfig> configs;
+
+    int i = 1;
+    if (i < argc && std::string(argv[i]) == "--no-header") {
+        print_header = false;
+        ++i;
+    }
+
+    const int fields = 6;
+    int remaining = argc - i;
+    if (remaining == 0 || remaining % fields != 0) {
+        PrintUsage(argv[0]);
+        return 1;
+    }
     
-    //double Q2 = 4.5;
-    double xbj = 3.2e-3;
-    double y =  1.3896E-02;
-    double fy = y*y/(1+SQR(1-y));
-    double exp = 5.7189E-01;
-    double experr =  0.009723674103;
+    ModelConfig cfg;
+    while (i < argc) {
+        cfg.name = argv[i++];
+        cfg.datafile = argv[i++];
+        cfg.c2_alpha = std::stod(argv[i++]);
+        cfg.charm_mass = std::stod(argv[i++]);
+        cfg.sigma0_2 = std::stod(argv[i++]);
+        cfg.rc_scheme = ParseRunningCouplingScheme(argv[i++]);
+    }
 
+    if (print_header) {
+        std::cout << "fit,x,Q2,F2,FL" << std::endl;
+    }
 
-    //cout <<"Computing at Q^2=" << Q2 << " GeV^2 and xbj=" << xbj << endl;
+    std::vector<double> Q2vals = {1.5, 4.5, 10, 45, 100, 200};
 
     NLODIS dis;
-   /* dis.SetDipole(std::make_unique<BKDipole>("/Users/hejajama/Downloads/mv_bk.dat"));
-    // Running coupling scale
-    dis.SetRunningCouplingC2(1314.9257306); 
-    // The distance scale is set by the smallest dipole size
-    dis.SetRunningCouplingScheme(RunningCouplingScheme::SMALLEST);
-    // Perform NLO calculation
-    dis.SetOrder(Order::NLO);
-    // Set charm quark mass 
-    dis.SetQuarkMass(Quark::Type::C, 1.2049379);
-// Set the proton transverse area
-    dis.SetProtonTransverseArea(22.9017918, Unit::MB);
-    dis.SetRunningCouplingIRScheme(RunningCouplingIRScheme::SMOOTH);
-     dis.PrintConfiguration("# ");
-/*
-    for (double mq = 0.2; mq >= 0.001; mq /= 1.5)
-    {
-        dis.SetQuarkMass(Quark::Type::LIGHT, mq);
-        double FT = dis.FT(Q2, xbj);
-        double FL = dis.FL(Q2, xbj);
-        double F2 = FT + FL;
-        //double FT = dis.FT(Q2, xbj);
-        double sigmar = F2 - y*y/(1+SQR(1-y))*FL;
-        //cout << "mq = " << mq << " GeV: F2 = " << F2 << ", FL = " << FL << ", FT = " << FT << ", sigma_r = " << sigmar << endl;
-        cout << mq << " " << sigmar << endl;
-    }
-    return 0;
-     
-
-   
-    /*
-dis.SetQuarkMass(Quark::Type::U, 0.01);
-    dis.SetQuarkMass(Quark::Type::D, 0.01);
-    dis.SetQuarkMass(Quark::Type::S, 0.01);
-  
-  //  Quark light(Quark::Type::LIGHT, 0.01);
-    //dis.SetQuarks({light, Quark(Quark::Type::C, 1.2049379)});
-
-
-    dis.PrintConfiguration();
-
-    cout << "== EXP sigma_r(Q^2=" << Q2 << ", x=" << xbj << ") = " << exp << " +/- " << experr << endl;
-    
-    double FT = dis.FT(Q2, xbj);
-    double FL = dis.FL(Q2, xbj);
-    double F2 = FT+FL;
-    double sigmar = F2 - fy*FL;
-    cout <<  " F2 = " << F2 << ", sigma_r = " << sigmar << endl;
-
-    double photonproton_to_F2 = Q2 / (4.0 * M_PI * M_PI * Constants::AlphaEM);
-    double sigmadip = photonproton_to_F2*(dis.Sigma_dip_d2b(Q2, xbj, Polarization::T) + dis.Sigma_dip_d2b(Q2, xbj, Polarization::L));
-    double sigma_qg = photonproton_to_F2*(dis.Sigma_qg_d2b(Q2, xbj, Polarization::T) + dis.Sigma_qg_d2b(Q2, xbj, Polarization::L));
-    double sigma_IC = photonproton_to_F2*(dis.Photon_proton_cross_section_LO_d2b(Q2, dis.GetDipole().X0(), Polarization::T) + dis.Photon_proton_cross_section_LO_d2b(Q2, dis.GetDipole().X0(), Polarization::L));
-    cout << "Sigma_dip = " << sigmadip*22.9017*2.568 << endl;
-    cout << "Sigma_qg = " << sigma_qg*22.9017*2.568 << endl;
-    cout << "Sigma_IC = " << sigma_IC*22.9017*2.568 << endl;
-
-    cout << sigma_IC << endl;
-
-*/
-    cout <<"fit,x,Q2,F2,FL" << endl;
-    std::vector<double> Q2vals = {1.5, 4.5, 10, 45,100,200};
-    for (double x=0.01; x>= 1e-6; x/=2)
-    {
-        for (const auto &cfg : configs) 
-        {
-            dis.SetDipole(std::make_unique<BKDipole>(cfg.datafile));
-            dis.SetRunningCouplingC2(cfg.c2_alpha);
-            dis.SetRunningCouplingScheme(cfg.rc_scheme);
-            dis.SetOrder(Order::NLO);
-            dis.SetQuarkMass(Quark::Type::C, cfg.charm_mass);
-            dis.SetQuarkMass(Quark::Type::LIGHT, 0.005);
-            dis.SetProtonTransverseArea(cfg.sigma0_2, Unit::MB);
-            dis.SetRunningCouplingIRScheme(RunningCouplingIRScheme::SMOOTH);
-            //dis.PrintConfiguration("# ");
-
-            for (const auto &Q2 : Q2vals)
-            {
-                double FT = dis.FT(Q2, x);
-                double FL = dis.FL(Q2, x);
-                double F2 = FT+FL;
-                double sigmar = F2 - fy*FL;
-                cout << cfg.name << ","<< x << "," << Q2 << "," << F2 << "," << FL << endl;
-            }
-        }
-    }
-/*
-    for (const auto& cfg : configs) {
+    for (double x = 0.01; x >= 1e-5; x /= 2.0) {
         dis.SetDipole(std::make_unique<BKDipole>(cfg.datafile));
         dis.SetRunningCouplingC2(cfg.c2_alpha);
         dis.SetRunningCouplingScheme(cfg.rc_scheme);
@@ -212,144 +86,21 @@ dis.SetQuarkMass(Quark::Type::U, 0.01);
         dis.SetQuarkMass(Quark::Type::LIGHT, 0.005);
         dis.SetProtonTransverseArea(cfg.sigma0_2, Unit::MB);
         dis.SetRunningCouplingIRScheme(RunningCouplingIRScheme::SMOOTH);
+        
 
-        dis.PrintConfiguration("# ");
-
-        double FT = dis.FT(Q2, xbj);
-        double FL = dis.FL(Q2, xbj);
-        double F2 = FT+FL;
-        double sigmar = F2 - fy*FL;
-       // cout << cfg.name << " F2 = " << F2 << ", sigma_r = " << sigmar << "," << " -- Carlisle sigma_r = " << cfg.carlisle << endl;
-
-
-        //dis.SetRunningCouplingIRScheme(RunningCouplingIRScheme::FREEZE);
-        //dis.PrintConfiguration(); 
-        //double F2_result_sharp = dis.F2(Q2, xbj);
-        //dis.SetRunningCouplingIRScheme(RunningCouplingIRScheme::SMOOTH); 
-        //double F2_result_smooth = dis.F2(Q2, xbj);
-        //cout << cfg.name << " F2 = " << F2_result_sharp << " (FREEZE), " << F2_result_smooth << " (SMOOTH)" <<  " -- Carlisle " << cfg.carlisle << endl;
-    }  
-}
-*/
-    /*
-    cout <<" == KCBK, parent ==" << endl;
-    NLODIS kcbk_parent;
-    kcbk_parent.SetDipole(std::make_unique<BKDipole>("/Users/hejajama/code/nlodisfit_bayesian/data/pd/bk_map.dat"));
-    kcbk_parent.SetRunningCouplingC2Alpha(663);
-    kcbk_parent.SetRunningCouplingScheme(RunningCouplingScheme::PARENT);
-    kcbk_parent.SetOrder(Order::NLO);
-    kcbk_parent.SetQuarkMass(Quark::Type::C, 1.4);
-    kcbk_parent.SetProtonTransverseArea(20.7, Unit::MB); // Set \sigma_0/2 = 20.7 mb
-    double Q2=4.5;
-    double xbj=3e-3;
-    //double FL_kcbk_parent = kcbk_parent.FL(Q2, xbj);
-    //double FT_kcbk_parent = kcbk_parent.FT(Q2, xbj);
-    double F2_kcbk_parent = kcbk_parent.F2(Q2, xbj);
-    //std::cout << "KCBK parent dipole FL(Q2="<< Q2 << ", xbj="<< xbj << ") = " << FL_kcbk_parent*2*simga0_2_kcbk << std::endl;
-    //std::cout << "KCBK parent dipole FT(Q2="<< Q2 << ", xbj="<< xbj << ") = " << FT_kcbk_parent*2*simga0_2_kcbk << std::endl;
-    std::cout << "KCBK parent dipole F2(Q2="<< Q2 << ", xbj="<< xbj << ") = " << F2_kcbk_parent << std::endl;
-    cout << endl;
-
-    cout << " == KCBK, smallest ==" << endl;
-    NLODIS kcbk_smallest;
-    kcbk_smallest.SetDipole(std::make_unique<BKDipole>("/Users/hejajama/code/nlodisfit_bayesian/data/balsd/bk_map.dat"));
-    kcbk_smallest.SetRunningCouplingC2Alpha(1.7);
-    kcbk_smallest.SetRunningCouplingScheme(RunningCouplingScheme::SMALLEST);
-    kcbk_smallest.SetOrder(Order::NLO);
-    kcbk_smallest.SetQuarkMass(Quark::Type::C, 1.25);
-    kcbk_smallest.SetProtonTransverseArea(8.75, Unit::MB);
-    double F2_kcbk_smallest = kcbk_smallest.F2(Q2, xbj);
-    std::cout << "KCBK smallest dipole F2(Q2="<< Q2 << ", xbj="<< xbj << ") = " << F2_kcbk_smallest << std::endl;
-    cout << endl;
-
-    cout << "== NLOBK, smallest, MV ==" << endl;
-
-    NLODIS mv;
-    mv.SetDipole(std::make_unique<BKDipole>("/Users/hejajama/Downloads/mv_bk.dat"));
-    mv.SetRunningCouplingC2Alpha(23);
-    mv.SetRunningCouplingScheme(RunningCouplingScheme::SMALLEST);
-    mv.SetOrder(Order::NLO);
-    mv.SetQuarkMass(Quark::Type::C, 1.04);
-    mv.SetProtonTransverseArea(23.5, Unit::MB); // Set \sigma_0/2 = 23.5 mb
-    //double FL_mv = mv.FL(Q2, xbj);
-    double F2_mv = mv.F2(Q2, xbj);
-    std::cout << "NLOBK MV smallest F2(Q2="<< Q2 << ", xbj="<< xbj << ") = " << F2_mv << std::endl;
-    //std::cout << "MV smallest FL(Q2="<< Q2 << ", xbj="<< xbj << ") = " << FL_mv*2*sigma0_2_mv << std::endl;
-    cout << endl;
-
-    cout << "== NLOBK, smallest, mvgamma ==" << endl;
-    NLODIS mvgamma;
-    mvgamma.SetDipole(std::make_unique<BKDipole>("/Users/hejajama/Downloads/mvgam_bk.dat"));
-    mvgamma.SetRunningCouplingC2Alpha(std::pow(10,2.9));
-    mvgamma.SetRunningCouplingScheme(RunningCouplingScheme::SMALLEST);
-    mvgamma.SetQuarkMass(Quark::Type::C, 1.16 );
-    mvgamma.SetOrder(Order::NLO);
-    mvgamma.SetProtonTransverseArea(22.5, Unit::MB); // Set \sigma_0/2 = 22.5 mb
-    double F2_mvgamma = mvgamma.F2(Q2, xbj);
-    std::cout << "NLOBK MV gamma smallest F2(Q2="<< Q2 << ", xbj="<< xbj << ") = " << F2_mvgamma << std::endl;
-    cout << endl;
-
-    cout << "== NLOBK, parent, mvgamma ==" << endl;
-    NLODIS mvgamma_parent;
-    mvgamma_parent.SetDipole(std::make_unique<BKDipole>("/Users/hejajama/Downloads/pd_nlo_bk.dat"));
-    mvgamma_parent.SetRunningCouplingC2Alpha(std::pow(10.0, 3.88));
-    mvgamma_parent.SetRunningCouplingScheme(RunningCouplingScheme::PARENT);
-    mvgamma_parent.SetQuarkMass(Quark::Type::C, 1.2);
-    mvgamma_parent.SetOrder(Order::NLO);
-    mvgamma_parent.SetProtonTransverseArea(24.3, Unit::MB); //
-    double F2_mvgamma_parent = mvgamma_parent.F2(Q2, xbj);
-    std::cout << "NLOBK MV gamma parent F2(Q2="<< Q2 << ", xbj="<< xbj << ") = " << F2_mvgamma_parent << std::endl;
-    cout << endl;
-    */
-
-    /*
-    // H1 data points for FL
-    std::vector<std::pair<double, double>> q2_x_pairs = {
-    {1.5, 0.000028},
-    {2.0, 0.000043},
-    {2.5, 0.000059},
-    {3.5, 0.000088},
-    {5.0, 0.000129},
-    {6.5, 0.000169},
-    {8.5, 0.000224},
-    {12.0, 0.000319},
-    {15.0, 0.000402},
-    {20.0, 0.000540},
-    {25.0, 0.000687},
-    {35.0, 0.000958},
-    {45.0, 0.001210},
-    {60.0, 0.001570},
-    {90.0, 0.002430},
-    {120.0, 0.003030},
-    {150.0, 0.004020},
-    {200.0, 0.005410},
-    {250.0, 0.007360},
-    {346.0, 0.009860},
-    //{636.0, 0.018400}  
-    };
-
-    cout << "Q^2 xbj FL_KCBK_parentdipole FL_MV FL_MVgamma" << endl;
-    for (const auto& [q2, x] : q2_x_pairs) {
-        // Use q2 and x here
-        double FL_kcbk = kcbk_parentdipole.FL(q2, x)*2*simga0_2_kcbk;
-        double FL_mv_val = mv.FL(q2, x)*2*sigma0_2_mv;
-        double FL_mvgamma_val = mvgamma.FL(q2, x)*2*sigma0_2_mvgamma;
-
-        cout << q2 << " " << x << " " << FL_kcbk << " " << FL_mv_val << " " << FL_mvgamma_val << endl;
+        for (const auto& Q2 : Q2vals) {
+            double FT,FL;
+            try {
+                FT = dis.FT(Q2, x);
+                FL = dis.FL(Q2, x);
+            } catch (const std::exception& e) {
+                std::cerr << "Error computing FT and FL for x=" << x << ", Q2=" << Q2 << ": " << e.what() << std::endl;
+                continue;
+            }
+            double F2 = FT + FL;
+            std::cout << cfg.name << "," << x << "," << Q2 << "," << F2 << "," << FL << std::endl;
+        }
     }
 
-    /*NLODIS dis(argv[1]);
-    dis.SetRunningCouplingC2Alpha(std::stod(argv[2]));
-    double sigma0_2 = std::stod(argv[3])*2.568; // Convert mb to GeV^-2
-    dis.SetOrder(Order::NLO);
-    double Q2=10;
-    double xbj=2e-4;
-
-    
-
-    cout << "#sigma(gamma+p;Q^2="<< Q2 << ",xbj="<< xbj << ",pol=L)=" << endl;
-    double res = dis.FL(Q2, xbj);
-    cout << res*sigma0_2*2 << endl;
-*/
     return 0;
 }
