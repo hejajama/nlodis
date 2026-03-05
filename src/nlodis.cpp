@@ -357,7 +357,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     
 
 
-    // We have facotorized out (not performed) \int d^2 b 
+    // We have factorized out (not performed) \int d^2 b 
 
 
     // 2pi: overall integral over one angle
@@ -469,7 +469,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     }
     else if (p->contribution == "I1" and p->pol == Polarization::T)
     {
-        double dipole_term = SKernel_dipole * ITNLOqg_massive_dipole_part_I1(Q2,mf,z1,z2,x01sq,x02sq,x21sq);
+        double dipole_term = SKernel_dipole * ITNLOqg_massive_dipole_uvsub(Q2,mf,z1,z2,x01sq,x02sq,x21sq);
         double tripole_term = SKernel_tripole * ITNLOqg_massive_tripole_part_I1(Q2,mf,z1,z2,x01sq,x02sq,x21sq);
 
         res = dipole_term + tripole_term;

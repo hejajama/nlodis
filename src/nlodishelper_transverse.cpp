@@ -240,7 +240,7 @@ double IT_N_unsymmetric( double Q, double z, double mf, double r, double y_chi, 
 
 // I1 = Note (54)
 
-double ITNLOqg_massive_dipole_part_I1(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq) {
+double ITNLOqg_massive_dipole_uvsub(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq) {
     double Q = sqrt(Q2);
     return IT_dipole_jk_I1( Q, mf, z1, z2, x01sq, x02sq, x21sq ) + 
            IT_dipole_jkm_I1( Q, mf, z1, z2, x01sq, x02sq, x21sq );
@@ -425,10 +425,10 @@ double IT_tripole_F_I1(double Q, double mf, double z1, double z2, double x01sq, 
                     G22_sing_j * G22_sing_k;
     double term_2j = -(z0+z2)*z1*z2/SQR(z1+z2) * x2j_x3j * H_k * G22_sing_j;
     double term_2k = (z1+z2)*z0*z2/SQR(z0+z2) * x2k_x3k * H_j * G22_sing_k;
-    double term_3j = -SQR(z0)*z1*z2/(z0+z2)/SQR(z0+z2) * x2j_x3j * H_j * G22_sing_j ;
-    double term_3k = SQR(z1)*z0*z2/(z1+z2)/SQR(z1+z2) * x2k_x3k * H_k * G22_sing_k ;
-    double term_4j = SQR(z0*z2)/(8.0*SQR(z0+z2)*SQR(z0+z2))*SQR(H_j);
-    double term_4k = SQR(z1*z2)/(8.0*SQR(z1+z2)*SQR(z1+z2))*SQR(H_k);
+    double term_3j = -SQR(z0)*z1*z2/std::pow(z0+z2,3) * x2j_x3j * H_j * G22_sing_j ;
+    double term_3k = SQR(z1)*z0*z2/std::pow(z1+z2,3) * x2k_x3k * H_k * G22_sing_k ;
+    double term_4j = SQR(z0*z2)/(8.0*std::pow(z0+z2,4)) * SQR(H_j);
+    double term_4k = SQR(z1*z2)/(8.0*std::pow(z1+z2,4)) * SQR(H_k);
 
     double res = 0.5 * (term_1 + term_2j + term_2k + term_3j + term_3k + term_4j + term_4k);
 

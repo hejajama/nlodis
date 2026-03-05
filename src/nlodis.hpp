@@ -402,7 +402,7 @@ class NLODIS
          * See Cuba documentation for details on the maxeval parameter, which controls the maximum number of evaluations 
          * for the Monte Carlo integration. Increasing this can improve accuracy at the cost of longer computation time.
          */
-        void SetMCIntegrationPoints(int points) { cuba_config.maxeval = points; }
+        void SetMCIntegrationPoints(const int points) { cuba_config.maxeval = points; }
 
         /**
          * @brief Set the Monte Carlo integration method for Cuba
@@ -482,7 +482,7 @@ double ILNLOqg_massive_tripole_part_I1(double Q2, double mf, double z1, double z
 double ILNLOqg_massive_tripole_part_I3(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
 
 // Sigma qg T
-double ITNLOqg_massive_dipole_part_I1(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
+double ITNLOqg_massive_dipole_uvsub(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
 double ITNLOqg_massive_tripole_part_I1(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
 double IT_dipole_jk_I1(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
 double ITNLOqg_massive_tripole_part_I2_fast(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);

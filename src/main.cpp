@@ -152,7 +152,7 @@ int main(int argc, char* argv[]) {
 
     if (print_header) {
         if (runmode == RunMode::F2FL_GRID)
-            std::cout << "fit,x,Q2,F2,FL" << std::endl;
+            std::cout << "fit,x,Q2,F2,FL,F2_LO" << std::endl;
         else if (runmode == RunMode::HERA_FL)
             std::cout << "fit,x,Q2,FL" << std::endl;
     }
@@ -181,7 +181,11 @@ int main(int argc, char* argv[]) {
                     continue;
                 }
                 double F2 = FT + FL;
-                std::cout << cfg.name << "," << x << "," << Q2 << "," << F2 << "," << FL << std::endl;
+                dis.SetOrder(Order::LO);
+                double loF2 = dis.F2(Q2, x);
+                dis.SetOrder(Order::NLO);
+                std::cout << cfg.name << "," << x << "," << Q2 << "," << F2 << "," << FL << "," << loF2 << std::endl;
+                exit(1);
             }
         }
     } else if (runmode == RunMode::HERA_FL) {
