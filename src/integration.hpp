@@ -6,10 +6,11 @@
 struct CubaConfig
 {
     const int verbose=0;
-    int maxeval=5e5;
-    const double epsrel=1e-4;
+    int maxeval=1e6;
+    const double epsrel=1e-6;
     const double epsabs=0;
-    std::string method="suave";
+    double warning_relaccuracy_threshold = 1e-1; // If the relative accuracy of the integral is worse than this, print a warning. This is not a hard failure, just a warning that the integration may not be accurate enough for some purposes.
+    std::string method="vegas"; // Recommended integration method
 };
 
 // Wrapper that allows user to specify the Cuba method to use

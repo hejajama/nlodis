@@ -1,5 +1,6 @@
 #include "integration.hpp" 
 #include <string>
+#include <iostream>
 using namespace std;    
 
 
@@ -7,13 +8,13 @@ void Cuba(string method, int ndim, integrand_t integrand,
     void *userdata, double *integral, double *error, double *prob,
     CubaConfig config) {
     // common arguments
-    int ncomp=1, nvec=1, seed=0, mineval=0, last=4;
+    int ncomp=1, nvec=1, seed=0, mineval=config.maxeval/100;
     int nregions, neval, fail;
     void *spin=NULL;
     char *statefile=NULL;
     if(method=="vegas"){
     // Vegas-specific arguments
-    int nstart=1000, nincrease=500, nbatch=100, gridno=0;
+    int nstart=mineval, nincrease=config.maxeval/20, nbatch=100, gridno=0;
     Vegas(ndim,ncomp,integrand,userdata,nvec,config.epsrel,
         config.epsabs,config.verbose,seed,mineval,
         config.maxeval,nstart,nincrease,nbatch,gridno,statefile,
@@ -22,7 +23,8 @@ void Cuba(string method, int ndim, integrand_t integrand,
     else if(method=="suave"){
     // Suave-specific arguments
     int nnew=1e3, nmin=10; // nnew=10e3
-    double flatness=60; //25;
+    double flatness = 25;
+    int last=4;
     Suave(ndim,ncomp,integrand,userdata,nvec,config.epsrel,
         config.epsabs,config.verbose | last,seed,mineval,
         config.maxeval,nnew,nmin,flatness,statefile,spin,
@@ -42,11 +44,16 @@ void Cuba(string method, int ndim, integrand_t integrand,
     else if(method=="cuhre"){
     if(ndim==1) ndim=2;
     // Cuhre-specific arguments
-    int key=0;
+    int key=9;
+    int last=4;
     Cuhre(ndim,ncomp,integrand,userdata,nvec,config.epsrel,
         config.epsabs,config.verbose | last,mineval,
         config.maxeval,key,statefile,spin,
         &nregions,&neval,&fail,integral,error,prob);
+    }
+
+    if (fail > 0 and std::abs(*error / *integral) > config.warning_relaccuracy_threshold) {
+        cout << "# Warning: Cuba (" << method << ") integration (dimension " << ndim << ") accuracy " << std::abs(*error / *integral)*100 << "%,  result " << *integral << " +/- " << *error << ". It is recommended to use more MC integration points" <<  endl;
     }
 }
 

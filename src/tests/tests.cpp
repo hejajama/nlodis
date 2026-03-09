@@ -4,10 +4,12 @@
 #include <dipole/vector.hpp>
 #include <dipole/dipoleamplitude.hpp>
 #include <gsl/gsl_rng.h>
+#include <gsl/gsl_errno.h>
 #include "../nlodis.hpp"
 #include "../integration.hpp"
 
 #include "dipole/bkdipole/bkdipole.hpp"
+#include "dipole/gbw.hpp"
 
 const std::string gbw_datafile = "gbw.dat";
 
@@ -139,4 +141,47 @@ TEST(vector_class) {
     gsl_rng_free(global_rng);
 }
 
+
+TEST(integration_methods_suave_vegas)
+{
+    // Compute F2 and FL using both the Suave and Vegas methods, and check that the results are consistent within the expected accuracy of the integration method.
+    
+    // Avoid especially underflow errors when evaluating K_n(r*eps) 
+    gsl_error_handler_t* old_handler = gsl_set_error_handler_off();
+    
+    NLODIS dis;
+    GBWDipole gbw;
+    dis.SetDipole(std::make_unique<GBWDipole>());
+    Quark light(Quark::Type::LIGHT, 0.14);
+    Quark charm(Quark::Type::C, 1.4);
+    dis.SetQuarks({light, charm});
+    dis.SetProtonTransverseArea(1);
+    dis.SetOrder(Order::NLO);
+    dis.SetMCIntegrationPoints(6e5);
+
+    const double Q2vals[] = {1,10,50};
+    for (auto Q2 : Q2vals) {
+        double xbj = 1e-4;
+        dis.SetMCIntegrationMethod("suave");
+        double FT_suave = dis.FT(Q2, xbj);
+        double FL_suave = dis.FL(Q2, xbj);
+        dis.SetMCIntegrationMethod("vegas");
+        double FT_vegas = dis.FT(Q2, xbj);
+        double FL_vegas = dis.FL(Q2, xbj);
+
+        // This test does not require a very good accuracy in order to run fast, 
+        // if needed, this can be made stricter if the number of mc integration points is increased also
+        // More MC points is needed towards higher Q^2
+        const double relacc_goal = 0.15;
+
+        cout << "Q2=" << Q2 << " GeV^2, FL difference " << (FL_suave-FL_vegas)/std::max(std::abs(FL_suave), std::abs(FL_vegas)) <<" FT difference " << (FT_suave-FT_vegas)/std::max(std::abs(FT_suave), std::abs(FT_vegas)) << endl;
+        ASSERT_ALMOST_EQUAL(FT_suave, FT_vegas, std::max(std::abs(FT_suave), std::abs(FT_vegas))*relacc_goal); 
+        ASSERT_ALMOST_EQUAL(FL_suave, FL_vegas, std::max(std::abs(FL_suave), std::abs(FL_vegas))*relacc_goal);
+        
+        //
+    }
+
+}
+
 TEST_MAIN()
+

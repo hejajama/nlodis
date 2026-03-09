@@ -26,6 +26,7 @@ add_library(
     dipole/bkdipole/interpolation.cpp
     dipole/dipoleamplitude.cpp
     dipole/vector.cpp
+    dipole/gbw.cpp
 )
 
 
@@ -38,6 +39,7 @@ target_link_libraries(bkdipole PUBLIC GSL::gsl GSL::gslcblas)
 add_executable(
     test
     tests/tests.cpp
+    dipole/gbw.cpp
     tests/test_massivedishelpers.cpp
     tests/test_nlodis_helpers.cpp
     tests/vector_tests.cpp

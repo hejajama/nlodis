@@ -61,7 +61,6 @@ int main(int argc, char* argv[]) {
 
     std::cout << "# NLODIS code, git commit " << g_GIT_SHA1 << " local repo " << g_GIT_LOCAL_CHANGES << std::endl;
     gsl_error_handler_t* old_handler = gsl_set_error_handler_off();
-    (void)old_handler;
 
     bool print_header = true;
     RunMode runmode = RunMode::HERA_FL;
@@ -168,8 +167,8 @@ int main(int argc, char* argv[]) {
     dis.PrintConfiguration("# ");
 
     if (runmode == RunMode::F2FL_GRID) {
-        for (double x = 0.01; x >= 1e-5; x /= 2.0) {
-            std::vector<double> Q2vals = {1.5, 4.5, 10, 45, 100, 200};
+        for (double x = 0.01; x >= 1e-5; x /= 4.0) {
+            std::vector<double> Q2vals = { 4.5, 45, 100};
             for (const auto& Q2 : Q2vals) {
                 double FT, FL;
                 try {
@@ -185,7 +184,6 @@ int main(int argc, char* argv[]) {
                 double loF2 = dis.F2(Q2, x);
                 dis.SetOrder(Order::NLO);
                 std::cout << cfg.name << "," << x << "," << Q2 << "," << F2 << "," << FL << "," << loF2 << std::endl;
-                exit(1);
             }
         }
     } else if (runmode == RunMode::HERA_FL) {
