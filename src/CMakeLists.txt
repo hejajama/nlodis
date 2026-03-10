@@ -18,6 +18,11 @@ add_executable(
     main.cpp
 )
 
+add_executable(
+    simple_example
+    simple_example.cpp
+)
+
 add_library(
     bkdipole
     STATIC
@@ -110,6 +115,16 @@ set_target_properties(cuba PROPERTIES
 
 target_link_libraries(
 	nlodis
+	PRIVATE
+    nlodisframework
+    bkdipole
+	cuba
+	GSL::gsl
+	GSL::gslcblas
+)
+
+target_link_libraries(
+	simple_example
 	PRIVATE
     nlodisframework
     bkdipole

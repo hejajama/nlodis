@@ -43,3 +43,6 @@ set_target_properties(test PROPERTIES
 
 set_target_properties(nlodis PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
+
+set_target_properties(simple_example PROPERTIES
+	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )

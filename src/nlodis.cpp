@@ -64,10 +64,19 @@ double NLODIS::TripoleAmplitude(double x01, double x02, double x21, double Y)
     }
 }
 
-double NLODIS::EvolutionRapidity(double xbj, double Q2, double z2) const
+double NLODIS::EvolutionRapidity_qqg(double xbj, double Q2, double z2) const
 {
     double W2 = Q2 / xbj;
-    return std::log(W2*z2/NLODISConfig::Q0sqr);
+    return std::log(W2*z2/config.Q0sqr);
+}
+
+double NLODIS::EvolutionRapidity_dipole(double xbj, double Q2) const
+{
+    // By default, we evaluate the dipole amplitude at the same rapidity as in the 
+    // LO contribution, i.e. Y=ln(1/xbj). 
+    // This is not a unique choice, and other choices are possible. 
+    
+    return std::log(1.0/xbj);
 }
 
 double NLODIS::RunningCouplinScale(double x01, double x02, double x21) const
@@ -213,7 +222,7 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
         if (!( (*ndim ==4 and p->contribution=="cd") or (*ndim == 3 and p->contribution =="ab") 
         or (*ndim ==2 and p->contribution=="Omega_L_const") ) )
         {
-            throw std::runtime_error("integrand_dip_massive: ndim " + std::to_string(*ndim) + " and contribution " + p->contribution + " do not match");
+            throw std::runtime_error("integrand_dip_massive: ndim " + std::to_string(*ndim) + ", polarization " + PolarizationString(p->pol) + " and contribution " + p->contribution + " do not match");
         }   
     }
     else
@@ -221,7 +230,7 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
         if (!( (*ndim ==4 and p->contribution=="T2") or (*ndim == 3 and p->contribution =="T1") 
         or (*ndim ==2 and p->contribution=="T0") ) )
         {
-            throw std::runtime_error("integrand_dip_massive: ndim " + std::to_string(*ndim) + " and contribution " + p->contribution + " do not match");
+            throw std::runtime_error("integrand_dip_massive: ndim " + std::to_string(*ndim) + ", polarization " + PolarizationString(p->pol) + " and contribution " + p->contribution + " do not match");
         }   
     }
 
@@ -257,7 +266,7 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
     double alphabar=p->nlodis->Alphas(x01)*Constants::CF/M_PI;
 
 
-    double evolution_rapidity = std::log(1/xbj); 
+    double evolution_rapidity = p->nlodis->EvolutionRapidity_dipole(xbj, Q2); 
     double dipole = p->nlodis->GetDipole().DipoleAmplitude(x01,evolution_rapidity);
     double res=0;
     /////////////// Longitudinal part ///////////////
@@ -445,7 +454,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     // All other integrals in I1, I2 and I3 are from 0 to 1
     double jac=(1.0-z2min)*(1.0-z1-z2min)*x01*x02 * p->nlodis->GetMaxR()*p->nlodis->GetMaxR()*2.0*M_PI;
 
-    double evolution_rapidity=p->nlodis->EvolutionRapidity(xbj,Q2,z2);
+    double evolution_rapidity=p->nlodis->EvolutionRapidity_qqg(xbj,Q2,z2);
 
     if (evolution_rapidity < 0){
         cerr << "Warning: integrand_ILqgunsub_massive: evolution rapidity < 0: " << evolution_rapidity << ", xbj=" << xbj << ", Q2=" << Q2 << ", z2=" << z2 << endl;
@@ -518,6 +527,8 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
  {
     // Initialize quarks with default masses
     quarks = std::vector<Quark> { Quark(Quark::Type::LIGHT), Quark(Quark::Type::C) } ;
+
+    gsl_set_error_handler_off(); //Avoid GSL underflows when evaluating Bessel functions
 
  }
  

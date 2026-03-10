@@ -25,7 +25,7 @@ TEST(EVOLUTION_RAPIDITY)
     double W2 = Q2 / xbj;
     double expected_Y = log(W2 * z2 / 1.0);
     
-    double Y = dis.EvolutionRapidity(xbj, Q2, z2);
+    double Y = dis.EvolutionRapidity_qqg(xbj, Q2, z2);
     
     ASSERT_ALMOST_EQUAL(Y, expected_Y, 1e-10);
     
@@ -35,7 +35,7 @@ TEST(EVOLUTION_RAPIDITY)
     z2 = 0.5;
     W2 = Q2 / xbj;
     expected_Y = log(W2 * z2 / 1.0);
-    Y = dis.EvolutionRapidity(xbj, Q2, z2);
+    Y = dis.EvolutionRapidity_qqg(xbj, Q2, z2);
     
     ASSERT_ALMOST_EQUAL(Y, expected_Y, 1e-10);
 }

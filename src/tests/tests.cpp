@@ -159,6 +159,8 @@ TEST(integration_methods_suave_vegas)
     dis.SetOrder(Order::NLO);
     dis.SetMCIntegrationPoints(6e5);
 
+    // NLO structure functions
+
     const double Q2vals[] = {1,10,50};
     for (auto Q2 : Q2vals) {
         double xbj = 1e-4;
@@ -174,13 +176,43 @@ TEST(integration_methods_suave_vegas)
         // More MC points is needed towards higher Q^2
         const double relacc_goal = 0.15;
 
-        cout << "Q2=" << Q2 << " GeV^2, FL difference " << (FL_suave-FL_vegas)/std::max(std::abs(FL_suave), std::abs(FL_vegas)) <<" FT difference " << (FT_suave-FT_vegas)/std::max(std::abs(FT_suave), std::abs(FT_vegas)) << endl;
+        //cout << "Q2=" << Q2 << " GeV^2, FL difference " << (FL_suave-FL_vegas)/std::max(std::abs(FL_suave), std::abs(FL_vegas)) <<" FT difference " << (FT_suave-FT_vegas)/std::max(std::abs(FT_suave), std::abs(FT_vegas)) << endl;
         ASSERT_ALMOST_EQUAL(FT_suave, FT_vegas, std::max(std::abs(FT_suave), std::abs(FT_vegas))*relacc_goal); 
         ASSERT_ALMOST_EQUAL(FL_suave, FL_vegas, std::max(std::abs(FL_suave), std::abs(FL_vegas))*relacc_goal);
         
-        //
     }
 
+
+    // Test integration method used to compute 2 dimensional integrals
+    // Makes sure that the cuhre algorithm is used correclty by evaluating the same result
+    // using also the standard vegas method
+    // These are evaluated in NLODIS::Sigma_dip_d2b
+    for (auto Q2 : Q2vals) {
+        IntegrationParams intparams;
+        intparams.nlodis=&dis;
+        intparams.Q2=Q2;
+        intparams.xbj=0.001;
+        intparams.pol=Polarization::L;
+
+        // Contribution from 
+        intparams.quark=light;
+        double I, Ierr, Iprob;
+        intparams.contribution="Omega_L_const";
+        Cuba("cuhre", 2, integrand_dip_massive, &intparams, &I, &Ierr, &Iprob, dis.GetMCIntegrationConfig());
+        double I_vegas, Ierr_vegas, Iprob_vegas;
+        Cuba("vegas", 2, integrand_dip_massive, &intparams, &I_vegas, &Ierr_vegas, &Iprob_vegas, dis.GetMCIntegrationConfig());
+        //cout << "Dipole contribution integrand difference " << (I-I_vegas)/std::max(std::abs(I), std::abs(I_vegas)) << endl;
+        ASSERT_ALMOST_EQUAL(I, I_vegas, std::max(std::abs(I), std::abs(I_vegas))*0.01);
+
+        intparams.pol=Polarization::T;
+        // Contribution from 
+        intparams.quark=charm;
+        intparams.contribution="T0";
+        Cuba("cuhre", 2, integrand_dip_massive, &intparams, &I, &Ierr, &Iprob, dis.GetMCIntegrationConfig());
+        Cuba("vegas", 2, integrand_dip_massive, &intparams, &I_vegas, &Ierr_vegas, &Iprob_vegas, dis.GetMCIntegrationConfig());
+        //cout << "Dipole contribution integrand difference " << (I-I_vegas)/std::max(std::abs(I), std::abs(I_vegas)) << endl;
+        ASSERT_ALMOST_EQUAL(I, I_vegas, std::max(std::abs(I), std::abs(I_vegas))*0.01);
+    }
 }
 
 TEST_MAIN()

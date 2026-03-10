@@ -252,8 +252,7 @@ class NLODIS
          * @brief qqg-target scattering amplitude (tripole)
          *
          * Calculates the scattering amplitude for a quark-antiquark-gluon (qqg) state
-         * interacting with the target. This corresponds to 1-S₀₁₂ in the notation of
-         * the reference, where S₀₁₂ is the S-matrix element for the three-parton state.
+         * interacting with the target denoted by N₀₁₂ in the reference.
          * 
          * The implementation accounts for different Nc schemes (large Nc vs finite Nc).
          *
@@ -262,7 +261,7 @@ class NLODIS
          * @param x21 Dipole size between antiquark and gluon [GeV^-1]
          * @param Y Evolution rapidity
          * 
-         * @return Tripole amplitude 1-S₀₁₂ (dimensionless)
+         * @return Tripole amplitude N₀₁₂ (dimensionless)
          * 
          * Ref: https://arxiv.org/pdf/2211.03504 eq (4)
          */
@@ -271,7 +270,7 @@ class NLODIS
         /**
          * @brief Evolution rapidity for NLO qqg contribution
          * 
-         * Calculates the rapidity Y at which the dipole/tripole amplitude should be
+         * Calculates the rapidity Y at which the Wilson line correlators should be
          * evaluated in the NLO qqg contribution. The rapidity depends on the photon-proton
          * center-of-mass energy W² = Q²/xbj and the gluon momentum fraction z₂.
          * 
@@ -287,8 +286,18 @@ class NLODIS
          * 
          * Ref: https://arxiv.org/pdf/2007.01645 eq (19)
          */
-        double EvolutionRapidity(double xbj, double Q2, double z2) const;
+        double EvolutionRapidity_qqg(double xbj, double Q2, double z2) const;
 
+        /**
+         * @brief Evolution rapidity for the dipole contribution
+         * 
+         * Calculates the rapidity Y at which the dipole amplitude should be evaluated 
+         * in the NLO dipole contribution.
+         * 
+         * By default this is 1/xbj, but this is not a unique choice 
+         */
+        double EvolutionRapidity_dipole(double xbj, double Q2) const;
+        
         /**
          * @brief Set Nc counting scheme for tripole amplitude
          * 
@@ -380,7 +389,7 @@ class NLODIS
          * - Proton transverse area
          * - Active quark flavors and masses
          */
-        void PrintConfiguration(const std::string& lineprefix) const;
+        void PrintConfiguration(const std::string& lineprefix = "") const;
 
         /**
          * @brief Get reference to the dipole amplitude object (non-const)
@@ -413,6 +422,14 @@ class NLODIS
          * @param method Name of the Cuba integration method to use ("vegas", "suave", "divonne" or "cuhre")
          */
         void SetMCIntegrationMethod(const std::string& method) { cuba_config.method = method; }
+
+        /**
+         * @brief Get the current Cuba integration configuration
+         * 
+         * Returns the current configuration settings for the Cuba integration,
+         * including the method, maximum evaluations, and accuracy thresholds.
+         */
+        const CubaConfig& GetMCIntegrationConfig() const { return cuba_config; }
     private:
     
         /* Integrand for LO cross section
