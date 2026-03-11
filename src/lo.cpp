@@ -1,10 +1,18 @@
 #include "nlodis.hpp"
-#include <gsl/gsl_integration.h>
 #include <gsl/gsl_sf_bessel.h>
 
 const double INTRELACC_LO = 1e-4;
 using std::cout; 
 using std::endl;
+
+namespace {
+struct LOIntegrationParams {
+    NLODIS* nlodis;
+    double Q2;
+    double xbj;
+    Polarization pol;
+};
+}
 
 /*
  * LO Photon-proton cross section
@@ -22,52 +30,43 @@ double NLODIS::Photon_proton_cross_section_LO_d2b(double Q2, double xbj, Polariz
     
     dipole->InitializeInterpolation( std::log(dipole->X0()/xbj) );
 
-    // Simple approach with nested 1D integrations
-    gsl_function F;
+    LOIntegrationParams intparams = {this, Q2, xbj, pol};
+    auto integrand_lo_massive = [](const int *ndim, const double x[], const int *ncomp, double *f, void *userdata) {
+        auto* const p = static_cast<LOIntegrationParams*>(userdata);
+        *f = 0.0;
+
+        if (*ndim != 2 or *ncomp != 1)
+        {
+            return 0;
+        }
+
+        // Integration variables in [0,1]
+        // z is cut away from endpoints for numerical stability
+        constexpr double zmin = 1e-4;
+        constexpr double zmax = 1.0 - 1e-4;
+        constexpr double dz = zmax - zmin;
+
+        const double z = zmin + x[0] * dz;
+        const double r = p->nlodis->GetMaxR() * x[1];
+
+        // 2*pi*r from angular integration and radial measure, and Jacobians for mappings
+        const double jacobian = dz * (2.0 * M_PI * r * p->nlodis->GetMaxR());
+
+        double res = p->nlodis->Integrand_photon_target_LO(r, z, p->xbj, p->Q2, p->pol);
+        res *= jacobian;
+
+        if (std::isfinite(res))
+        {
+            *f = res;
+        }
+
+        return 0;
+    };
+
     double result = 0.0;
     double abserr = 0.0;
-    size_t neval = 0;
-
-    gsl_integration_workspace *w = gsl_integration_workspace_alloc(1000);
-
-    // For r: integrate from 0 to infinity
-    // For z: integrate from 0 to 1
-
-    struct LOParams {
-        NLODIS* nlodis;
-        double Q2;
-        double xbj;
-        double r;
-        Polarization pol;
-    } params_struct = {this, Q2, xbj, 0.0, pol};
-
-    // r integrand (outer)
-    F.function = [](double r, void* params) {
-        auto* p = static_cast<LOParams*>(params);
-        p->r = r;
-
-        gsl_function F_z;
-        // z integrand (inner)
-        F_z.function = [](double z, void* z_params) {
-            auto* int_params = static_cast<LOParams*>(z_params);
-            return 2.0*M_PI*int_params->r*int_params->nlodis->Integrand_photon_target_LO(int_params->r, z, int_params->xbj, int_params->Q2, int_params->pol);
-        };
-        F_z.params = p;
-
-        double z_result = 0.0, z_err = 0.0;
-        gsl_integration_workspace *w_z = gsl_integration_workspace_alloc(1000);
-        gsl_integration_qag(&F_z, 1e-4, 1.0-1e-4, 0, INTRELACC_LO, 1000, GSL_INTEG_GAUSS21,
-            w_z, &z_result, &z_err);
-        gsl_integration_workspace_free(w_z);
-
-        //cout << r << " " << z_result << endl;
-        return z_result; // Note: Jacobian is in the innermost function
-    };
-    F.params = &params_struct;
-
-    gsl_integration_qagiu(&F, 0.0, 0, INTRELACC_LO, 1000, w, &result, &abserr);
-
-    gsl_integration_workspace_free(w);
+    double prob = 0.0;
+    Cuba("cuhre", 2, integrand_lo_massive, &intparams, &result, &abserr, &prob, cuba_config);
 
 
 

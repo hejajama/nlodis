@@ -39,10 +39,7 @@ double GBWDipole::DipoleAmplitude(double r, double Y) const
         // For small arg, use expansion to avoid numerical issues
         return arg; // N ~ arg for small arg
     }
-    else if (arg > 50) {
-        // For large arg, N ~ 1 to avoid numerical issues with exp(-arg)
-        return 1.0;
-    }
+
     return 1.0 - std::exp(-arg);
 }
 

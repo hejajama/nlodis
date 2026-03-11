@@ -8,14 +8,13 @@
 #include <map>
 #include "nlodis.hpp"
 #include "datatypes.hpp"
-#include <gsl/gsl_errno.h>
 #include "dipole/bkdipole/bkdipole.hpp"
 #include "gitsha1.h"
 #include "integration.hpp"
 #include "debug.h"
 
 struct ModelConfig {
-    std::string name;
+    std::string name="nlodis";
     std::string datafile;
     double c2_alpha;
     double charm_mass;
@@ -60,7 +59,6 @@ int main(int argc, char* argv[]) {
 #endif
 
     std::cout << "# NLODIS code, git commit " << g_GIT_SHA1 << " local repo " << g_GIT_LOCAL_CHANGES << std::endl;
-    gsl_error_handler_t* old_handler = gsl_set_error_handler_off();
 
     bool print_header = true;
     RunMode runmode = RunMode::HERA_FL;
@@ -110,6 +108,10 @@ int main(int argc, char* argv[]) {
             cfg.order = ParseOrder(value);
             seen["order"] = true;
         }
+        else if (flag == "--epsrel")
+        {
+            dis.SetMCIntegrationEpsRel(std::stod(value));
+        }
         else if (flag == "--no_header")
             print_header = false;
         else if (flag == "--runmode") {
@@ -140,7 +142,7 @@ int main(int argc, char* argv[]) {
         }
     }
     
-    std::vector<std::string> required = {"name", "datafile", "C2", "charm_mass", "proton_area", "rc_scheme"};
+    std::vector<std::string> required = {"datafile", "C2", "charm_mass", "proton_area", "rc_scheme"};
     for (const auto& req : required) {
         if (!seen[req]) {
             std::cerr << "Error: missing required argument --" << req << "\n";
@@ -151,7 +153,7 @@ int main(int argc, char* argv[]) {
 
     if (print_header) {
         if (runmode == RunMode::F2FL_GRID)
-            std::cout << "fit,x,Q2,F2,FL,F2_LO" << std::endl;
+            std::cout << "fit,x,Q2,F2 light,FL light,F2 charm,FL charm,F2_LO" << std::endl;
         else if (runmode == RunMode::HERA_FL)
             std::cout << "fit,x,Q2,FL" << std::endl;
     }
@@ -161,29 +163,41 @@ int main(int argc, char* argv[]) {
     dis.SetRunningCouplingScheme(cfg.rc_scheme);
     dis.SetOrder(cfg.order);
     dis.SetQuarkMass(Quark::Type::C, cfg.charm_mass);
-    dis.SetQuarkMass(Quark::Type::LIGHT, 0.005);
+    dis.SetQuarkMass(Quark::Type::LIGHT, 0.001);
     dis.SetProtonTransverseArea(cfg.sigma0_2, Unit::MB);
     dis.SetRunningCouplingIRScheme(RunningCouplingIRScheme::SMOOTH);
     dis.PrintConfiguration("# ");
 
+    Quark light(Quark::Type::LIGHT, 0.001);
+    Quark charm(Quark::Type::C, cfg.charm_mass);
+
     if (runmode == RunMode::F2FL_GRID) {
         for (double x = 0.01; x >= 1e-5; x /= 4.0) {
-            std::vector<double> Q2vals = { 4.5, 45, 100};
+            std::vector<double> Q2vals = { 4.5, 45};
             for (const auto& Q2 : Q2vals) {
-                double FT, FL;
+                double FT_light, FL_light,FT_charm,FL_charm;
+                dis.SetQuarks({light});
                 try {
-                    FT = dis.FT(Q2, x);
-                    FL = dis.FL(Q2, x);
+                    FT_light = dis.FT(Q2, x);
+                    FL_light = dis.FL(Q2, x);
+
+                    dis.SetQuarks({charm});
+                    FT_charm = dis.FT(Q2,x);
+                    FL_charm = dis.FL(Q2,x);
+
                 } catch (const std::exception& e) {
                     std::cerr << "Error computing FT/FL for x=" << x << ", Q2=" << Q2
                             << ": " << e.what() << std::endl;
                     continue;
                 }
-                double F2 = FT + FL;
+                
+
+                double F2_light = FT_light + FL_light;
+                double F2_charm = FT_charm + FL_charm;
                 dis.SetOrder(Order::LO);
                 double loF2 = dis.F2(Q2, x);
                 dis.SetOrder(Order::NLO);
-                std::cout << cfg.name << "," << x << "," << Q2 << "," << F2 << "," << FL << "," << loF2 << std::endl;
+                std::cout << cfg.name << "," << x << "," << Q2 << "," << F2_light << "," << FL_light << "," << F2_charm <<","<< FL_charm <<"," << loF2 << std::endl;
             }
         }
     } else if (runmode == RunMode::HERA_FL) {

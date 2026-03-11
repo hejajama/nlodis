@@ -31,7 +31,7 @@ struct NLODISConfig {
     NcScheme nc_scheme = NcScheme::FiniteNC;                                 ///< Nc scheme
     RunningCouplingScheme rc_scheme = RunningCouplingScheme::SMALLEST;     ///< Running coupling scale choice
     RunningCouplingIRScheme rc_ir_scheme = RunningCouplingIRScheme::FREEZE; ///< IR freezing scheme for coupling
-    double maxr = 99.0;                                                     ///< Maximum dipole size [GeV^-1]
+    double maxr = 80.0;                                                     ///< Maximum dipole size [GeV^-1]
     double C2_alpha = 1.0;                                                  ///< Scale factor C^2 in coordinate space running coupling
     static constexpr double Q0sqr = 1.0;                                   ///< Non-perturbative target scale [GeV^2]
     SigmaDipScheme sigma_dip_scheme = SigmaDipScheme::AnalyticalZ2Int;   ///< Scheme for calculating the qq part of the NLO cross section, whether to do the z2 integration analytically or explicitly. Explicit integration allows one to have z2 dependent evolution rapidity
@@ -422,6 +422,16 @@ class NLODIS
          * @param method Name of the Cuba integration method to use ("vegas", "suave", "divonne" or "cuhre")
          */
         void SetMCIntegrationMethod(const std::string& method) { cuba_config.method = method; }
+
+        /**
+         * @brief Set the relative accuracy threshold for Cuba integration
+         * 
+         * This method allows the user to specify the desired relative accuracy for the Monte Carlo integration performed by Cuba. 
+         * The integration will stop when the estimated relative error is below this threshold, or when the maximum number of evaluations is reached.
+         * 
+         * @param epsrel Desired relative accuracy (e.g., 0.001 for 0.1% accuracy)
+         */
+        void SetMCIntegrationEpsRel(double epsrel) { cuba_config.epsrel = epsrel; }
 
         /**
          * @brief Get the current Cuba integration configuration

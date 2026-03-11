@@ -7,7 +7,7 @@ struct CubaConfig
 {
     const int verbose=0;
     int maxeval=1e6;
-    const double epsrel=1e-6;
+    double epsrel=0.001;
     const double epsabs=0;
     double warning_relaccuracy_threshold = 1e-1; // If the relative accuracy of the integral is worse than this, print a warning. This is not a hard failure, just a warning that the integration may not be accurate enough for some purposes.
     std::string method="vegas"; // Recommended integration method
