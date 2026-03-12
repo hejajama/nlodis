@@ -29,9 +29,9 @@ double ITdip_massive_0(double Q2, double z1, double x01sq, double mf) {
     double Q = sqrt(Q2);
 
     double kappa_z = sqrt( z1*(1.0-z1)*Q2 + SQR(mf) );
-    double term1 = SQR( kappa_z * gsl_sf_bessel_K1( x01 *kappa_z ) ) * ( ( SQR(z1) + SQR(1.0-z1) ) * ( 5.0/2.0 - SQR(M_PI)/3.0 + SQR( log(z1/(1.0-z1)) ) + OmegaT_V(Q, z1, mf) + L_dip(Q,z1,mf)  ) 
+    double term1 = SQR( kappa_z * gsl_sf_bessel_K1( x01 *kappa_z ) ) * ( ( SQR(z1) + SQR(1.0-z1) ) * ( 5.0/2.0 - SQR(M_PI)/3.0 + SQR( log(z1/(1.0-z1)) ) + OmegaT_V(Q, z1, mf) + L_dip(Q2,z1,mf)  ) 
         + (2.0*z1-1.0)/2.0 * OmegaT_N(Q, z1, mf) );
-    double term2 = SQR( mf * gsl_sf_bessel_K0( x01 *kappa_z ) ) * ( 3.0 -SQR(M_PI)/3.0 + SQR(log(z1/(1.0-z1))) + OmegaT_V(Q, z1, mf) + L_dip( Q, z1, mf )  );
+    double term2 = SQR( mf * gsl_sf_bessel_K0( x01 *kappa_z ) ) * ( 3.0 -SQR(M_PI)/3.0 + SQR(log(z1/(1.0-z1))) + OmegaT_V(Q, z1, mf) + L_dip( Q2, z1, mf )  );
 
     double res= term1 + term2;
 
@@ -142,8 +142,8 @@ double ITdip_massive_2(double Q2, double z1, double x01sq, double mf, double y_c
     double kappa_z = sqrt( z1*(1.0-z1)*SQR(Q) + SQR(mf) );
 
     double term1 = kappa_z * gsl_sf_bessel_K1( x01 * kappa_z) * ( 
-        ( SQR(z1) + SQR(1.0-z1) ) * IT_V2(Q, z1, mf, x01, y_chi, y_u))   
-        +  (2.0*z1-1.0)/2.0 * IT_N(Q, z1, mf, x01, y_chi, y_u) ;
+        ( SQR(z1) + SQR(1.0-z1) ) * IT_V2(Q, z1, mf, x01, y_chi, y_u)   
+        +  (2.0*z1-1.0)/2.0 * IT_N(Q, z1, mf, x01, y_chi, y_u)) ;
     double term2 = SQR(mf) * gsl_sf_bessel_K0( x01 * kappa_z ) * IT_VMS2(Q, z1, mf, x01, y_chi, y_u) ;
 
     double res= term1 + term2;

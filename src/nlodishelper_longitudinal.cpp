@@ -35,8 +35,8 @@ double ILdip_massive_Icd(double Q2, double z1, double r, double mf, double xi, d
         // 2103.14549 (89,97)
         double CLm1 = SQR(z1)*(1.0-xi)/(1.0-z1) * ( -SQR(xi) + x*(1.0-xi)*( 1.0+(1.0-xi)*(1.0+z1*xi/(1.0-z1)) ) / (x*(1.0-xi)+xi/(1.0-z1)) ); // C^L_m(z,x,xi)
         double CLm2 = SQR(1.0-z1)*(1.0-xi)/(z1) * ( -SQR(xi) + x*(1.0-xi)*( 1.0+(1.0-xi)*(1.0+(1.0-z1)*xi/(z1)) ) / (x*(1.0-xi)+xi/(z1)) );; // C^L_m(1-z,x,xi)
-        double kappa1 = xi*SQR(mf)/( (1.0-xi)*(1.0-x)*( x*(1.0-xi)+xi/(1.0-z1) ) ) * ( xi*(1.0-x) + x*(1.0-z1*(1.0-xi)/(1.0-z1)) ); // kappa(z,x,xi)
-        double kappa2 = xi*SQR(mf)/( (1.0-xi)*(1.0-x)*( x*(1.0-xi)+xi/(z1) ) ) * ( xi*(1.0-x) + x*(1.0-(1.0-z1)*(1.0-xi)/(z1)) );; // kappa(1-z,x,xi)
+        double kappa1 = xi*SQR(mf)/( (1.0-xi)*(1.0-x)*( x*(1.0-xi)+xi/(1.0-z1) ) ) * ( xi*(1.0-x) + x*(1.0-z1*(1.0-xi)/(1.0-z1)) ); // kappa(z,x,xi), (115)
+        double kappa2 = xi*SQR(mf)/( (1.0-xi)*(1.0-x)*( x*(1.0-xi)+xi/(z1) ) ) * ( xi*(1.0-x) + x*(1.0-(1.0-z1)*(1.0-xi)/(z1)) );; // kappa(1-z,x,xi), (115)
         Icd_integrand = gsl_sf_bessel_K0( bessel_inner_fun ) * SQR(mf)*
                      ( (gsl_sf_bessel_K0( bessel_inner_fun ) - gsl_sf_bessel_K0( r*sqrt( SQR(kappa_z)/(1.0-x) + kappa1 ) ) ) *
                         CLm1 / ( (1.0-xi)*(1.0-x)*( x*(1.0-xi)+xi/(1.0-z1) ) * ( x/(1.0-x)*SQR(kappa_z) + kappa1 ) ) +

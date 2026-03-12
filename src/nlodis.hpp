@@ -31,7 +31,7 @@ struct NLODISConfig {
     NcScheme nc_scheme = NcScheme::FiniteNC;                                 ///< Nc scheme
     RunningCouplingScheme rc_scheme = RunningCouplingScheme::SMALLEST;     ///< Running coupling scale choice
     RunningCouplingIRScheme rc_ir_scheme = RunningCouplingIRScheme::FREEZE; ///< IR freezing scheme for coupling
-    double maxr = 80.0;                                                     ///< Maximum dipole size [GeV^-1]
+    double maxr = 30.0;                                                     ///< Maximum dipole size [GeV^-1]
     double C2_alpha = 1.0;                                                  ///< Scale factor C^2 in coordinate space running coupling
     static constexpr double Q0sqr = 1.0;                                   ///< Non-perturbative target scale [GeV^2]
     SigmaDipScheme sigma_dip_scheme = SigmaDipScheme::AnalyticalZ2Int;   ///< Scheme for calculating the qq part of the NLO cross section, whether to do the z2 integration analytically or explicitly. Explicit integration allows one to have z2 dependent evolution rapidity
@@ -355,7 +355,7 @@ class NLODIS
          * Updates the mass of an existing quark in the quark list. The quark must
          * already exist in the list (added via SetQuarks).
          * 
-         * @param type Quark flavor (Quark::U, Quark::D, Quark::S, Quark::C, Quark::B, Quark::T)
+         * @param type Quark flavor (Quark::LIGHT, Quark::U, Quark::D, Quark::S, Quark::C, Quark::B, Quark::T)
          * @param mass Quark mass [GeV]
          * 
          * @see SetQuarks()

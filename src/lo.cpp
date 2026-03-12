@@ -42,8 +42,8 @@ double NLODIS::Photon_proton_cross_section_LO_d2b(double Q2, double xbj, Polariz
 
         // Integration variables in [0,1]
         // z is cut away from endpoints for numerical stability
-        constexpr double zmin = 1e-4;
-        constexpr double zmax = 1.0 - 1e-4;
+        constexpr double zmin = 0; //1e-4;
+        constexpr double zmax = 1.0 - zmin; //1e-4;
         constexpr double dz = zmax - zmin;
 
         const double z = zmin + x[0] * dz;

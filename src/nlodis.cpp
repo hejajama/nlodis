@@ -127,8 +127,8 @@ double NLODIS::Sigma_dip_d2b(double Q2, double xbj, Polarization pol)
 {
     double result=0;
     // Note on factors: the transverse integration measures are defined with 1/(2pi), see
-    // 2103.14549. This measure is not visible in the note, but should be there. Therefore
-    // we have 1/(2pi)^2 below (from d^2x_{01} d^2b)
+    // 2103.14549. This measure is not visible in the note, but should be there. 
+    // The factor 1/(2pi)^2 from transverse measures is included in the normalization factor below
     double fac=4.0*Constants::NC*Constants::AlphaEM/SQR(2.0*M_PI); 
 
     if (config.sigma_dip_scheme != SigmaDipScheme::AnalyticalZ2Int)
@@ -319,7 +319,7 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
 /*
  * qg contribution
  * Longitudinal reference: (167) but instead of q^+, k^+ we integrate over z_i
- * Explicit expressoin is docs/NLO_DIS_cross_section_with_massive_quarks.pdf (13) 
+ * Explicit expression is docs/NLO_DIS_cross_section_with_massive_quarks.pdf (13) 
 */
 double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
 {
@@ -405,7 +405,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     // Validate integration variables to avoid some Cuba crashes
     // Todo: would be better to understand why Cuba can sometimes sample integration variables to be NaN
     for (int i = 0; i < *ndim; ++i) {
-        if (!std::isfinite(x[i]) or x[1]< 0. or x[1] > 1.) {
+        if (!std::isfinite(x[i]) or x[i]< 0. or x[i] > 1.) {
             //#ifdef DEBUG
             std::cerr << "Warning: integrand_qgunsub_massive: x[" << i << "] = " << x[i] << std::endl;
             //#endif
@@ -495,13 +495,13 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     {
         double y_t1 = x[5];
         double y_t2 = x[6];
-        res = SKernel_dipole * ILNLOqg_massive_tripole_part_I3(Q2, mf, z1, z2, x01sq, x02sq, x21sq, y_t1, y_t2);
+        res = SKernel_tripole * ILNLOqg_massive_tripole_part_I3(Q2, mf, z1, z2, x01sq, x02sq, x21sq, y_t1, y_t2);
     }
     else if (p->contribution == "I3" and p->pol == Polarization::T)
     {
         double y_t1 = x[5];
         double y_t2 = x[6];
-        res = SKernel_dipole * ITNLOqg_massive_tripole_part_I3_fast(Q2, mf, z1, z2, x01sq, x02sq, x21sq, y_t1, y_t2);
+        res = SKernel_tripole * ITNLOqg_massive_tripole_part_I3_fast(Q2, mf, z1, z2, x01sq, x02sq, x21sq, y_t1, y_t2);
     }
     else
     {
@@ -590,7 +590,7 @@ void NLODIS::SetQuarkMass(Quark::Type type, double mass)
 {
     if (mass <= 0)
     {
-        throw std::runtime_error("Quark mass must be positive. Routines for exactly m=0 quarks have not been implemented.");
+        //throw std::runtime_error("Quark mass must be positive. Routines for exactly m=0 quarks have not been implemented.");
     }
     bool found = false;
     for (auto& quark : quarks) {
