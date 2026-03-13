@@ -18,8 +18,10 @@ struct ModelConfig {
     std::string datafile;
     double c2_alpha;
     double charm_mass;
+    double light_mass = 0.01; 
     double sigma0_2;
     RunningCouplingScheme rc_scheme;
+    int nf=-1;
     Order order;
 };
 
@@ -42,10 +44,15 @@ static void PrintUsage(const char* prog) {
     std::cerr << "    --datafile <path> \\\n";
     std::cerr << "    --C2 <c2_alpha> \\\n";
     std::cerr << "    --charm_mass <value> [GeV] \\\n";
+    std::cerr << "    --light_mass <value> [GeV] \\\n";
     std::cerr << "    --proton_area <value> [mb] \\\n";
     std::cerr << "    --rc_scheme <PARENT|SMALLEST> \\\n";
     std::cerr << "    [--order <LO|NLO>]\n";
     std::cerr << "    [--runmode <F2FL_GRID|HERA_FL>]\n";
+    std::cerr << "    [--epsrel <value>] (relative precision for MC integration, default 0.01)\n";
+    std::cerr << "    [--mcintpoints <value>] (number of points for MC integration, default 1e6)\n";
+    std::cerr << "    [--cubamethod <method>] (Cuba integration method, default 'vegas')\n";
+    std::cerr << "    [--nf <value>] (number of active flavors for running coupling, default determined from quark list)\n";
 }
 
 enum RunMode {
@@ -107,10 +114,19 @@ int main(int argc, char* argv[]) {
         } else if (flag == "--order") {
             cfg.order = ParseOrder(value);
             seen["order"] = true;
+        } else if (flag == "--light_mass") {
+            cfg.light_mass = std::stod(value);
+            seen["light_mass"] = true;
         }
         else if (flag == "--epsrel")
         {
             dis.SetMCIntegrationEpsRel(std::stod(value));
+            seen["epsrel"] = true;
+        }
+        else if (flag == "--nf")
+        {
+            cfg.nf = std::stoi(value);
+            seen["nf"] = true;
         }
         else if (flag == "--no_header")
             print_header = false;
@@ -163,18 +179,33 @@ int main(int argc, char* argv[]) {
     dis.SetRunningCouplingScheme(cfg.rc_scheme);
     dis.SetOrder(cfg.order);
     dis.SetQuarkMass(Quark::Type::C, cfg.charm_mass);
-    dis.SetQuarkMass(Quark::Type::LIGHT, 0.001);
+    dis.SetQuarkMass(Quark::Type::LIGHT, cfg.light_mass);
     dis.SetProtonTransverseArea(cfg.sigma0_2, Unit::MB);
     dis.SetRunningCouplingIRScheme(RunningCouplingIRScheme::SMOOTH);
+    dis.SetDipole(std::make_unique<BKDipole>(cfg.datafile));
+    dis.SetActiveFlavors(cfg.nf);
+
+
+
+    if (auto* bk = dynamic_cast<BKDipole*>(&dis.GetDipole())) {
+        bk->SetInterpolationMethod(LINEAR_LINEAR);   // or LINEAR_LINEAR
+    } else {
+        throw std::runtime_error("Dipole is not BKDipole");
+    }
     dis.PrintConfiguration("# ");
 
-    Quark light(Quark::Type::LIGHT, 0.001);
+    Quark light(Quark::Type::LIGHT, cfg.light_mass);
     Quark charm(Quark::Type::C, cfg.charm_mass);
 
+    std::vector<double> Q2vals = { 4.5, 45};
     if (runmode == RunMode::F2FL_GRID) {
-        for (double x = 0.01; x >= 1e-5; x /= 4.0) {
-            std::vector<double> Q2vals = { 4.5, 45};
-            for (const auto& Q2 : Q2vals) {
+        
+        std::vector<double> Q2vals = { 4.5, 45};
+        for (const auto& Q2 : Q2vals) {
+            double minx=1e-5;
+            if (Q2==45)
+                minx=3e-4; 
+            for (double x = 0.01; x >= minx; x /= 2.0) {
                 double FT_light, FL_light,FT_charm,FL_charm;
                 dis.SetQuarks({light});
                 try {
@@ -196,8 +227,10 @@ int main(int argc, char* argv[]) {
                 double F2_charm = FT_charm + FL_charm;
                 dis.SetOrder(Order::LO);
                 double loF2 = dis.F2(Q2, x);
+                dis.SetQuarks({charm});
+                double icFL = dis.FL(Q2,1);
                 dis.SetOrder(Order::NLO);
-                std::cout << cfg.name << "," << x << "," << Q2 << "," << F2_light << "," << FL_light << "," << F2_charm <<","<< FL_charm <<"," << loF2 << std::endl;
+                std::cout << cfg.name << "," << x << "," << Q2 << "," << F2_light << "," << FL_light << "," << F2_charm <<","<< FL_charm <<"," << icFL << std::endl;
             }
         }
     } else if (runmode == RunMode::HERA_FL) {

@@ -440,6 +440,28 @@ class NLODIS
          * including the method, maximum evaluations, and accuracy thresholds.
          */
         const CubaConfig& GetMCIntegrationConfig() const { return cuba_config; }
+        
+        /**
+         * @brief Set the number of active flavors for running coupling α_s
+         * 
+         * This method allows the user to explicitly set the number of active 
+         * quark flavors (n_f) used in the running coupling calculation.
+         * 
+         * If n_f is set to a negative value (default), the number of active flavors will be determined 
+         * from the quark list (SetQuarks).
+         * 
+         * Typical use case for this is when one wants to calculate heavy quark structure functions, in which case
+         * there is only one quark flavor in the quark list.
+         */
+        void SetActiveFlavors(const double nf) { nf_alphas = nf; }
+
+        /**
+         * @brief Get the number of active quark flavors for running coupling α_s
+         *
+         * @return Number of active flavors (n_f)
+         */
+        int GetActiveFlavors() const { return nf_alphas; }
+
     private:
     
         /* Integrand for LO cross section
@@ -455,6 +477,7 @@ class NLODIS
         std::vector<Quark> quarks;                     ///< Quark flavors and masses
         NLODISConfig config;                           ///< Configuration parameters
         CubaConfig cuba_config;                       ///< Configuration for Cuba integration
+        double nf_alphas = -1;                      ///< Number of active flavors for running coupling. If <0, determined from quark list   
       
 };
 

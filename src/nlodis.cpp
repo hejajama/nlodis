@@ -18,6 +18,13 @@ const double ZMIN=1e-8;
 
 double NLODIS::F2(double Q2, double xbj)
 {
+    if (GetActiveFlavors() < 0 and quarks.size() == 1 and quarks[0].type != Quark::Type::LIGHT)
+    {
+        cerr << "Warning: Number of active flavors for running coupling is not set, but there is only one quark flavor and it is not the effective light quark. " << endl;
+        cerr << "This means that the running coupling will be evaluated with nf=1, which is not physically meaningful." << endl;
+    }
+    
+
     double sigmaT = Photon_proton_cross_section_d2b(Q2, xbj, Polarization::T);
     double sigmaL = Photon_proton_cross_section_d2b(Q2, xbj, Polarization::L);
 
@@ -29,6 +36,12 @@ double NLODIS::F2(double Q2, double xbj)
 
 double NLODIS::FL(double Q2, double xbj)
 {
+    if (GetActiveFlavors() < 0 and quarks.size() == 1 and quarks[0].type != Quark::Type::LIGHT)
+    {
+        cerr << "Warning: Number of active flavors for running coupling is not set, but there is only one quark flavor and it is not the effective light quark. " << endl;
+        cerr << "This means that the running coupling will be evaluated with nf=1, which is not physically meaningful." << endl;
+    }
+
     double sigmaL = Photon_proton_cross_section_d2b(Q2, xbj, Polarization::L);
     double res = Q2 / (4.0 * M_PI * M_PI * Constants::AlphaEM) * sigmaL;
     res *= ProtonTransverseArea(); // Include \int d^2 b
@@ -37,6 +50,12 @@ double NLODIS::FL(double Q2, double xbj)
 
 double NLODIS::FT(double Q2, double xbj)
 {
+    if (GetActiveFlavors() < 0 and quarks.size() == 1 and quarks[0].type != Quark::Type::LIGHT)
+    {
+        cerr << "Warning: Number of active flavors for running coupling is not set, but there is only one quark flavor and it is not the effective light quark. " << endl;
+        cerr << "This means that the running coupling will be evaluated with nf=1, which is not physically meaningful." << endl;
+    }
+
     double sigmaT = Photon_proton_cross_section_d2b(Q2, xbj, Polarization::T);
     double res = Q2 / (4.0 * M_PI * M_PI * Constants::AlphaEM) * sigmaT;
     res *= ProtonTransverseArea(); // Include \int d^2 b
@@ -75,8 +94,8 @@ double NLODIS::EvolutionRapidity_dipole(double xbj, double Q2) const
     // By default, we evaluate the dipole amplitude at the same rapidity as in the 
     // LO contribution, i.e. Y=ln(1/xbj). 
     // This is not a unique choice, and other choices are possible. 
-    
-    return std::log(1.0/xbj);
+    double X = xbj;///Q2;
+    return std::log(1.0/X);
 }
 
 double NLODIS::RunningCouplinScale(double x01, double x02, double x21) const
@@ -135,7 +154,6 @@ double NLODIS::Sigma_dip_d2b(double Q2, double xbj, Polarization pol)
     {
         throw std::runtime_error("Only AnalyticalZ2Int scheme for sigma_dip is implemented in Sigma_dip_d2b.");
     }
-    
 
     for (const auto& quark : quarks) {
         double tmpresult=0; // This quark flavor contribution 
@@ -152,7 +170,7 @@ double NLODIS::Sigma_dip_d2b(double Q2, double xbj, Polarization pol)
             // 1st line
             double I, Ierr, Iprob;
             intparams.contribution="Omega_L_const";
-            Cuba("cuhre", 2, integrand_dip_massive, &intparams, &I, &Ierr, &Iprob, cuba_config);
+            Cuba("cuhre", 2, integrand_dip_massive, &intparams, &I, &Ierr, &Iprob, cuba_config);  
             tmpresult += I;
 
             // 2nd line of 2103.14549 (166)
@@ -163,7 +181,7 @@ double NLODIS::Sigma_dip_d2b(double Q2, double xbj, Polarization pol)
             intparams.contribution="cd";
             double Icd,Icderr,Icdprob;
             Cuba(cuba_config.method, 4, integrand_dip_massive, &intparams, &Icd, &Icderr, &Icdprob, cuba_config);
-            tmpresult += Iab + Icd;
+            tmpresult += Iab + Icd; 
 
         }
         else if (pol == Polarization::T)
@@ -267,13 +285,15 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
 
 
     double evolution_rapidity = p->nlodis->EvolutionRapidity_dipole(xbj, Q2); 
+
     double dipole = p->nlodis->GetDipole().DipoleAmplitude(x01,evolution_rapidity);
+
     double res=0;
     /////////////// Longitudinal part ///////////////
     if (p->contribution=="ab" and p->pol == Polarization::L) {
         // "ab" contribution does not have the x integration variable
         double xi=x[2]; 
-        res = dipole*(ILdip_massive_Iab(Q2,z1,x01,mf,xi));
+        res = dipole*ILdip_massive_Iab(Q2,z1,x01,mf,xi);
     } else if (p->contribution=="cd" and p->pol == Polarization::L) {
         double xi=x[2]; 
         double intx=x[3];
@@ -304,9 +324,10 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
     {
         throw std::runtime_error("integrand_dip_massive: unknown contribution " + p->contribution + " pol " + PolarizationString(p->pol));
     }
-
+    
     double jacobian = x01 * p->nlodis->GetMaxR(); // Jacobian from d^2r and r = u*MAXR
     res *= jacobian*alphabar; 
+
 
     if(std::isfinite(res)){
         *f=res;
@@ -399,7 +420,6 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
         )
     {
         throw std::runtime_error("integrand_qgunsub_massive: ndim " + std::to_string(*ndim) + " and contribution " + p->contribution + " do not match");
-        exit(1);
     }
 
     // Validate integration variables to avoid some Cuba crashes
@@ -409,6 +429,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
             //#ifdef DEBUG
             std::cerr << "Warning: integrand_qgunsub_massive: x[" << i << "] = " << x[i] << std::endl;
             //#endif
+            *f=0;
             return 0;
         }
     }
@@ -437,8 +458,6 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     double x02sq=SQR(x02);
     double x21sq=x01sq+x02sq-2.0*sqrt(x01sq*x02sq)*cos(phix0102);
 
-    double alphabar = p->nlodis->Alphas(p->nlodis->RunningCouplinScale(x01, x02, std::sqrt(x21sq))) * Constants::CF / Constants::NC;
-
     // Validate
     if (x21sq < 0)
     {
@@ -465,7 +484,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     double SKernel_tripole = p->nlodis->TripoleAmplitude(x01,x02, std::sqrt(x21sq), evolution_rapidity);
     double SKernel_dipole = p->nlodis->GetDipole().DipoleAmplitude(x01, evolution_rapidity);
 
-    double alphafac=p->nlodis->Alphas(p->nlodis->RunningCouplinScale(x01,x02,std::sqrt(x21sq)))*Constants::CF/Constants::NC;
+    double alphafac=p->nlodis->Alphas(p->nlodis->RunningCouplinScale(x01,x02,std::sqrt(x21sq)))*Constants::CF/M_PI;
 
     double res=0;
 
@@ -505,8 +524,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     }
     else
     {
-        cerr << "integrand_qgunsub_massive: unknown contribution " + p->contribution << " polarization " << PolarizationString(p->pol) << endl;
-        exit(1);
+        throw std::runtime_error("integrand_qgunsub_massive: unknown contribution " + p->contribution + " polarization " + PolarizationString(p->pol));
     }
 
     res *=  jac*alphafac/z2;
@@ -536,12 +554,19 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
  {
     // TODO: Implement possibility to have r dependent Nf
     int nf=0;
-    for (const auto& quark : quarks) {
-        if (quark.type == Quark::Type::LIGHT) 
-            nf += 3;
-        else
-            nf += 1;
+    if (GetActiveFlavors() < 0)
+    {
+        // Determine nf based on the quark list
+        for (const auto& quark : quarks) {
+            if (quark.type == Quark::Type::LIGHT) 
+                nf += 3;
+            else
+                nf += 1;
+        }
     }
+    else
+        nf = GetActiveFlavors();
+
 
     const double b0 = (11.0*Constants::NC - 2.0*nf)/(12.0*M_PI);
     const double scalefactor = 4.0*config.C2_alpha; // Convention: 4C^2/r^2 is the scale at which alpha_s is evaluated in coordinate space
@@ -694,6 +719,7 @@ void NLODIS::PrintConfiguration(const std::string& lineprefix) const
     for (const auto& q : quarks) {
         std::cout << lineprefix << "  " << q.String() << ", m=" << q.mass << " GeV (e=" << q.Charge() << ")" << std::endl;
     }
+    std::cout << lineprefix << "Active flavors for running coupling: " << (GetActiveFlavors() >= 0 ? std::to_string(GetActiveFlavors()) : "determined from quark list") << std::endl;
     std::cout << lineprefix << "Dipole: " << (dipole ? dipole->GetString() : "None") << std::endl;
     const char* cores_env = std::getenv("CUBACORES");
     std::string cores = cores_env ? cores_env : "not set (using default)";

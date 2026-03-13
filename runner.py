@@ -77,58 +77,61 @@ if len(sys.argv) < 2:
 
 exe = sys.argv[1]
 
-for mcintpoints in ["1e6","2e6"]:
+for mcintpoints in ["5e6"]:
     for cubamethod in ["vegas"]: #"vegas","suave","divonne"]:
-        for epsrel in [0.01,0.001,0.0001]:
-            print(f"Running with mcintpoints={mcintpoints} and cubamethod={cubamethod} and epsrel={epsrel}", file=sys.stdout)
+        for epsrel in [0.001]:
+            for light_mass in [0.005]:
+                print(f"Running with mcintpoints={mcintpoints} and cubamethod={cubamethod} and epsrel={epsrel}", file=sys.stdout)
 
-            for idx, cfg in enumerate(configs, start=1):
-                args = [exe]
-                
-                if idx != 1:
-                    args.append("--no-header")
-                
-                args.extend([
-                    "--name", cfg["name"],
-                    "--datafile", cfg["datafile"],
-                    "--C2", cfg["C2"],
-                    "--charm_mass", cfg["charm_mass"],
-                    "--proton_area", cfg["proton_area"],
-                    "--rc_scheme", cfg["rc_scheme"],
-                    "--order", cfg["order"],
-                    "--mcintpoints", mcintpoints,
-                    "--runmode", "F2FL_GRID",
-                    "--cubamethod", cubamethod,
-                    "--epsrel", str(epsrel),
-                ])
+                for idx, cfg in enumerate(configs, start=1):
+                    args = [exe]
+                    
+                    if idx != 1:
+                        args.append("--no-header")
+                    
+                    args.extend([
+                        "--name", cfg["name"],
+                        "--datafile", cfg["datafile"],
+                        "--C2", cfg["C2"],
+                        "--charm_mass", cfg["charm_mass"],
+                        "--proton_area", cfg["proton_area"],
+                        "--rc_scheme", cfg["rc_scheme"],
+                        "--order", cfg["order"],
+                        "--mcintpoints", mcintpoints,
+                        "--runmode", "F2FL_GRID",
+                        "--cubamethod", cubamethod,
+                        "--epsrel", str(epsrel),
+                        "--light_mass", str(light_mass),
+                        "--nf", "4"
+                    ])
 
-                #if cfg["order"] == "NLO":
-                #    continue
-                
-                print(f"Running config {idx}/{len(configs)}: {cfg['name']} with args {args}", file=sys.stderr)
+                    #if cfg["order"] == "NLO":
+                    #    continue
+                    
+                    print(f"Running config {idx}/{len(configs)}: {cfg['name']} with args {args}", file=sys.stderr)
 
-                fname = f"convergence/mvmedian/f2fl_mc_{mcintpoints}_{cubamethod}_{cfg['name'].replace(' ', '_')}_epsrel_{str(epsrel)}"
-                print(f"Output will be written to {fname}", file=sys.stderr)
-                with open(fname, "w") as f:
-                    proc = subprocess.Popen(
-                        args,
-                        text=True,
-                        stdout=subprocess.PIPE,
-                        stderr=None,
-                        bufsize=1,
-                    )
+                    fname = f"convergence/mvmedian/f2fl_mc_{mcintpoints}_{cubamethod}_{cfg['name'].replace(' ', '_')}_epsrel_{str(epsrel)}_lightmass_{str(light_mass)}_alphasnf_4_Ydip_xbj"
+                    print(f"Output will be written to {fname}", file=sys.stderr)
+                    with open(fname, "w") as f:
+                        proc = subprocess.Popen(
+                            args,
+                            universal_newlines=True,
+                            stdout=subprocess.PIPE,
+                            stderr=None,
+                            bufsize=1,
+                        )
 
-                    assert proc.stdout is not None
-                    for line in proc.stdout:
-                        f.write(line)
-                        f.flush()
+                        assert proc.stdout is not None
+                        for line in proc.stdout:
+                            f.write(line)
+                            f.flush()
 
-                    proc.wait()
+                        proc.wait()
 
-                if proc.returncode != 0:
-                    print(f"Error running {cfg['name']}. Partial output written to {fname}", file=sys.stderr)
-                    sys.exit(proc.returncode)
+                    if proc.returncode != 0:
+                        print(f"Error running {cfg['name']}. Partial output written to {fname}", file=sys.stderr)
+                        sys.exit(proc.returncode)
 
-                print(f"Output written to {fname}", file=sys.stderr)
+                    print(f"Output written to {fname}", file=sys.stderr)
 
 print("All runs completed successfully!", file=sys.stderr)
