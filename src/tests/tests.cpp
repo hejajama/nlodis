@@ -188,8 +188,7 @@ TEST(integration_methods_suave_vegas)
     // using also the standard vegas method
     // These are evaluated in NLODIS::Sigma_dip_d2b
     for (auto Q2 : Q2vals) {
-        IntegrationParams intparams;
-        intparams.nlodis=&dis;
+        IntegrationParams intparams{dis};
         intparams.Q2=Q2;
         intparams.xbj=0.001;
         intparams.pol=Polarization::L;
@@ -215,5 +214,110 @@ TEST(integration_methods_suave_vegas)
     }
 }
 
+
+
+/*
+ * Test EvolutionRapidity function
+ * Y = log(W^2 * z2 / Q0^2) where W^2 = Q^2/xbj
+ */
+TEST(EVOLUTION_RAPIDITY)
+{
+    NLODIS dis;
+    
+    double Q2 = 10.0;
+    double xbj = 0.01;
+    double z2 = 0.1;
+    
+    // Expected: Y = log((Q2/xbj) * z2 / Q0^2)
+    // Q0^2 = 1 (from nlodis.hpp)
+    double W2 = Q2 / xbj;
+    double expected_Y = log(W2 * z2 / 1.0);
+    
+    double Y = dis.EvolutionRapidity_qqg(xbj, Q2, z2);
+    
+    ASSERT_ALMOST_EQUAL(Y, expected_Y, 1e-10);
+    
+    // Test another case
+    Q2 = 5.0;
+    xbj = 0.001;
+    z2 = 0.5;
+    W2 = Q2 / xbj;
+    expected_Y = log(W2 * z2 / 1.0);
+    Y = dis.EvolutionRapidity_qqg(xbj, Q2, z2);
+    
+    ASSERT_ALMOST_EQUAL(Y, expected_Y, 1e-10);
+}
+
+/*
+ * Test RunningCouplinScale function
+ */
+TEST(RUNNING_COUPLING_SCALE)
+{
+    NLODIS dis;
+    
+    double x01 = 1.0;
+    double x02 = 2.0;
+    double x21 = 1.5;
+    
+    // Test SMALLEST scheme 
+    dis.SetRunningCouplingScheme(RunningCouplingScheme::SMALLEST);
+    double scale = dis.RunningCouplinScale(x01, x02, x21);
+    ASSERT_ALMOST_EQUAL(scale, x01, 1e-10);
+    
+    // Test PARENT scheme
+    dis.SetRunningCouplingScheme(RunningCouplingScheme::PARENT);
+    scale = dis.RunningCouplinScale(x01, x02, x21);
+    ASSERT_ALMOST_EQUAL(scale, x01, 1e-10);
+    
+    // Test with different values
+    x01 = 0.5;
+    x02 = 3.0;
+    x21 = 0.1;
+
+    dis.SetRunningCouplingScheme(RunningCouplingScheme::SMALLEST);
+    scale = dis.RunningCouplinScale(x01, x02, x21);
+    ASSERT_ALMOST_EQUAL(scale, x21, 1e-10);
+    
+    dis.SetRunningCouplingScheme(RunningCouplingScheme::PARENT);
+    scale = dis.RunningCouplinScale(x01, x02, x21);
+    ASSERT_ALMOST_EQUAL(scale, x01, 1e-10);
+
+   
+}
+
+/*
+ * Test Alphas (coordinate space coupling)
+ * Formula: alphas = 1/(b0 * log(mu^2/Lambda^2))
+ * where mu^2 = 4C^2/r^2 + Lambda^2
+ */
+TEST(ALPHAS_COORDINATE_SPACE)
+{
+    NLODIS dis;
+    double C2=8;
+    dis.SetRunningCouplingC2(C2); 
+    
+    const double LambdaQCD = 0.241; // GeV
+    const int Nf = 4; // number of flavors (u,d,s,c)
+    const double b0 = (11.0*Constants::NC - 2.0*Nf)/(12.0*M_PI);
+
+    
+    // Test at r = 2 GeV^-1 
+    double r = 2.0;
+    double mu2 = 4.0*C2/(r*r);
+    double expected_as = 1.0/(b0*log(mu2/(LambdaQCD*LambdaQCD)));
+    dis.SetRunningCouplingIRScheme(RunningCouplingIRScheme::FREEZE);
+    double as = dis.Alphas(r);
+    ASSERT_ALMOST_EQUAL(as, expected_as, 1e-6);
+    
+    // Test freezing at large r (should be capped at 0.7)
+    r = 100.0;
+    as = dis.Alphas(r);
+    ASSERT_ALMOST_EQUAL(as, 0.7, 1e-10);
+}
+
+
+
 TEST_MAIN()
+
+
 

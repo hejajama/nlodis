@@ -45,8 +45,9 @@ add_executable(
     test
     tests/tests.cpp
     dipole/gbw.cpp
-    tests/test_massivedishelpers.cpp
-    tests/test_nlodis_helpers.cpp
+    tests/test_massive_helpers_longitudinal.cpp
+    tests/tests_massive_helpers_transverse.cpp
+    
     tests/vector_tests.cpp
     tests/test_interpolation.cpp
     )
