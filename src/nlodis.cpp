@@ -157,9 +157,16 @@ double NLODIS::Sigma_dip_d2b(double Q2, double xbj, Polarization pol)
 
     for (const auto& quark : quarks) {
         double tmpresult=0; // This quark flavor contribution 
+
+        int orig_mcintpoints = cuba_config.maxeval;
+        // For light quarks, the integrand is more challenging to integrate accurately,
+        // but faster to evaluate, so we increase the maximum number of integration points for light quarks.
+        if (quark.mass < 0.4)
+        {
+            cuba_config.maxeval *= 10;
+        }
     
-        IntegrationParams intparams;
-        intparams.nlodis=this;
+        IntegrationParams intparams{*this};
         intparams.Q2=Q2;
         intparams.xbj=xbj;
         intparams.pol=pol;
@@ -210,6 +217,8 @@ double NLODIS::Sigma_dip_d2b(double Q2, double xbj, Polarization pol)
         }
         //cout << "result " << result << " Quark " << quark.String() << " tmpres " << tmpresult << " chargefact " << SQR(quark.Charge()) << endl;
         result += tmpresult*SQR(quark.Charge()); // Include electric charge factor for this flavor
+
+        cuba_config.maxeval = orig_mcintpoints; // Reset maxeval for the next flavor
         
     } // Quark flavor loop
 
@@ -233,6 +242,7 @@ double NLODIS::Sigma_dip_d2b(double Q2, double xbj, Polarization pol)
  */
 int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, double *f, void *userdata) {
     auto* const p = static_cast<IntegrationParams*>(userdata);
+    NLODIS& nlodis = p->nlodis.get();
     *f=0; // Default result is 0, in case of invalid integration variables
 
     if (p->pol == Polarization::L)
@@ -253,7 +263,6 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
     }
 
     // Validate integration variables to avoid some Cuba crashes
-    // Todo: would be better to understand why Cuba can sometimes sample integration variables to be NaN
     for (int i = 0; i < *ndim; ++i) {
         if (!std::isfinite(x[i]) or x[i] < 0. or x[i] > 1.) {
             //#ifdef DEBUG
@@ -271,9 +280,9 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
     //double z1=x[0];
     double z1 = ZMIN + x[0]*(1.0-2*ZMIN); // Map [0,1] to [MINZ, 1-MINZ] to avoid numerical instabilities at z1=0 and z1=1
 
-    double x01=p->nlodis->GetMaxR()*x[1];
+    double x01=nlodis.GetMaxR()*x[1];
 
-    if (x01 < p->nlodis->GetDipole().MinR() or x01 > p->nlodis->GetDipole().MaxR())
+    if (x01 < nlodis.GetDipole().MinR() or x01 > nlodis.GetDipole().MaxR())
     {
         *f=0;
         return 0;
@@ -283,12 +292,12 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
     
     
 
-    double alphabar=p->nlodis->Alphas(x01)*Constants::CF/M_PI;
+    double alphabar=nlodis.Alphas(x01)*Constants::CF/M_PI;
 
 
-    double evolution_rapidity = p->nlodis->EvolutionRapidity_dipole(xbj, Q2); 
+    double evolution_rapidity = nlodis.EvolutionRapidity_dipole(xbj, Q2); 
 
-    double dipole = p->nlodis->GetDipole().DipoleAmplitude(x01,evolution_rapidity);
+    double dipole = nlodis.GetDipole().DipoleAmplitude(x01,evolution_rapidity);
 
     double res=0;
     /////////////// Longitudinal part ///////////////
@@ -327,7 +336,7 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
         throw std::runtime_error("integrand_dip_massive: unknown contribution " + p->contribution + " pol " + PolarizationString(p->pol));
     }
     
-    double jacobian = x01 * p->nlodis->GetMaxR() * (1-2*ZMIN); // Jacobian from d^2r and r = u*MAXR; and from z mapping
+    double jacobian = x01 * nlodis.GetMaxR() * (1-2*ZMIN); // Jacobian from d^2r and r = u*MAXR; and from z mapping
     res *= jacobian*alphabar; 
 
 
@@ -355,8 +364,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     double result=0;
     for (const auto& quark : quarks) {
         double tmpresult=0; // This quark flavor contribution
-        IntegrationParams intparams;
-        intparams.nlodis=this;
+        IntegrationParams intparams{*this};
         intparams.Q2=Q2;
         intparams.xbj=xbj;
         intparams.pol=pol;
@@ -414,6 +422,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
 */
  int integrand_qgunsub_massive(const int *ndim, const double x[], const int *ncomp,double *f, void *userdata) {
     auto* const p = static_cast<IntegrationParams*>(userdata);
+     NLODIS& nlodis = p->nlodis.get();
 
     if (!( // Note: same contribution labels and ndim's for T and L polarization 
         (*ndim == 5 and p->contribution == "I1") or
@@ -443,7 +452,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     double mf=p->quark.mass;
 
    
-    double z2min = p->nlodis->z2_lower_bound(xbj,Q2); 
+    double z2min = nlodis.z2_lower_bound(xbj,Q2); 
     if (z2min > 1.0){ // Check that z2min is not too large. IF it is too large, return *f=0.
         *f=0;
         return 0;
@@ -452,8 +461,8 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     double z1=(1.0-z2min)*x[0];
     double z2=((1.0-z1)-z2min)*x[1]+z2min;
 
-    double x01=p->nlodis->GetMaxR()*x[2];
-    double x02=p->nlodis->GetMaxR()*x[3];
+    double x01=nlodis.GetMaxR()*x[2];
+    double x02=nlodis.GetMaxR()*x[3];
     double phix0102=2.0*M_PI*x[4];
     
     double x01sq=SQR(x01);
@@ -473,9 +482,9 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     // Jacobians from Cuba variable changes (z's, 2 distances, 1 angle) and d^2x_01 d^2x_02
     // Note: one overall 2pi from angular integral is included in NLODIS::Sigma_qg
     // All other integrals in I1, I2 and I3 are from 0 to 1
-    double jac=(1.0-z2min)*(1.0-z1-z2min)*x01*x02 * p->nlodis->GetMaxR()*p->nlodis->GetMaxR()*2.0*M_PI;
+    double jac=(1.0-z2min)*(1.0-z1-z2min)*x01*x02 * nlodis.GetMaxR()*nlodis.GetMaxR()*2.0*M_PI;
 
-    double evolution_rapidity=p->nlodis->EvolutionRapidity_qqg(xbj,Q2,z2);
+    double evolution_rapidity=nlodis.EvolutionRapidity_qqg(xbj,Q2,z2);
 
     if (evolution_rapidity < 0){
         cerr << "Warning: integrand_ILqgunsub_massive: evolution rapidity < 0: " << evolution_rapidity << ", xbj=" << xbj << ", Q2=" << Q2 << ", z2=" << z2 << endl;
@@ -483,10 +492,10 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
         return 0;
     }
 
-    double SKernel_tripole = p->nlodis->TripoleAmplitude(x01,x02, std::sqrt(x21sq), evolution_rapidity);
-    double SKernel_dipole = p->nlodis->GetDipole().DipoleAmplitude(x01, evolution_rapidity);
+    double SKernel_tripole = nlodis.TripoleAmplitude(x01,x02, std::sqrt(x21sq), evolution_rapidity);
+    double SKernel_dipole = nlodis.GetDipole().DipoleAmplitude(x01, evolution_rapidity);
 
-    double alphafac=p->nlodis->Alphas(p->nlodis->RunningCouplinScale(x01,x02,std::sqrt(x21sq)))*Constants::CF/M_PI;
+    double alphafac=nlodis.Alphas(nlodis.RunningCouplinScale(x01,x02,std::sqrt(x21sq)))*Constants::CF/M_PI;
 
     double res=0;
 

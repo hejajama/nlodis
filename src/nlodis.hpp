@@ -16,6 +16,7 @@
 #include "datatypes.hpp"
 #include <vector>
 #include <string>
+#include <functional>
 #include <memory>
 #include <gsl/gsl_integration.h>
 #include "integration.hpp"
@@ -494,7 +495,7 @@ struct GslIntegrationWorkspaceDeleter {
  * @brief Parameters passed to integration routines
  */
 struct IntegrationParams {
-    NLODIS* nlodis;                                                  ///< Pointer to NLODIS instance
+    std::reference_wrapper<NLODIS> nlodis;                            ///< Non-owning reference to the NLODIS instance
     double Q2;                                                        ///< Photon virtuality [GeV^2]
     double xbj;                                                       ///< Bjorken-x
     double z;                                                         ///< Longitudinal momentum fraction
