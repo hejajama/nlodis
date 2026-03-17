@@ -14,7 +14,7 @@
 using namespace std;
 
 // Do not allow z_i < zmin, to avoid numerical instabilities. This is not a physical cutoff, but just a technical one for the numerical integration.
-const double ZMIN=1e-8;
+const double ZMIN=1e-6;
 
 double NLODIS::F2(double Q2, double xbj)
 {
@@ -268,7 +268,9 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
     double xbj=p->xbj;
     double mf=p->quark.mass;
 
-    double z1=x[0];
+    //double z1=x[0];
+    double z1 = ZMIN + x[0]*(1.0-2*ZMIN); // Map [0,1] to [MINZ, 1-MINZ] to avoid numerical instabilities at z1=0 and z1=1
+
     double x01=p->nlodis->GetMaxR()*x[1];
 
     if (x01 < p->nlodis->GetDipole().MinR() or x01 > p->nlodis->GetDipole().MaxR())
@@ -325,7 +327,7 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
         throw std::runtime_error("integrand_dip_massive: unknown contribution " + p->contribution + " pol " + PolarizationString(p->pol));
     }
     
-    double jacobian = x01 * p->nlodis->GetMaxR(); // Jacobian from d^2r and r = u*MAXR
+    double jacobian = x01 * p->nlodis->GetMaxR() * (1-2*ZMIN); // Jacobian from d^2r and r = u*MAXR; and from z mapping
     res *= jacobian*alphabar; 
 
 

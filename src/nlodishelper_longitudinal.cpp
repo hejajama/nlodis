@@ -87,7 +87,8 @@ double ILdip_massive_Omega_L_Const(double Q2, double z, double r, double mf)
         dip_res = 0;
     }else{
         dip_res = front_factor * SQR(gsl_sf_bessel_K0( bessel_inner_fun )) * 
-        ( 5.0/2.0 - SQR(M_PI)/3.0 + SQR(log( z/(1.0-z) )) + OmegaL_V(Q2,z,mf) + L_dip(Q2,z,mf) );
+        //( 5.0/2.0 - SQR(M_PI)/3.0 + SQR(log( z/(1.0-z) )) + OmegaL_V(Q2,z,mf) + L_dip(Q2,z,mf) ); // Version with original L_dip as in 2103.14549
+       ( 5./2. + (-SQR(M_PI)/3. + SQR(M_PI)/6) + (1.-0.5)*SQR(log( z/(1.0-z) )) + OmegaL_V(Q2,z,mf) + L_dip(Q2,z,mf) ); // Includes terms that cancel divergence in L_dip
     }   
 
     return dip_res;
@@ -113,7 +114,16 @@ double L_dip( double Q2, double z, double mf ) {
                + gsl_sf_dilog( 1.0 / ( 1.0 - 1.0 / (2.0 * (1.0-z)) * ( 1.0 - gamma) ) )
                + gsl_sf_dilog( 1.0 / ( 1.0 - 1.0 / (2.0 * (1.0-z)) * ( 1.0 + gamma) ) );
 
-    return res;
+    // This function diverges for z->0,1 in the zero quark mass limit (x=0)
+    // We subtract this divergent part to improve numerics. We subtract this part, which is 
+    // 1/6(pi^2 - 3 Log[ (1-z)/z ]^2) = pi^2/6 - 1/2*Log[ (z/(1-z)) ]^2 
+    // 
+    double res_mf_0 = SQR(M_PI)/6.0 - 0.5 * SQR(log( z/(1.0-z) ) );
+    // We subtract this term here
+    // The corresponding term is then included in the function ILdip_massive_Omega_L_Const (L) and ITdip_massive_0 (T)
+    // By changing the coefficients of the log^2 and pi^2 terms
+
+    return res - res_mf_0;
 }
 
 

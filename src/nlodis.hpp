@@ -517,6 +517,7 @@ double ILdip_massive_Icd(double Q2, double z1, double r, double mf, double xi, d
 double ILdip_massive_Iab(double Q2, double z1, double r, double mf, double xi);
 double ILdip_massive_Omega_L_Const(double Q2, double z1, double r, double mf);
 double L_dip( double Q2, double z, double mf );
+double OmegaL_V( double Q2, double z, double mf );
 
 // Sigma_dip transverse
 double ITdip_massive_0(double Q2, double z1, double x01sq, double mf);

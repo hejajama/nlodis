@@ -1,7 +1,29 @@
 #include "nlodis.hpp"
 #include <gsl/gsl_sf_dilog.h>
 #include <gsl/gsl_sf_bessel.h>
+#include <cmath>
 #include <stdexcept>
+
+double weighted_k1_difference_stable(double r, double kappa_base, double delta_kappa_sq) {
+    // Evaluate sqrt(kappa_base^2 + delta) * K1(r * sqrt(kappa_base^2 + delta)) - kappa_base * K1(r * kappa_base)
+    // with first-order expansion when delta is small to avoid catastrophic cancellation.
+    const double base_sq = SQR(kappa_base);
+    const double shifted_sq = base_sq + delta_kappa_sq;
+
+    if (shifted_sq <= 0.0 || kappa_base <= 0.0) {
+        return 0.0;
+    }
+
+    const double rel_delta = std::abs(delta_kappa_sq) / (base_sq + std::abs(delta_kappa_sq) + 1e-300);
+    if (rel_delta < 1e-5) {
+        // d/d(kappa^2) [kappa K1(r kappa)] = -(r/2) K0(r kappa)
+        return -0.5 * r * delta_kappa_sq * gsl_sf_bessel_K0(r * kappa_base);
+    }
+
+    const double shifted = std::sqrt(shifted_sq);
+    return shifted * gsl_sf_bessel_K1(r * shifted) - kappa_base * gsl_sf_bessel_K1(r * kappa_base);
+}
+
 
 // Various helper functions defined in this file 
 // after they are referenced 
@@ -29,9 +51,18 @@ double ITdip_massive_0(double Q2, double z1, double x01sq, double mf) {
     double Q = sqrt(Q2);
 
     double kappa_z = sqrt( z1*(1.0-z1)*Q2 + SQR(mf) );
-    double term1 = SQR( kappa_z * gsl_sf_bessel_K1( x01 *kappa_z ) ) * ( ( SQR(z1) + SQR(1.0-z1) ) * ( 5.0/2.0 - SQR(M_PI)/3.0 + SQR( log(z1/(1.0-z1)) ) + OmegaT_V(Q, z1, mf) + L_dip(Q2,z1,mf)  ) 
+    
+    //  Version with original L_dip as in 2103.14549
+   //double term1 = SQR( kappa_z * gsl_sf_bessel_K1( x01 *kappa_z ) ) * ( ( SQR(z1) + SQR(1.0-z1) ) * ( 5.0/2.0 - SQR(M_PI)/3.0 + SQR( log(z1/(1.0-z1)) ) + OmegaT_V(Q, z1, mf) + L_dip(Q2,z1,mf)  ) 
+   //     + (2.0*z1-1.0)/2.0 * OmegaT_N(Q, z1, mf) );
+    // Version with modified L_dip where m=0 limit is subtracted
+     double term1 = SQR( kappa_z * gsl_sf_bessel_K1( x01 *kappa_z ) ) * ( ( SQR(z1) + SQR(1.0-z1) ) * ( 5.0/2.0 + (-SQR(M_PI)/3.0 + SQR(M_PI)/6.) + (1.-0.5)*SQR( log(z1/(1.0-z1)) ) + OmegaT_V(Q, z1, mf) + L_dip(Q2,z1,mf)  ) 
         + (2.0*z1-1.0)/2.0 * OmegaT_N(Q, z1, mf) );
-    double term2 = SQR( mf * gsl_sf_bessel_K0( x01 *kappa_z ) ) * ( 3.0 -SQR(M_PI)/3.0 + SQR(log(z1/(1.0-z1))) + OmegaT_V(Q, z1, mf) + L_dip( Q2, z1, mf )  );
+
+    // Version with original L_dip as in 2103.14549
+    //double term2 = SQR( mf * gsl_sf_bessel_K0( x01 *kappa_z ) ) * ( 3.0 -SQR(M_PI)/3.0 + SQR(log(z1/(1.0-z1))) + OmegaT_V(Q, z1, mf) + L_dip( Q2, z1, mf )  );
+    // Version with modified L_dip where m=0 limit is subtracted
+    double term2 = SQR( mf * gsl_sf_bessel_K0( x01 *kappa_z ) ) * ( 3.0 + (-SQR(M_PI)/3.0 + SQR(M_PI)/6.) + (1.-0.5)*SQR(log(z1/(1.0-z1))) + OmegaT_V(Q, z1, mf) + L_dip( Q2, z1, mf )  );
 
     double res= term1 + term2;
 
@@ -165,10 +196,14 @@ double IT_V2_unsymmetric( double Q, double z, double mf, double r, double y_chi,
     double chi = z * y_chi;
     double u = (1.0-y_u)/y_u;
 
-    double kappa_z = sqrt( z*(1.0-z)*SQR(Q) + SQR(mf) );
-    double kappa_chi = sqrt( chi*(1.0-chi)*SQR(Q) + SQR(mf) );
+    const double kappa_z = sqrt( z*(1.0-z)*SQR(Q) + SQR(mf) );
+    const double kappa_chi = sqrt( chi*(1.0-chi)*SQR(Q) + SQR(mf) );
 
-    double term1 = - 1.0/(1.0-chi) * 1.0/(u*(u+1.0)) * SQR(mf)/SQR(kappa_chi) * ( 2.0*chi + SQR(  u/(u+1.0)) * 1.0/z * (z-chi) * (1.0-2.0*chi) ) * ( sqrt(SQR(kappa_z) + u*(1.0-z)/(1.0-chi)*SQR(kappa_chi)) * gsl_sf_bessel_K1(r*sqrt( SQR(kappa_z) + u*(1.0-z)/(1.0-chi)*SQR(kappa_chi) )) - kappa_z *gsl_sf_bessel_K1(r* kappa_z) );
+    // Calculate the difference linearizing when the difference is small to avoid numerical instability
+    const double delta_kappa_sq = u * (1.0-z) / (1.0-chi) * SQR(kappa_chi);
+    const double k1_difference = weighted_k1_difference_stable(r, kappa_z, delta_kappa_sq);
+
+    double term1 = - 1.0/(1.0-chi) * 1.0/(u*(u+1.0)) * SQR(mf)/SQR(kappa_chi) * ( 2.0*chi + SQR(  u/(u+1.0)) * 1.0/z * (z-chi) * (1.0-2.0*chi) ) * k1_difference;
     double term2 = -1.0/SQR(1.0-chi) * 1.0/(u+1.0) * (z-chi) * ( 1.0 - 2.0*u/(1.0+u)*(z-chi) + SQR(u/(u+1.0)) *1.0/z * SQR(z-chi) ) * SQR(mf)/sqrt( SQR(kappa_z) + u *(1.0-z)/(1.0-chi) * SQR(kappa_chi)) * gsl_sf_bessel_K1( r* sqrt( SQR(kappa_z) + u *(1.0-z)/(1.0-chi) * SQR(kappa_chi) ) );
 
     double jacobian = z / SQR(y_u);
