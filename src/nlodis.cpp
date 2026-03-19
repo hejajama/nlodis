@@ -62,7 +62,7 @@ double NLODIS::FT(double Q2, double xbj)
     return res;
 }   
 
-double NLODIS::TripoleAmplitude(double x01, double x02, double x21, double Y) 
+double NLODIS::TripoleAmplitude(double x01, double x02, double x21, double Y) const
 {
     double S01 = 1-dipole->DipoleAmplitude(x01, Y);
     double S02 = 1-dipole->DipoleAmplitude(x02, Y);
@@ -519,7 +519,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     }
     else if (p->contribution == "I2" and p->pol == Polarization::T) {
         double y_t1 = x[5];
-        res = SKernel_tripole * ITNLOqg_massive_tripole_part_I2_fast(Q2,mf,z1,z2,x01sq,x02sq,x21sq,y_t1); 
+        res = SKernel_tripole * ITNLOqg_massive_tripole_part_I2(Q2,mf,z1,z2,x01sq,x02sq,x21sq,y_t1); 
     }
     else if (p->contribution == "I3" and p->pol == Polarization::L)
     {
@@ -531,7 +531,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     {
         double y_t1 = x[5];
         double y_t2 = x[6];
-        res = SKernel_tripole * ITNLOqg_massive_tripole_part_I3_fast(Q2, mf, z1, z2, x01sq, x02sq, x21sq, y_t1, y_t2);
+        res = SKernel_tripole * ITNLOqg_massive_tripole_part_I3(Q2, mf, z1, z2, x01sq, x02sq, x21sq, y_t1, y_t2);
     }
     else
     {
@@ -560,8 +560,17 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
     gsl_set_error_handler_off(); //Avoid GSL underflows when evaluating Bessel functions
 
  }
+
+void NLODIS::SetRunningCouplingMaxAlphaS(const double max_alpha_s)
+{
+    if (!std::isfinite(max_alpha_s) or max_alpha_s <= 0.0)
+    {
+        throw std::runtime_error("SetRunningCouplingMaxAlphaS: max alpha_s must be finite and positive");
+    }
+    config.max_alpha_s_freeze = max_alpha_s;
+}
  
- double NLODIS::Alphas(double r) const
+ double NLODIS::Alphas(const double r) const
  {
     // TODO: Implement possibility to have r dependent Nf
     int nf=0;
@@ -589,9 +598,9 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
             double log_arg = mu2/(Constants::LambdaQCD*Constants::LambdaQCD);
 
             double as = 1.0/(b0*log(log_arg));
-            if (as > 0.7 or log_arg < 1.0)
+            if (as > config.max_alpha_s_freeze or log_arg < 1.0)
             {
-                as = 0.7; // Freeze coupling
+                as = config.max_alpha_s_freeze; // Freeze coupling
             }
             return as;
             break;

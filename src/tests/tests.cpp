@@ -313,6 +313,11 @@ TEST(ALPHAS_COORDINATE_SPACE)
     r = 100.0;
     as = dis.Alphas(r);
     ASSERT_ALMOST_EQUAL(as, 0.7, 1e-10);
+
+    // Test user-defined freeze cap
+    dis.SetRunningCouplingMaxAlphaS(0.5);
+    as = dis.Alphas(r);
+    ASSERT_ALMOST_EQUAL(as, 0.5, 1e-10);
 }
 
 

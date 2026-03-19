@@ -179,8 +179,8 @@ TEST(ITNLOqg_I2_fast_quark_antiquark_symmetry)
     const double x02sq = 0.6;
     const double x21sq = 0.9;
 
-    const double orig = ITNLOqg_massive_tripole_part_I2_fast(Q2, mf, z1, z2, x01sq, x02sq, x21sq, y_t);
-    const double perm = ITNLOqg_massive_tripole_part_I2_fast(Q2, mf, z0, z2, x01sq, x21sq, x02sq, y_t);
+    const double orig = ITNLOqg_massive_tripole_part_I2(Q2, mf, z1, z2, x01sq, x02sq, x21sq, y_t);
+    const double perm = ITNLOqg_massive_tripole_part_I2(Q2, mf, z0, z2, x01sq, x21sq, x02sq, y_t);
 
     ASSERT_ALMOST_EQUAL(orig, perm, std::max(1e-11, fabs(orig) * 1e-8));
 }
@@ -200,8 +200,8 @@ TEST(ITNLOqg_I3_fast_quark_antiquark_symmetry_equal_yt)
     const double x02sq = 0.6;
     const double x21sq = 0.9;
 
-    const double orig = ITNLOqg_massive_tripole_part_I3_fast(Q2, mf, z1, z2, x01sq, x02sq, x21sq, y_t, y_t);
-    const double perm = ITNLOqg_massive_tripole_part_I3_fast(Q2, mf, z0, z2, x01sq, x21sq, x02sq, y_t, y_t);
+    const double orig = ITNLOqg_massive_tripole_part_I3(Q2, mf, z1, z2, x01sq, x02sq, x21sq, y_t, y_t);
+    const double perm = ITNLOqg_massive_tripole_part_I3(Q2, mf, z0, z2, x01sq, x21sq, x02sq, y_t, y_t);
 
     ASSERT_ALMOST_EQUAL(orig, perm, std::max(1e-11, fabs(orig) * 1e-8));
 }

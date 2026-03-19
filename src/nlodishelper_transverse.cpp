@@ -292,22 +292,22 @@ double ITNLOqg_massive_tripole_part_I1(double Q2, double mf, double z1, double z
 
 ////////////////// Transverse I2
 
-double ITNLOqg_massive_tripole_part_I2_fast(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t){
+double ITNLOqg_massive_tripole_part_I2(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t){
     double Q = sqrt(Q2);
-    return IT_tripole_jk_I2_fast(  Q, mf, z1, z2, x01sq, x02sq, x21sq, y_t ) + 
-           IT_tripole_jkm_I2_fast( Q, mf, z1, z2, x01sq, x02sq, x21sq, y_t  ) + 
-           IT_tripole_F_I2_fast(   Q, mf, z1, z2, x01sq, x02sq, x21sq, y_t  ) +
-           IT_tripole_Fm_I2_fast(  Q, mf, z1, z2, x01sq, x02sq, x21sq, y_t  );
+    return IT_tripole_jk_I2(  Q, mf, z1, z2, x01sq, x02sq, x21sq, y_t ) + 
+           IT_tripole_jkm_I2( Q, mf, z1, z2, x01sq, x02sq, x21sq, y_t  ) + 
+           IT_tripole_F_I2(   Q, mf, z1, z2, x01sq, x02sq, x21sq, y_t  ) +
+           IT_tripole_Fm_I2(  Q, mf, z1, z2, x01sq, x02sq, x21sq, y_t  );
 }
 
 
 /// Transverse I3
-double ITNLOqg_massive_tripole_part_I3_fast(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2) {
+double ITNLOqg_massive_tripole_part_I3(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2) {
     double Q = sqrt(Q2);
-    return IT_tripole_jk_I3_fast(  Q, mf, z1, z2, x01sq, x02sq, x21sq, y_t1, y_t2 ) + 
-           IT_tripole_jkm_I3_fast( Q, mf, z1, z2, x01sq, x02sq, x21sq, y_t1, y_t2 ) + 
-           IT_tripole_F_I3_fast(   Q, mf, z1, z2, x01sq, x02sq, x21sq, y_t1, y_t2 ) +
-           IT_tripole_Fm_I3_fast(  Q, mf, z1, z2, x01sq, x02sq, x21sq, y_t1, y_t2 );
+    return IT_tripole_jk_I3(  Q, mf, z1, z2, x01sq, x02sq, x21sq, y_t1, y_t2 ) + 
+           IT_tripole_jkm_I3( Q, mf, z1, z2, x01sq, x02sq, x21sq, y_t1, y_t2 ) + 
+           IT_tripole_F_I3(   Q, mf, z1, z2, x01sq, x02sq, x21sq, y_t1, y_t2 ) +
+           IT_tripole_Fm_I3(  Q, mf, z1, z2, x01sq, x02sq, x21sq, y_t1, y_t2 );
 }
 
 
@@ -507,7 +507,7 @@ double IT_tripole_Fm_I1(double Q, double mf, double z1, double z2, double x01sq,
 
 
 ////// Terms for I2
-double IT_tripole_F_I2_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t){
+double IT_tripole_F_I2(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t){
 
     double x20x21 = -0.5*(x01sq - x21sq - x02sq);
 
@@ -563,7 +563,7 @@ double IT_tripole_F_I2_fast(double Q, double mf, double z1, double z2, double x0
     return res;
 }
 
-double IT_tripole_Fm_I2_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t){
+double IT_tripole_Fm_I2(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t){
 
     double x20x21 = -0.5*(x01sq - x21sq - x02sq);
 
@@ -636,7 +636,7 @@ double IT_tripole_Fm_I2_fast(double Q, double mf, double z1, double z2, double x
 }
 
 
-double IT_tripole_jk_I2_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t){
+double IT_tripole_jk_I2(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t){
 
     double x20x21 = -0.5*(x01sq - x21sq - x02sq);
 
@@ -672,7 +672,7 @@ double IT_tripole_jk_I2_fast(double Q, double mf, double z1, double z2, double x
     return res;
 }
 
-double IT_tripole_jkm_I2_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t){
+double IT_tripole_jkm_I2(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t){
 
     double x20x21 = -0.5*(x01sq - x21sq - x02sq);
 
@@ -707,7 +707,7 @@ double IT_tripole_jkm_I2_fast(double Q, double mf, double z1, double z2, double 
 
 /////// I3 helpers
 
-double IT_tripole_jkm_I3_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2){
+double IT_tripole_jkm_I3(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2){
 
     double x20x21 = -0.5*(x01sq - x21sq - x02sq);
 
@@ -745,7 +745,7 @@ double IT_tripole_jkm_I3_fast(double Q, double mf, double z1, double z2, double 
 
 
 
-double IT_tripole_jk_I3_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2){
+double IT_tripole_jk_I3(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2){
 
     double x20x21 = -0.5*(x01sq - x21sq - x02sq);
 
@@ -780,7 +780,7 @@ double IT_tripole_jk_I3_fast(double Q, double mf, double z1, double z2, double x
     return res;
 }
 
-double IT_tripole_F_I3_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2){
+double IT_tripole_F_I3(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2){
 
     double x20x21 = -0.5*(x01sq - x21sq - x02sq);
 
@@ -817,7 +817,7 @@ double IT_tripole_F_I3_fast(double Q, double mf, double z1, double z2, double x0
     return res;
 }
 
-double IT_tripole_Fm_I3_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2){
+double IT_tripole_Fm_I3(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2){
 
     double x20x21 = -0.5*(x01sq - x21sq - x02sq);
 

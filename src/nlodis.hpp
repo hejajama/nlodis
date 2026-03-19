@@ -34,6 +34,8 @@ struct NLODISConfig {
     RunningCouplingIRScheme rc_ir_scheme = RunningCouplingIRScheme::FREEZE; ///< IR freezing scheme for coupling
     double maxr = 30.0;                                                     ///< Maximum dipole size [GeV^-1]
     double C2_alpha = 1.0;                                                  ///< Scale factor C^2 in coordinate space running coupling
+    int nf_alphas = -1;                                                     ///< Number of active flavors for running coupling. If <0, determined from quark list
+    double max_alpha_s_freeze = 0.7;                                        ///< Maximum α_s in FREEZE IR scheme
     static constexpr double Q0sqr = 1.0;                                   ///< Non-perturbative target scale [GeV^2]
     SigmaDipScheme sigma_dip_scheme = SigmaDipScheme::AnalyticalZ2Int;   ///< Scheme for calculating the qq part of the NLO cross section, whether to do the z2 integration analytically or explicitly. Explicit integration allows one to have z2 dependent evolution rapidity
 };
@@ -172,7 +174,7 @@ class NLODIS
          *               is managed by NLODIS after this call.
          * 
          * @note This method must be called before performing any structure function
-         *       calculations (F2, FL, FT) or cross section calculations. Attempting
+         *       calculations (F2, FL, FT). Attempting
          *       calculations without setting a dipole model will result in dereferencing
          *       a null pointer and undefined behavior.
          * 
@@ -208,7 +210,7 @@ class NLODIS
          * 
          * @return α_s(4C²/r²) (dimensionless)
          */
-        double Alphas(double r) const;
+        double Alphas(const double r) const;
 
         /**
          * @brief Set proton transverse area (σ₀/2)
@@ -266,7 +268,7 @@ class NLODIS
          * 
          * Ref: https://arxiv.org/pdf/2211.03504 eq (4)
          */
-        double TripoleAmplitude(double x01, double x02, double x21, double Y);
+        double TripoleAmplitude(double x01, double x02, double x21, double Y) const;
 
         /**
          * @brief Evolution rapidity for NLO qqg contribution
@@ -339,7 +341,7 @@ class NLODIS
          * 
          * @param c2 Scale factor C² (dimensionless, parametrically ~1)
          */
-        void SetRunningCouplingC2(double c2) { config.C2_alpha = c2; }
+        void SetRunningCouplingC2(const double C2) { config.C2_alpha = C2; }
 
         /**
          * @brief Set list of active quark flavors and their masses
@@ -377,6 +379,23 @@ class NLODIS
          * @see Alphas()
          */
         void SetRunningCouplingIRScheme(RunningCouplingIRScheme rc_ir_scheme_) { config.rc_ir_scheme = rc_ir_scheme_; }
+
+        /**
+         * @brief Set maximum α_s used in FREEZE infrared scheme
+         *
+         * When RunningCouplingIRScheme::FREEZE is used, α_s is capped to this
+         * value at large dipole sizes.
+         *
+         * @param max_alpha_s Maximum allowed α_s in FREEZE scheme (must be positive)
+         */
+        void SetRunningCouplingMaxAlphaS(const double max_alpha_s);
+
+        /**
+         * @brief Get maximum α_s used in FREEZE infrared scheme
+         *
+         * @return Maximum α_s cap used when RunningCouplingIRScheme::FREEZE is active
+         */
+        double GetRunningCouplingMaxAlphaS() const noexcept { return config.max_alpha_s_freeze; }
 
         /**
          * @brief Print detailed configuration summary to stdout
@@ -454,14 +473,14 @@ class NLODIS
          * Typical use case for this is when one wants to calculate heavy quark structure functions, in which case
          * there is only one quark flavor in the quark list.
          */
-        void SetActiveFlavors(const double nf) { nf_alphas = nf; }
+        void SetActiveFlavors(const int nf) { config.nf_alphas = nf; }
 
         /**
          * @brief Get the number of active quark flavors for running coupling α_s
          *
          * @return Number of active flavors (n_f)
          */
-        int GetActiveFlavors() const { return nf_alphas; }
+        int GetActiveFlavors() const { return config.nf_alphas; }
 
     private:
     
@@ -478,7 +497,6 @@ class NLODIS
         std::vector<Quark> quarks;                     ///< Quark flavors and masses
         NLODISConfig config;                           ///< Configuration parameters
         CubaConfig cuba_config;                       ///< Configuration for Cuba integration
-        double nf_alphas = -1;                      ///< Number of active flavors for running coupling. If <0, determined from quark list   
       
 };
 
@@ -537,8 +555,8 @@ double ILNLOqg_massive_tripole_part_I3(double Q2, double mf, double z1, double z
 double ITNLOqg_massive_dipole_uvsub(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
 double ITNLOqg_massive_tripole_part_I1(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
 double IT_dipole_jk_I1(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
-double ITNLOqg_massive_tripole_part_I2_fast(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);
-double ITNLOqg_massive_tripole_part_I3_fast(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
+double ITNLOqg_massive_tripole_part_I2(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);
+double ITNLOqg_massive_tripole_part_I3(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
 
 // Helper functions from nlodishelper_transverse.cpp
 double OmegaT_V_unsymmetric(double Q, double z, double mf);
@@ -558,13 +576,13 @@ double IT_dipole_jkm_I1(double Q, double mf, double z1, double z2, double x01sq,
 double IT_tripole_jkm_I1(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
 double IT_tripole_F_I1(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
 double IT_tripole_Fm_I1(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq);
-double IT_tripole_jk_I2_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);
-double IT_tripole_jkm_I2_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);
-double IT_tripole_F_I2_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);
-double IT_tripole_Fm_I2_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);
-double IT_tripole_jkm_I3_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
-double IT_tripole_jk_I3_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
-double IT_tripole_F_I3_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
-double IT_tripole_Fm_I3_fast(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2); 
+double IT_tripole_jk_I2(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);
+double IT_tripole_jkm_I2(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);
+double IT_tripole_F_I2(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);
+double IT_tripole_Fm_I2(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t);
+double IT_tripole_jkm_I3(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
+double IT_tripole_jk_I3(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
+double IT_tripole_F_I3(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2);
+double IT_tripole_Fm_I3(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2); 
 double OmegaT_V(double Q, double z, double mf);
 double OmegaT_N(double Q, double z, double mf);
