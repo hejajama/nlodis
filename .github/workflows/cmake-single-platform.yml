@@ -38,5 +38,5 @@ jobs:
 
     - name: Test
       working-directory: ${{github.workspace}}/
-      run: ./build/bin/test
+      run: ./build/bin/nlodis_tests
 

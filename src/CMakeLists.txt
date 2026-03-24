@@ -42,7 +42,7 @@ target_link_libraries(bkdipole PUBLIC GSL::gsl GSL::gslcblas)
 
 
 add_executable(
-    test
+    nlodis_tests
     tests/tests.cpp
     dipole/gbw.cpp
     tests/test_massive_helpers_longitudinal.cpp
@@ -135,7 +135,7 @@ target_link_libraries(
 )
 
 target_link_libraries(
-    test
+    nlodis_tests
     PRIVATE
     nlodisframework
     bkdipole

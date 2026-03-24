@@ -35,11 +35,21 @@ endif()
 #include_directories("/Users/hejajama/code/nlodisfit_bayesian/cpp/src")
 
 include_directories("src/Cuba-4.2.2/")
+include(CTest)
 
 add_subdirectory(src)
 
-set_target_properties(test PROPERTIES
+# Several tests read gbw.dat using a relative path from the current working directory.
+# Keep a copy in the build root so running tests from build/ works reliably.
+configure_file("${CMAKE_SOURCE_DIR}/gbw.dat" "${CMAKE_BINARY_DIR}/gbw.dat" COPYONLY)
+
+set_target_properties(nlodis_tests PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
+
+if (BUILD_TESTING)
+    add_test(NAME unit_tests COMMAND $<TARGET_FILE:nlodis_tests>)
+    set_tests_properties(unit_tests PROPERTIES WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+endif()
 
 set_target_properties(nlodis PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
