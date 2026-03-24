@@ -60,8 +60,11 @@ class Interpolator
          * Create interpolator from two std::vectors.
          *
          * The given vectors are not saved or referenced later.
+         *
+         * @param interpolate_log If true, interpolate log(f(x)) as a function of
+         *        log(x). All x and y values must be strictly positive in this mode.
          */
-        Interpolator(const std::vector<double> &x, const std::vector<double> &y);
+        Interpolator(const std::vector<double> &x, const std::vector<double> &y, bool interpolate_log = false);
         Interpolator(const Interpolator& inter);
         Interpolator() { };
         ~Interpolator();
@@ -150,7 +153,10 @@ class Interpolator
     private:
         /// Check that x values are monotonically increasing, throw on error
         void ValidateMonotonicIncreasing() const;
+        /// Check that all x and y values are strictly positive (required for log interpolation)
+        void ValidateLogCompatible() const;
         InterpolationMethod method;
+        bool interpolate_log = false;
         std::vector<double> xdata, ydata;
         double minx, maxx;
         std::size_t points;

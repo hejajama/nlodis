@@ -39,7 +39,16 @@ int Interpolator::Initialize()
         case InterpolationMethod::SPLINE:
             acc.reset(gsl_interp_accel_alloc());
             spline.reset(gsl_spline_alloc(gsl_interp_cspline, points));
-            status = gsl_spline_init(spline.get(), xdata.data(), ydata.data(), points);
+            if (interpolate_log) {
+                std::vector<double> log_xdata(points), log_ydata(points);
+                for (std::size_t i = 0; i < points; ++i) {
+                    log_xdata[i] = std::log(xdata[i]);
+                    log_ydata[i] = std::log(ydata[i]);
+                }
+                status = gsl_spline_init(spline.get(), log_xdata.data(), log_ydata.data(), points);
+            } else {
+                status = gsl_spline_init(spline.get(), xdata.data(), ydata.data(), points);
+            }
             break;
     }
     ready=true;
@@ -57,6 +66,11 @@ double Interpolator::Evaluate(double x) const
     if (isnan(x) or isinf(x))
     {
         throw std::invalid_argument("Interpolator::Evaluate: invalid argument x=" + std::to_string(x));
+    }
+
+    if (interpolate_log && x <= 0.0)
+    {
+        throw std::invalid_argument("Interpolator::Evaluate: x must be strictly positive for log interpolation, got x=" + std::to_string(x));
     }
     
     if (!ready)
@@ -86,10 +100,21 @@ double Interpolator::Evaluate(double x) const
     switch(method)
     {
         case InterpolationMethod::SPLINE:
-            status = gsl_spline_eval_e(spline.get(), x, acc.get(), &res);
-            if (status)
-            {
-                throw std::runtime_error("Interpolation failed: " + std::string(gsl_strerror(status)) + ", x=" + std::to_string(x));
+            if (interpolate_log) {
+                double log_x = std::log(x);
+                double log_res = 0;
+                status = gsl_spline_eval_e(spline.get(), log_x, acc.get(), &log_res);
+                if (status)
+                {
+                    throw std::runtime_error("Interpolation failed: " + std::string(gsl_strerror(status)) + ", x=" + std::to_string(x));
+                }
+                res = std::exp(log_res);
+            } else {
+                status = gsl_spline_eval_e(spline.get(), x, acc.get(), &res);
+                if (status)
+                {
+                    throw std::runtime_error("Interpolation failed: " + std::string(gsl_strerror(status)) + ", x=" + std::to_string(x));
+                }
             }
             break;
         default:
@@ -107,11 +132,27 @@ double Interpolator::Evaluate(double x) const
 
 double Interpolator::Derivative(double x) const
 {
+    if (interpolate_log && x <= 0.0)
+    {
+        throw std::invalid_argument("Interpolator::Derivative: x must be strictly positive for log interpolation, got x=" + std::to_string(x));
+    }
+
     double res=0; int status=0;
     switch(method)
     {
         case InterpolationMethod::SPLINE:
-            status = gsl_spline_eval_deriv_e(spline.get(), x, acc.get(), &res);
+            if (interpolate_log) {
+                // f(x) = exp(g(log(x))), so f'(x) = f(x) * g'(log(x)) / x
+                double log_x = std::log(x);
+                double log_f = 0, g_prime = 0;
+                int s1 = gsl_spline_eval_e(spline.get(), log_x, acc.get(), &log_f);
+                int s2 = gsl_spline_eval_deriv_e(spline.get(), log_x, acc.get(), &g_prime);
+                if (s1 || s2)
+                    throw std::runtime_error("Derivative evaluation failed at x=" + std::to_string(x));
+                res = std::exp(log_f) * g_prime / x;
+            } else {
+                status = gsl_spline_eval_deriv_e(spline.get(), x, acc.get(), &res);
+            }
             break;
         default:
             throw std::logic_error("Derivative not implemented for this interpolation method");
@@ -124,11 +165,29 @@ double Interpolator::Derivative(double x) const
 
 double Interpolator::Derivative2(double x) const
 {
-    double res; int status=0;
+    if (interpolate_log && x <= 0.0)
+    {
+        throw std::invalid_argument("Interpolator::Derivative2: x must be strictly positive for log interpolation, got x=" + std::to_string(x));
+    }
+
+    double res = 0; int status=0;
     switch(method)
     {
         case InterpolationMethod::SPLINE:
-            status = gsl_spline_eval_deriv2_e(spline.get(), x, acc.get(), &res);
+            if (interpolate_log) {
+                // f(x) = exp(g(log(x)))
+                // f''(x) = f(x)/x^2 * [ (g'(u))^2 + g''(u) - g'(u) ]  where u=log(x)
+                double log_x = std::log(x);
+                double log_f = 0, g_prime = 0, g_prime2 = 0;
+                int s1 = gsl_spline_eval_e(spline.get(), log_x, acc.get(), &log_f);
+                int s2 = gsl_spline_eval_deriv_e(spline.get(), log_x, acc.get(), &g_prime);
+                int s3 = gsl_spline_eval_deriv2_e(spline.get(), log_x, acc.get(), &g_prime2);
+                if (s1 || s2 || s3)
+                    throw std::runtime_error("2nd derivative evaluation failed at x=" + std::to_string(x));
+                res = std::exp(log_f) / (x * x) * (g_prime * g_prime + g_prime2 - g_prime);
+            } else {
+                status = gsl_spline_eval_deriv2_e(spline.get(), x, acc.get(), &res);
+            }
             break;
         default:
             throw std::logic_error("2nd derivative not implemented for this interpolation method");
@@ -144,6 +203,7 @@ double Interpolator::Derivative2(double x) const
 
 Interpolator::Interpolator(double *x, double *y, std::size_t p)
 {
+    interpolate_log = false;
     points=p;
     xdata.assign(x, x + p);
     ydata.assign(y, y + p);
@@ -163,12 +223,34 @@ Interpolator::Interpolator(double *x, double *y, std::size_t p)
 
 void Interpolator::ValidateMonotonicIncreasing() const
 {
+    for (std::size_t i = 0; i < xdata.size(); ++i)
+    {
+        if (isnan(xdata[i]) || isinf(xdata[i]))
+        {
+            throw std::invalid_argument("Grid x value is not finite at index " + std::to_string(i));
+        }
+    }
+
     for (std::size_t i = 1; i < xdata.size(); ++i)
     {
         if (xdata[i-1] >= xdata[i])
         {
             throw std::invalid_argument("Grid points are not monotonically increasing at index " + std::to_string(i));
         }
+    }
+}
+
+void Interpolator::ValidateLogCompatible() const
+{
+    for (std::size_t i = 0; i < xdata.size(); ++i)
+    {
+        if (xdata[i] <= 0.0)
+            throw std::invalid_argument("Log interpolation requires all x values to be strictly positive; x[" + std::to_string(i) + "]=" + std::to_string(xdata[i]));
+    }
+    for (std::size_t i = 0; i < ydata.size(); ++i)
+    {
+        if (ydata[i] <= 0.0)
+            throw std::invalid_argument("Log interpolation requires all y values to be strictly positive; y[" + std::to_string(i) + "]=" + std::to_string(ydata[i]));
     }
 }
 
@@ -187,12 +269,14 @@ Interpolator& Interpolator::operator=(const Interpolator& inter)
     freeze_underflow = inter.freeze_underflow;
     freeze_overflow = inter.freeze_overflow;
     out_of_range_errors = inter.out_of_range_errors;
+    interpolate_log = inter.interpolate_log;
     Initialize();
     return *this;
 }
 
-Interpolator::Interpolator(const std::vector<double> &x, const std::vector<double> &y)
+Interpolator::Interpolator(const std::vector<double> &x, const std::vector<double> &y, bool interpolate_log)
 {
+    this->interpolate_log = interpolate_log;
     points = x.size();
     xdata = x;
     ydata = y;
@@ -206,6 +290,8 @@ Interpolator::Interpolator(const std::vector<double> &x, const std::vector<doubl
     freeze_overflow = ydata.back();
 
     ValidateMonotonicIncreasing();
+    if (interpolate_log)
+        ValidateLogCompatible();
 
     Initialize();
 }
@@ -259,6 +345,7 @@ Interpolator::Interpolator(const Interpolator& inter)
     freeze_underflow = inter.freeze_underflow;
     freeze_overflow = inter.freeze_overflow;
     out_of_range_errors = inter.out_of_range_errors;
+    interpolate_log = inter.interpolate_log;
     
     ready=false;
     Initialize();

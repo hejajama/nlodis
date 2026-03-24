@@ -130,3 +130,123 @@ TEST(interpolate_assignment_operator)
 
     ASSERT_ALMOST_EQUAL(inter6.Evaluate(3), 9, 1e-6);
 }
+
+// ---- Log-grid interpolation tests ----
+
+TEST(interpolate_log_power_law)
+{
+    // f(x) = x^2 is linear in log-log space: log(f) = 2*log(x)
+    // A cubic spline on the log-log grid should reproduce it exactly.
+    std::vector<double> x, y;
+    for (int i = 0; i < 6; ++i) {
+        double xi = std::pow(10.0, i - 1); // 0.1, 1, 10, 100, 1000, 10000
+        x.push_back(xi);
+        y.push_back(xi * xi);
+    }
+    Interpolator inter(x, y, true);
+
+    // At grid points the result must match exactly
+    for (int i = 0; i < 6; ++i) {
+        ASSERT_ALMOST_EQUAL(inter.Evaluate(x[i]), y[i], 1e-6);
+    }
+
+    // Between grid points the log-log spline should still be highly accurate
+    ASSERT_ALMOST_EQUAL(inter.Evaluate(0.5),   0.25,   1e-6);
+    ASSERT_ALMOST_EQUAL(inter.Evaluate(3.0),   9.0,    1e-4);
+    ASSERT_ALMOST_EQUAL(inter.Evaluate(50.0),  2500.0, 1e-2);
+}
+
+TEST(interpolate_log_invalid_construction_x)
+{
+    // Negative x value must throw during construction
+    {
+        std::vector<double> x_neg = {-1.0, 1.0, 2.0};
+        std::vector<double> y_neg = {1.0, 1.0, 4.0};
+        try {
+            Interpolator inter(x_neg, y_neg, true);
+            ASSERT_TRUE(false); // should not reach here
+        } catch (const std::invalid_argument&) {
+            ASSERT_TRUE(true);
+        }
+    }
+
+    // Zero x value must throw during construction
+    {
+        std::vector<double> x_zero = {0.0, 1.0, 2.0};
+        std::vector<double> y_zero = {1.0, 1.0, 4.0};
+        try {
+            Interpolator inter2(x_zero, y_zero, true);
+            ASSERT_TRUE(false);
+        } catch (const std::invalid_argument&) {
+            ASSERT_TRUE(true);
+        }
+    }
+}
+
+TEST(interpolate_log_invalid_construction_y)
+{
+    // Zero y value must throw during construction
+    {
+        std::vector<double> x = {1.0, 2.0, 3.0};
+        std::vector<double> y_zero = {1.0, 0.0, 4.0};
+        try {
+            Interpolator inter(x, y_zero, true);
+            ASSERT_TRUE(false);
+        } catch (const std::invalid_argument&) {
+            ASSERT_TRUE(true);
+        }
+    }
+
+    // Negative y value must throw during construction
+    {
+        std::vector<double> x = {1.0, 2.0, 3.0};
+        std::vector<double> y_neg = {1.0, -3.0, 4.0};
+        try {
+            Interpolator inter(x, y_neg, true);
+            ASSERT_TRUE(false);
+        } catch (const std::invalid_argument&) {
+            ASSERT_TRUE(true);
+        }
+    }
+}
+
+TEST(interpolate_log_eval_nonpositive_x)
+{
+    // Evaluating at x <= 0 must throw when interpolate_log=true
+    std::vector<double> x = {1.0, 2.0, 4.0, 8.0};
+    std::vector<double> y = {1.0, 4.0, 16.0, 64.0};
+    Interpolator inter(x, y, true);
+
+    try {
+        inter.Evaluate(-1.0);
+        ASSERT_TRUE(false);
+    } catch (const std::exception&) {
+        ASSERT_TRUE(true);
+    }
+
+    try {
+        inter.Evaluate(0.0);
+        ASSERT_TRUE(false);
+    } catch (const std::exception&) {
+        ASSERT_TRUE(true);
+    }
+}
+
+TEST(interpolate_log_derivative)
+{
+    // f(x) = x^2  =>  f'(x) = 2x,  f''(x) = 2
+    std::vector<double> x, y;
+    for (int i = 0; i < 6; ++i) {
+        double xi = std::pow(10.0, i - 1);
+        x.push_back(xi);
+        y.push_back(xi * xi);
+    }
+    Interpolator inter(x, y, true);
+
+    ASSERT_ALMOST_EQUAL(inter.Derivative(1.0),  2.0,  1e-4);
+    ASSERT_ALMOST_EQUAL(inter.Derivative(10.0), 20.0, 1e-3);
+
+    ASSERT_ALMOST_EQUAL(inter.Derivative2(1.0),  2.0, 1e-3);
+    ASSERT_ALMOST_EQUAL(inter.Derivative2(10.0), 2.0, 1e-1);
+}
+
