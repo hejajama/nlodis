@@ -94,7 +94,7 @@ double NLODIS::EvolutionRapidity_dipole(double xbj, double Q2) const
     // By default, we evaluate the dipole amplitude at the same rapidity as in the 
     // LO contribution, i.e. Y=ln(1/xbj). 
     // This is not a unique choice, and other choices are possible. 
-    double X = xbj;///Q2;
+    double X = xbj;
     return std::log(1.0/X);
 }
 
@@ -374,7 +374,7 @@ double NLODIS::Sigma_qg_d2b(double Q2, double xbj, Polarization pol)
         // Sum different contributions, labeling is the same for T and L polarizations,
         // proper integrand is selcted in integrand_qgunsub_massive according to intarams.pol and intparams.contribution
 
-        // Note (21): this contribution is split into 3 parts I_1, I_2 and I_3
+        // Note: this contribution is split into 3 parts I_1, I_2 and I_3
         double I1,I1err,I1prob;
         intparams.contribution="I1";
         Cuba(cuba_config.method, 5, integrand_qgunsub_massive, &intparams, &I1, &I1err, &I1prob, cuba_config);

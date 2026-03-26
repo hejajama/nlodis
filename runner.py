@@ -15,15 +15,24 @@ configs = [
     # "rc_scheme":"SMALLEST",
     # "order":"NLO"
     # },
-    {
-        "name": "NLOBK_MV_smallest",
-        "datafile": "data/balsd/median_bk.dat",
-        "C2": "11.834",
-        "charm_mass": "1.0399",
-        "proton_area": "23.873",
-        "rc_scheme": "SMALLEST",
-        "order": "NLO"
-    },
+  #  {
+  #      "name": "NLOBK_MV_smallest",
+  #      "datafile": "data/balsd/median_bk.dat",
+  #      "C2": "11.834",
+  #      "charm_mass": "1.0399",
+  #      "proton_area": "23.873",
+  #      "rc_scheme": "SMALLEST",
+  #      "order": "NLO"
+   # },
+   {
+    "name":"NLOBK_MVgamma_smallest",
+    "datafile":"bkdata/mvgamma_nlobk_balsd/median_bk.dat",
+    "C2":"915.0029",
+    "proton_area":"22.37751238",
+    "rc_scheme":"SMALLEST",
+    "order":"NLO",
+    "charm_mass":"1.1738578"
+   },
     # {
     #     "name": "KCBK_parent",
     #     "datafile": "bkdata/pd_bk_map.dat",
@@ -42,15 +51,15 @@ configs = [
     #     "rc_scheme": "SMALLEST",
     #     "order": "NLO"
     # },
-    # {
-    #     "name": "NLOBK_MVgamma_smallest",
-    #     "datafile": "bkdata/mvgam_bk.dat",
-    #     "C2": "1314.9257306",
-    #     "charm_mass": "1.2049379",
-    #     "proton_area": "22.9017918",
-    #     "rc_scheme": "SMALLEST",
-    #     "order": "NLO"
-    # },
+   ## {
+   #      "name": "NLOBK_MVgamma_smallest",
+   #      "datafile": "bkdata/mvgam_bk.dat",
+   #      "C2": "1314.9257306",
+   #      "charm_mass": "1.2049379",
+   #      "proton_area": "22.9017918",
+   #      "rc_scheme": "SMALLEST",
+   #      "order": "NLO"
+   #  },
     # {
     #     "name": "NLOBK_MVgamma_parent",
     #     "datafile": "bkdata/pd_nlo_bk.dat",
@@ -77,10 +86,10 @@ if len(sys.argv) < 2:
 
 exe = sys.argv[1]
 
-for mcintpoints in ["5e6"]:
+for mcintpoints in ["2e6"]:
     for cubamethod in ["vegas"]: #"vegas","suave","divonne"]:
         for epsrel in [0.001]:
-            for light_mass in [0.005]:
+            for light_mass in [0.005]: #,0.1]:
                 print(f"Running with mcintpoints={mcintpoints} and cubamethod={cubamethod} and epsrel={epsrel}", file=sys.stdout)
 
                 for idx, cfg in enumerate(configs, start=1):
@@ -110,7 +119,7 @@ for mcintpoints in ["5e6"]:
                     
                     print(f"Running config {idx}/{len(configs)}: {cfg['name']} with args {args}", file=sys.stderr)
 
-                    fname = f"convergence/mvmedian/f2fl_mc_{mcintpoints}_{cubamethod}_{cfg['name'].replace(' ', '_')}_epsrel_{str(epsrel)}_lightmass_{str(light_mass)}_alphasnf_4_Ydip_xbj"
+                    fname = f"f2fl_mc_{mcintpoints}_{cubamethod}_{cfg['name'].replace(' ', '_')}_epsrel_{str(epsrel)}_lightmass_{str(light_mass)}_alphasnf_4_Ydip_xbj_qqg_splinelog"
                     print(f"Output will be written to {fname}", file=sys.stderr)
                     with open(fname, "w") as f:
                         proc = subprocess.Popen(

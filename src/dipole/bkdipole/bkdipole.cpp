@@ -330,7 +330,7 @@ Interpolator* BKDipole::ConstructInterpolator(double Y) const
     {
         tmpnvals.push_back(DipoleAmplitude(rvals[i], Y));
     }
-    Interpolator* inter = new Interpolator(rvals, tmpnvals);
+    Interpolator* inter = new Interpolator(rvals, tmpnvals, true);
     inter->Initialize();
 
     return inter;

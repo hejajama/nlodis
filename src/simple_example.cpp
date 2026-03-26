@@ -20,6 +20,8 @@ int main()
   dis.SetRunningCouplingC2(1.74); 
   // The distance scale is set by the smallest dipole size
   dis.SetRunningCouplingScheme(RunningCouplingScheme::SMALLEST);
+  // Smooth IR behavior
+  dis.SetRunningCouplingIRScheme(RunningCouplingIRScheme::SMOOTH);
   
   // Charm quark mass
   dis.SetQuarkMass(Quark::Type::C, 1.24);

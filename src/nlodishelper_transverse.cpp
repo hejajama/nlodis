@@ -26,7 +26,6 @@ double weighted_k1_difference_stable(double r, double kappa_base, double delta_k
 
 
 // Various helper functions defined in this file 
-// after they are referenced 
 // See note docs/NLO_DIS_cross_section_with_massive_quarks.pdf for definitions
 double OmegaT_V(double Q, double z, double mf);
 double OmegaT_N(double Q, double z, double mf);
@@ -123,7 +122,7 @@ double IT_V1(double Q, double z, double mf, double r, double xi) {
     // I^T_V1 = IT_V1_unsymmetric(z) + IT_V1_unsymmetric(1-z)
     return IT_V1_unsymmetric(Q, z, mf, r, xi) + IT_V1_unsymmetric(Q, 1.0-z, mf, r, xi);
 }
-// Note (31)
+
 double IT_V1_unsymmetric( double Q, double z, double mf, double r, double xi ) {
     // The first part of the unintegrated I^T_V1 function that appears in the transverse NLOdip part.
     // I^T_V1 = I^T_V1_unsymmetric(z) + I^T_V1_unsymmetric(1-z)
@@ -162,7 +161,6 @@ double IT_VMS1_unsymmetric( double Q, double z, double mf, double r, double xi )
 }
 
 
-//// Note (43)
 double ITdip_massive_2(double Q2, double z1, double x01sq, double mf, double y_chi, double y_u) {
     // Two additional integrals: y_chi and y_u, both from 0 to 1
 
@@ -273,7 +271,6 @@ double IT_N_unsymmetric( double Q, double z, double mf, double r, double y_chi, 
 ////////// Transverse qqg
 //////////
 
-// I1 = Note (54)
 
 double ITNLOqg_massive_dipole_uvsub(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq) {
     double Q = sqrt(Q2);

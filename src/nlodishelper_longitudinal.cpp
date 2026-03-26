@@ -22,14 +22,12 @@
 * I_{v, part (c)+(d)} is given in (114)
 */
 double ILdip_massive_Icd(double Q2, double z1, double r, double mf, double xi, double x) {
-    // Note that this now uses the earlier parametrization (xi,x) instead of (chi,u). This should be better for numerics.
     double front_factor = 4.0*Q2*SQR(z1*(1.0-z1));
 
     double kappa_z = sqrt( z1*(1.0-z1)*Q2 + SQR(mf) );
     double bessel_inner_fun = kappa_z * r;
     double Icd_integrand = 0;
     if (bessel_inner_fun < 1e-7){
-        // cout << bessel_inner_fun << " " << Q << " " << z1 << " " << x01sq << endl;
         Icd_integrand = 0;
     }else{
         // 2103.14549 (89,97)
@@ -88,7 +86,7 @@ double ILdip_massive_Omega_L_Const(double Q2, double z, double r, double mf)
     }else{
         dip_res = front_factor * SQR(gsl_sf_bessel_K0( bessel_inner_fun )) * 
         //( 5.0/2.0 - SQR(M_PI)/3.0 + SQR(log( z/(1.0-z) )) + OmegaL_V(Q2,z,mf) + L_dip(Q2,z,mf) ); // Version with original L_dip as in 2103.14549
-       ( 5./2. + (-SQR(M_PI)/3. + SQR(M_PI)/6) + (1.-0.5)*SQR(log( z/(1.0-z) )) + OmegaL_V(Q2,z,mf) + L_dip(Q2,z,mf) ); // Includes terms that cancel divergence in L_dip
+       ( 5./2. + (-SQR(M_PI)/3. + SQR(M_PI)/6) + (1.-0.5)*SQR(log( z/(1.0-z) )) + OmegaL_V(Q2,z,mf) + L_dip(Q2,z,mf) ); // Version when m=0 is subtracted from L_dip
     }   
 
     return dip_res;
@@ -132,14 +130,6 @@ double L_dip( double Q2, double z, double mf ) {
  */
 
  
-
-
-
-/*
- * (22) in the note docs/NLO_DIS_cross_section_with_massive_quarks.pdf
- * 
- */
-
 
 /* sigma_qg is divided into three parts. 
 
@@ -201,9 +191,6 @@ double ILNLOqg_massive_dipole_uvsub(double Q2, double mf, double z1, double z2, 
     return res;
 }
 
-/*
- * (23) in the note docs/NLO_DIS_cross_section_with_massive_quarks.pdf
-*/ 
 double ILNLOqg_massive_tripole_part_I2(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t) {
     // sigma_qg divided into three parts. This part has one additional integral.
 

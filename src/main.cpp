@@ -11,7 +11,6 @@
 #include "dipole/bkdipole/bkdipole.hpp"
 #include "gitsha1.h"
 #include "integration.hpp"
-#include "debug.h"
 
 struct ModelConfig {
     std::string name="nlodis";
@@ -61,9 +60,6 @@ enum RunMode {
 };
 
 int main(int argc, char* argv[]) {
-#ifdef DEBUG
-    //EnableFloatingPointExceptions();
-#endif
 
     std::cout << "# NLODIS code, git commit " << g_GIT_SHA1 << " local repo " << g_GIT_LOCAL_CHANGES << std::endl;
 
@@ -188,7 +184,7 @@ int main(int argc, char* argv[]) {
 
 
     if (auto* bk = dynamic_cast<BKDipole*>(&dis.GetDipole())) {
-        bk->SetInterpolationMethod(LINEAR_LINEAR);   // or LINEAR_LINEAR
+        bk->SetInterpolationMethod(LINEAR_LINEAR);   // fastest and typically accurate enough
     } else {
         throw std::runtime_error("Dipole is not BKDipole");
     }
@@ -197,15 +193,11 @@ int main(int argc, char* argv[]) {
     Quark light(Quark::Type::LIGHT, cfg.light_mass);
     Quark charm(Quark::Type::C, cfg.charm_mass);
 
-    std::vector<double> Q2vals = { 4.5, 45};
+    std::vector<double> Q2vals = { 4.5, 45, 100};
     if (runmode == RunMode::F2FL_GRID) {
-        
-        std::vector<double> Q2vals = { 4.5, 45};
         for (const auto& Q2 : Q2vals) {
             double minx=1e-5;
-            if (Q2==45)
-                minx=3e-4; 
-            for (double x = 0.01; x >= minx; x /= 2.0) {
+            for (double x = minx; x <= 1e-2; x *= 1.5) {
                 double FT_light, FL_light,FT_charm,FL_charm;
                 dis.SetQuarks({light});
                 try {
@@ -226,12 +218,13 @@ int main(int argc, char* argv[]) {
                 double F2_light = FT_light + FL_light;
                 double F2_charm = FT_charm + FL_charm;
                 dis.SetOrder(Order::LO);
+                dis.SetQuarks({light, charm});
                 double loF2 = dis.F2(Q2, x);
-                dis.SetQuarks({charm});
-                double icFL = dis.FL(Q2,1);
                 dis.SetOrder(Order::NLO);
-                std::cout << cfg.name << "," << x << "," << Q2 << "," << F2_light << "," << FL_light << "," << F2_charm <<","<< FL_charm <<"," << icFL << std::endl;
+                std::cout << cfg.name << "," << x << "," << Q2 << "," << F2_light << "," << FL_light << "," << F2_charm <<","<< FL_charm <<"," << loF2 << std::endl;
+              
             }
+
         }
     } else if (runmode == RunMode::HERA_FL) {
         std::vector<std::tuple<double, double>> data_points = {
