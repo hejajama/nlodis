@@ -13,6 +13,42 @@
 
 const std::string gbw_datafile = "gbw.dat";
 
+/**
+ * NLO cross section tests
+ * Reference numbers are computed using the code published in April 2026
+ */
+TEST(NLO_structure_functions)
+{
+    Quark light(Quark::Type::LIGHT, 0.14);
+    Quark charm(Quark::Type::C, 1.4);
+    std::vector<Quark> quark_list = {light, charm};
+    NLODIS dis;
+    dis.SetQuarks(quark_list);
+    dis.SetDipole(std::make_unique<GBWDipole>(1,0.3, 1, 1)); // (double Qs0sqr, double lambda, double gamma, double X0);
+    dis.SetMCIntegrationPoints(5e6);
+    dis.SetMCIntegrationEpsRel(1e-3);
+    dis.SetOrder(Order::NLO);
+    dis.SetProtonTransverseArea(10, Unit::MB); // Set \sigma_0/2
+    dis.SetRunningCouplingC2(2);
+    dis.SetRunningCouplingIRScheme(RunningCouplingIRScheme::SMOOTH);
+    dis.SetActiveFlavors(4);
+    dis.SetNcScheme(NcScheme::FiniteNC);
+
+    double Q2 = 10.0; // GeV^2
+    double xbj = 1e-4;  
+
+    double FL = dis.FL(Q2, xbj);
+    double FT = dis.FT(Q2, xbj);
+    double expected_FL = 1.22661;
+    double expected_FT = 5.72033;
+
+    ASSERT_ALMOST_EQUAL(FL, expected_FL, std::abs(expected_FL/1e2));    
+    ASSERT_ALMOST_EQUAL(FT, expected_FT, std::abs(expected_FT/1e2));
+
+
+
+}
+
 /*
  * LO cross section tests 
  */
