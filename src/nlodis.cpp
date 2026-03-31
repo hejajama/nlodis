@@ -746,3 +746,17 @@ void NLODIS::PrintConfiguration(const std::string& lineprefix) const
     cout << lineprefix << "Cuba integration method: " << cuba_config.method << ", maxeval " << cuba_config.maxeval <<", relaccuracy " << cuba_config.epsrel << " cores " << cores << std::endl;
     std::cout << lineprefix << "===================================\n" << std::endl;
 }
+
+void NLODIS::SetMCIntegrationMethod(const std::string& method)
+{
+    if (method != "vegas")
+    {
+        cerr << "Warning: using MC integration method " << method << " which is not vegas. Vegas is the default and most tested method, so other methods may lead to less accurate results or even integration failures." << endl;
+    }
+    if (method != "vegas" and method != "suave" and method != "cuhre" and method != "divonne")
+    {
+        throw std::runtime_error("Unknown MC integration method: " + method + ". Supported methods are: vegas, suave, cuhre and divonne.");
+    }
+
+    cuba_config.method = method; 
+}

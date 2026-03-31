@@ -10,7 +10,7 @@ int main()
   // Read in dipole amplitude
   // This datafile can be downloaded from 
   // https://doi.org/10.5281/zenodo.15552940.
- dis.SetDipole(std::make_unique<BKDipole>("data/balsd/bk_map.dat"));
+ dis.SetDipole(std::make_unique<BKDipole>("nlobkdatafiles/zenodo.15552940/balsd/bk_map.dat"));
  // Perform NLO calculation
   dis.SetOrder(Order::NLO);
 

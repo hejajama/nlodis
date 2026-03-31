@@ -143,7 +143,7 @@ int main(int argc, char* argv[]) {
         }
         else if (flag == "--cubamethod")
         {
-            // This is a hidden flag to set the Cuba integration method, for testing purposes
+            // Note: only vegas is currently supported
             dis.SetMCIntegrationMethod(value);
         }
 

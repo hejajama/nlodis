@@ -441,7 +441,7 @@ class NLODIS
          * 
          * @param method Name of the Cuba integration method to use ("vegas", "suave", "divonne" or "cuhre")
          */
-        void SetMCIntegrationMethod(const std::string& method) { cuba_config.method = method; }
+        void SetMCIntegrationMethod(const std::string& method);
 
         /**
          * @brief Set the relative accuracy threshold for Cuba integration

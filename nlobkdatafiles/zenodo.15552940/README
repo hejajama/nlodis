@@ -1,0 +1,10 @@
+The dipole–target scattering amplitude inferred at NLO accuracy can
+be found at https://zenodo.org/records/15552940 and
+arXiv:2506.00487.
+
+This folder contains one data file from that set (in particular, the
+MAP parametrization obtained using the Balitsky + smallest dipole
+running coupling prescription).
+
+The other data files can be downloaded from the Zenodo repository
+referenced above.
