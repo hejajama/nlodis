@@ -1,6 +1,6 @@
 # NLO DIS in dipole picture
 
-This code implements the computation of the DIS structure functions at NLO in the dipole picture. Computation is impelemented in C and C++.
+This code implements the computation of the DIS structure functions at NLO in the dipole picture. Computation is implemented in C and C++.
 
 **IMPORTANT NOTE:** The source code in this repository is considered *under development*, and it is not guaranteed to always work or to reproduce previously published results. For the highest reliability and accuracy in scientific computation, it is **recommended** to use the source code available on the [Releases page](https://github.com/hejajama/nlodis/releases/latest). This can also be done by cloning the latest release directly with:
 
@@ -10,7 +10,7 @@ This code implements the computation of the DIS structure functions at NLO in th
 ## Citation
 When you use this code, please cite the following publications:
 
-- [1] H. Hänninen, H. Mäntysaari and J. Penttala, "A numerical implementation of the NLO DIS structure functions in the dipole picture", SciPost Physics Codebases TODO
+- [1] H. Hänninen, H. Mäntysaari and J. Penttala, "A numerical implementation of the NLO DIS structure functions in the dipole picture", SciPost Physics Codebases TODO, arXiv:2604.xxxxx
 - [2] H. Hänninen, H. Mäntysaari and J. Penttala, "NLO DIS in dipole picture" (software), TODO ZENODO DOI / Github
 
 The DOI for the latest version of the code released is TODO ZENODO RELEASE.
@@ -25,7 +25,9 @@ This code has been developed and used in the following publications:
 * B. Ducloué, H. Hänninen, T. Lappi, Y. Zhu, [Phys. Rev.D 96 (2017) 9, 094017](https://doi.org/10.1103/PhysRevD.96.094017), [arXiv:1708.07328](https://arxiv.org/abs/1708.07328) 
 
 The NLO DIS calculation in the dipole picture with massive quarks, implemented in this code, has been published in
+* G. Beuf, T. Lappi, R. Paatelainen, [Phys.Rev.D 106 (2022) 3, 034013](https://doi.org/10.1103/PhysRevD.106.034013), [arXiv:2204.02486](https://arxiv.org/abs/2204.02486)
 * G. Beuf, T. Lappi, R. Paatelainen, [Phys. Rev. Lett. 129 (2022) 7, 072001](https://doi.org/10.1103/PhysRevLett.129.072001), [arXiv:2112.03158](https://arxiv.org/abs/2112.03158)
+* G. Beuf, T. Lappi, R. Paatelainen, [Phys.Rev.D 104 (2021) 5, 056032](https://doi.org/10.1103/PhysRevD.104.056032), [arXiv:2103.14549]
 
 
 ## Compilation
@@ -50,10 +52,11 @@ The aligned jet contribution gives a large logarithm $\sim \ln Q^2/m_f^2$ for th
 the large-$Q^2$ region one should always check numerical stability. This can be done, e.g., by running the code with 10 times larger `--mcintpoints`.
 
 ## License
-This code is available under the TODO license.
+This project is licensed under the [MIT License](https://opensource.org/license/mit). You are free to use, modify, and distribute the code, including for commercial purposes, provided that the original copyright notice and license are included.
+
+If you use this code in scientific work, please cite the associated publication (see above).
 
 The unmodified version of the Cuba library, which is distributed as part of this package (`src/Cuba-4.2.2`), is available under the GNU LGPL license. See `src/Cuba-4.2.2/COPYING`.
-
 
 
 ## Future developments
