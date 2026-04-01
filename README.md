@@ -38,18 +38,36 @@ The NLO DIS calculation in the dipole picture with massive quarks, implemented i
 ## Usage
 This code requires a dipole-proton scattering amplitude (that should satisfy the NLO BK evolution equation). For example, one can use dipole amplitudes obtained in C. Casuga, H. Hänninen, H. Mäntysaari, [Phys. Rev. D112 (2025) 3, 034003](https://doi.org/10.1103/54zd-hyvg), [arXiv:2506.00487](https://arxiv.org/abs/2506.00487). Data files compatible with this code can be found in the [Zenodo repository DOI:10.5281/zenodo.15552940](https://doi.org/10.5281/zenodo.15552940)
 
+For further instructions, see Ref. [1].
+
+
 
 ### Example program
 An example program is provided and described in the published article [1], and can be executed after compilation with:
 
 ```./build/bin/nlodis```
 
-See [./src/main.cpp](./src/main.cpp) for the source code.
+See [./src/main.cpp](./src/main.cpp) for the source code. A simple example program is implemented in [./src/simple_exampple.cpp](./src/simple_example.cpp) and automatically compiled.
+
+Before using this program, the user is encourated to verify that the current version passes unit tests by running
+
+```./bin/nlodis_tests```
+
+in the `build` directory.
 
 
 ### Note about numerical accuracy
 The aligned jet contribution gives a large logarithm $\sim \ln Q^2/m_f^2$ for the transverse cross section. This (the dipole contribution) is numerically challenging to evaluate if $Q^2/m_f^2$ is large. As such, in
 the large $Q^2$ region one should always check numerical stability. This can be done, e.g., by running the code with 10 times larger `--mcintpoints`.
+
+### Documentation 
+
+The API documentation can be generated as follows
+```bash
+mkdir -p docs
+cd docs
+doxygen
+```
 
 ## License
 This project is licensed under the [MIT License](https://opensource.org/license/mit). You are free to use, modify, and distribute the code, including for commercial purposes, provided that the original copyright notice and license are included.

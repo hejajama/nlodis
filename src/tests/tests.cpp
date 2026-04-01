@@ -102,8 +102,8 @@ TEST(NLO_structure_functions)
 TEST(TRIPOLE_AMPLITUDE)
 {
     NLODIS dis;
-    BKDipole gbwdatafile("gbw.dat");
-    dis.SetDipole(std::make_unique<BKDipole>(gbwdatafile));
+    BKDipole gbw(gbw_datafile);
+    dis.SetDipole(std::make_unique<BKDipole>(gbw));
 
     dis.SetNcScheme(NcScheme::LargeNC);
     double x01 = 1.0;

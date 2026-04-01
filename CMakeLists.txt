@@ -41,7 +41,7 @@ add_subdirectory(src)
 
 # Several tests read gbw.dat using a relative path from the current working directory.
 # Keep a copy in the build root so running tests from build/ works reliably.
-configure_file("${CMAKE_SOURCE_DIR}/gbw.dat" "${CMAKE_BINARY_DIR}/gbw.dat" COPYONLY)
+configure_file("${CMAKE_SOURCE_DIR}/src/tests/gbw.dat" "${CMAKE_BINARY_DIR}/gbw.dat" COPYONLY)
 
 set_target_properties(nlodis_tests PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
