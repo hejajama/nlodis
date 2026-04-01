@@ -2,9 +2,13 @@
 
 This code implements the computation of the DIS structure functions at NLO in the dipole picture. Computation is implemented in C and C++.
 
-**IMPORTANT NOTE:** The source code in this repository is considered *under development*, and it is not guaranteed to always work or to reproduce previously published results. For the highest reliability and accuracy in scientific computation, it is **recommended** to use the source code available on the [Releases page](https://github.com/hejajama/nlodis/releases/latest). This can also be done by cloning the latest release directly with:
+**IMPORTANT NOTE:** The source code in this repository is considered *under development*, and it is not guaranteed to always work or to reproduce previously published results. For the highest reliability and accuracy in scientific computation, it is **recommended** to use the source code available on the [Releases page](https://github.com/hejajama/nlodis/releases/latest). This can also be done by selecting the latest release tag after cloning the repository:
 
-```git clone https://github.com/hejajama/nlodis/releases/latest```
+```
+git clone https://github.com/hejajama/nlodis
+cd nlodis
+git checkout v1.0.0
+```
 
 
 ## Citation
@@ -47,7 +51,7 @@ An example program is provided and described in the published article [1], and c
 
 ```./build/bin/nlodis```
 
-See [./src/main.cpp](./src/main.cpp) for the source code. A simple example program is implemented in [./src/simple_exampple.cpp](./src/simple_example.cpp) and automatically compiled.
+See [./src/main.cpp](./src/main.cpp) for the source code. A simple example program is implemented in [./src/simple_example.cpp](./src/simple_example.cpp) and automatically compiled.
 
 Before using this program, the user is encourated to verify that the current version passes unit tests by running
 
