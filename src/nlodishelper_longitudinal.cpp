@@ -127,6 +127,8 @@ double L_dip( double Q2, double z, double mf ) {
 
 /***********************************************************
  * Longitudinal photon, qqg contribution
+ * 
+ * Note that overall 1/z2 factor is included in integrand_qgunsub_massive
  */
 
  
@@ -134,11 +136,12 @@ double L_dip( double Q2, double z, double mf ) {
 /* sigma_qg is divided into three parts. 
 
 * First we have terms that do not contain additional lintegrals.
-* These are further divided into terms proportional to N_01 (I1)
-* And proportional to N_012 (I2)
+* These are further divided into terms proportional to N_01 (uvsub)
+* And proportional to N_012 (I1,I2,I3)
 * 
 */
 
+// I_1^L proportional to N_012
 double ILNLOqg_massive_tripole_part_I1(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq) {
     // sigma_qg divided into three parts. This part has no additional integrals. Only contains the part proportional to N_012
 
@@ -172,6 +175,7 @@ double ILNLOqg_massive_tripole_part_I1(double Q2, double mf, double z1, double z
 }
 
 
+// I_{UV}^L proportional to N_{01}
 double ILNLOqg_massive_dipole_uvsub(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq) 
 {
     double front_factor = 4.0*Q2;
@@ -191,6 +195,7 @@ double ILNLOqg_massive_dipole_uvsub(double Q2, double mf, double z1, double z2, 
     return res;
 }
 
+// I_2^L
 double ILNLOqg_massive_tripole_part_I2(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t) {
     // sigma_qg divided into three parts. This part has one additional integral.
 
@@ -228,10 +233,7 @@ double ILNLOqg_massive_tripole_part_I2(double Q2, double mf, double z1, double z
     return res;
 }
 
-/*
- * I3 for qqg contribution
- * */
-
+// I_3^L
 double ILNLOqg_massive_tripole_part_I3(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t1, double y_t2) {
     // sigma_qg divided into three parts. This part has two additional integrals.
 
@@ -282,7 +284,7 @@ double ILNLOqg_massive_tripole_part_I3(double Q2, double mf, double z1, double z
 
 /*
  * G_(x)^{a,b) with u integrated analytically
- * See doc/NLO_DIS_cross_section_with_massive_quarks.pdf (69)
+ * See (33) in the publication
  * Unintegrated form is (163) in 2103.14549
 */
 double G_integrand_simplified(int a, int b, double Qbar, double mf, double x2, double x3, double omega, double lambda, double y) {

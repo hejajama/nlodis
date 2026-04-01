@@ -271,13 +271,14 @@ double IT_N_unsymmetric( double Q, double z, double mf, double r, double y_chi, 
 ////////// Transverse qqg
 //////////
 
-
+// I_{UV}^T
 double ITNLOqg_massive_dipole_uvsub(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq) {
     double Q = sqrt(Q2);
     return IT_dipole_jk_I1( Q, mf, z1, z2, x01sq, x02sq, x21sq ) + 
            IT_dipole_jkm_I1( Q, mf, z1, z2, x01sq, x02sq, x21sq );
 }
 
+// I_1^T
 double ITNLOqg_massive_tripole_part_I1(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq){
     double Q = sqrt(Q2);
     return IT_tripole_jk_I1( Q, mf, z1, z2, x01sq, x02sq, x21sq ) + 
@@ -288,6 +289,7 @@ double ITNLOqg_massive_tripole_part_I1(double Q2, double mf, double z1, double z
 
 
 ////////////////// Transverse I2
+// Note that overall 1/z_2 is included in  int integrand_qgunsub_massive(const int *ndim, const double x[], const int *ncomp,double *f, void *userdata)
 
 double ITNLOqg_massive_tripole_part_I2(double Q2, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t){
     double Q = sqrt(Q2);
@@ -309,8 +311,9 @@ double ITNLOqg_massive_tripole_part_I3(double Q2, double mf, double z1, double z
 
 
 
-// I_1, (54) of the note docs/NLO_DIS_cross_section_with_massive_quarks.pdf
-// First part proportional to N_01
+
+// Part of I_{UV}^T proportional to N_01
+// 2204.02486 (214)
 double IT_dipole_jk_I1(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq){
 
     double x20x21 = -0.5*(x01sq - x21sq - x02sq);
@@ -333,10 +336,10 @@ double IT_dipole_jk_I1(double Q, double mf, double z1, double z2, double x01sq, 
    
     double res = term_j + term_k;
 
-    return res;
+    return res; // 1/z_2 factor is included in the int integrand_qgunsub_massive
 }
 
-// Part of (54) proportional to N_012
+// Part of I_1^T proportional to N_012
 double IT_tripole_jk_I1(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq){
 
     double x20x21 = -0.5*(x01sq - x21sq - x02sq);
@@ -364,6 +367,8 @@ double IT_tripole_jk_I1(double Q, double mf, double z1, double z2, double x01sq,
     return res;
 }
 
+// Part of I_{UV}^T proportional to m^2 N_{01}
+// 2204.02486 (215)
 double IT_dipole_jkm_I1(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq){
 
     double x20x21 = -0.5*(x01sq - x21sq - x02sq);
@@ -385,7 +390,7 @@ double IT_dipole_jkm_I1(double Q, double mf, double z1, double z2, double x01sq,
    
     double res = SQR(mf) * (term_j + term_k);
 
-    return res;
+    return res; // 1/z2 factor is included in the int integrand_qgunsub_massive
 }
 
 double IT_tripole_jkm_I1(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq) {
@@ -504,6 +509,8 @@ double IT_tripole_Fm_I1(double Q, double mf, double z1, double z2, double x01sq,
 
 
 ////// Terms for I2
+
+// I_{2F}^T
 double IT_tripole_F_I2(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t){
 
     double x20x21 = -0.5*(x01sq - x21sq - x02sq);
@@ -545,7 +552,7 @@ double IT_tripole_F_I2(double Q, double mf, double z1, double z2, double x01sq, 
                 * gsl_sf_bessel_K1( sqrt( ( SQR(Qbar_k) + SQR(mf) * (1.0+lambda_k) ) * ( SQR(x3_k) + omega_k * SQR(x2_k) ) ) );
 
     double term_1 = 1.0/(4.0*(z0+z2)*(z1+z2)) * (z2*SQR(z0-z1)* ( x2j_x3j * x2k_x3k - x2k_x3j * x2j_x3k ) 
-                    - (z1*(z0+z2)+z0*(z1+z2))* (z0*(z0+z2)+z1*(z1+z2))*x20x21 * x3j_x3k  )
+                    - (z1*(z0+z2)+z0*(z1+z2)) * (z0*(z0+z2)+z1*(z1+z2))*x20x21 * x3j_x3k  )
                     * (
                         int_22_bar_k * G22_sing_j
                         +int_22_bar_j * G22_sing_k
@@ -560,6 +567,7 @@ double IT_tripole_F_I2(double Q, double mf, double z1, double z2, double x01sq, 
     return res;
 }
 
+// I_{2Fm}^T
 double IT_tripole_Fm_I2(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t){
 
     double x20x21 = -0.5*(x01sq - x21sq - x02sq);
@@ -629,10 +637,11 @@ double IT_tripole_Fm_I2(double Q, double mf, double z1, double z2, double x01sq,
 
     double res = 0.5*SQR(mf) * ( term_1j + term_1k + term_2 + term_3j + term_3k + term_4j + term_4k + term_5j + term_5k + term_6j + term_6k );
 
-    return res;
+    return res; // 1/z2 factor is included in the int integrand_qgunsub_massive
 }
 
 
+// I_2^T
 double IT_tripole_jk_I2(double Q, double mf, double z1, double z2, double x01sq, double x02sq, double x21sq, double y_t){
 
     double x20x21 = -0.5*(x01sq - x21sq - x02sq);
