@@ -49,7 +49,7 @@ See [./src/main.cpp](./src/main.cpp) for the source code.
 
 ### Note about numerical accuracy
 The aligned jet contribution gives a large logarithm $\sim \ln Q^2/m_f^2$ for the transverse cross section. This (the dipole contribution) is numerically challenging to evaluate if $Q^2/m_f^2$ is large. As such, in
-the large-$Q^2$ region one should always check numerical stability. This can be done, e.g., by running the code with 10 times larger `--mcintpoints`.
+the large $Q^2$ region one should always check numerical stability. This can be done, e.g., by running the code with 10 times larger `--mcintpoints`.
 
 ## License
 This project is licensed under the [MIT License](https://opensource.org/license/mit). You are free to use, modify, and distribute the code, including for commercial purposes, provided that the original copyright notice and license are included.
