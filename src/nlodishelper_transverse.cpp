@@ -6,7 +6,7 @@
 
 double weighted_k1_difference_stable(double r, double kappa_base, double delta_kappa_sq) {
     // Evaluate sqrt(kappa_base^2 + delta) * K1(r * sqrt(kappa_base^2 + delta)) - kappa_base * K1(r * kappa_base)
-    // with first-order expansion when delta is small to avoid catastrophic cancellation.
+    // with first-order expansion when delta is small for improved numerical accuracy
     const double base_sq = SQR(kappa_base);
     const double shifted_sq = base_sq + delta_kappa_sq;
 

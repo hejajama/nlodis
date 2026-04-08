@@ -38,6 +38,7 @@ struct NLODISConfig {
     double max_alpha_s_freeze = 0.7;                                        ///< Maximum α_s in FREEZE IR scheme
     static constexpr double Q0sqr = 1.0;                                   ///< Non-perturbative target scale [GeV^2]
     SigmaDipScheme sigma_dip_scheme = SigmaDipScheme::AnalyticalZ2Int;   ///< Scheme for calculating the qq part of the NLO cross section, whether to do the z2 integration analytically or explicitly. Explicit integration allows one to have z2 dependent evolution rapidity
+    HeavyQuarkX heavy_quark_x_scheme = HeavyQuarkX::MassIndependentX;      ///< Scheme for x used in evolution rapidity for heavy quarks
 };
 
 /**
@@ -292,14 +293,17 @@ class NLODIS
         double EvolutionRapidity_qqg(double xbj, double Q2, double z2) const;
 
         /**
-         * @brief Evolution rapidity for the dipole contribution
+         * @brief Evolution rapidity for the dipole contribution with optional mass-dependent x
          * 
-         * Calculates the rapidity Y at which the dipole amplitude should be evaluated 
-         * in the NLO dipole contribution.
-         * 
-         * By default this is 1/xbj, but this is not a unique choice 
+         * The evolution rapidity depends on config.HeavyQuarkX
+         *
+         * @param xbj Bjorken-x
+         * @param Q2 Photon virtuality [GeV^2]
+         * @param quark_mass Quark mass [GeV]. Optional argument, default value 0
+         *
+         * @return Evolution rapidity Y = ln(1/x) (dimensionless)
          */
-        double EvolutionRapidity_dipole(double xbj, double Q2) const;
+        double EvolutionRapidity_dipole(double xbj, double Q2, double quark_mass=0) const;
         
         /**
          * @brief Set Nc counting scheme for tripole amplitude
@@ -316,6 +320,20 @@ class NLODIS
          *            RunningCouplingScheme::PARENT to use the parent dipole size
          */
         void SetRunningCouplingScheme(RunningCouplingScheme rc_) { config.rc_scheme = rc_; }
+
+        /**
+         * @brief Set HeavyQuarkX scheme used in rapidity-scale x for heavy flavors
+         *
+         * @param scheme HeavyQuarkX::MassIndependentX or HeavyQuarkX::MassDependentX
+         */
+        void SetHeavyQuarkXScheme(HeavyQuarkX scheme) { config.heavy_quark_x_scheme = scheme; }
+
+        /**
+         * @brief Get HeavyQuarkX scheme used in rapidity-scale x for heavy flavors
+         *
+         * @return Current HeavyQuarkX scheme
+         */
+        HeavyQuarkX GetHeavyQuarkXScheme() const noexcept { return config.heavy_quark_x_scheme; }
         
         /**
          * @brief Get running coupling scale for tripole configuration

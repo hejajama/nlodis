@@ -20,21 +20,9 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(DEBUG)
 endif()
 
-find_package(OpenMP)
-if (OPENMP_FOUND)
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-endif()
-
-
-
-# Headers and libraries
-
-#link_directories("/Users/hejajama/code//nlodisfit_bayesian/cpp/build/lib/")
-#include_directories("/Users/hejajama/code/nlodisfit_bayesian/cpp/src")
-
+# Cuba library distributed as a part of this project
 include_directories("src/Cuba-4.2.2/")
+
 include(CTest)
 
 add_subdirectory(src)
@@ -42,6 +30,10 @@ add_subdirectory(src)
 # Several tests read gbw.dat using a relative path from the current working directory.
 # Keep a copy in the build root so running tests from build/ works reliably.
 configure_file("${CMAKE_SOURCE_DIR}/src/tests/gbw.dat" "${CMAKE_BINARY_DIR}/gbw.dat" COPYONLY)
+
+# Copy the BK datafile to the build directory as well, since the example code uses that
+file(COPY "${CMAKE_SOURCE_DIR}/nlobkdatafiles"
+    DESTINATION "${CMAKE_BINARY_DIR}")
 
 set_target_properties(nlodis_tests PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )

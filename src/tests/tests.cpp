@@ -285,6 +285,42 @@ TEST(EVOLUTION_RAPIDITY)
 }
 
 /*
+ * Test scheme-dependent EvolutionRapidity_dipole
+ *
+ * MassIndependentX: x = xbj, so Y = log(1/xbj)
+ * MassDependentX: x = xbj*(Q2 + 4m^2)/Q2, so Y = log(1/x)
+ */
+TEST(EVOLUTION_RAPIDITY_DIPOLE_HEAVYQUARKX_SCHEME)
+{
+    NLODIS dis;
+
+    const double Q2 = 10.0;
+    const double xbj = 1e-3;
+    const double m = 1.4;
+
+    dis.SetHeavyQuarkXScheme(HeavyQuarkX::MassIndependentX);
+    const double Y_mass_independent = dis.EvolutionRapidity_dipole(xbj, Q2, m);
+    const double expected_mass_independent = std::log(1.0 / xbj);
+    ASSERT_ALMOST_EQUAL(Y_mass_independent, expected_mass_independent, 1e-12);
+
+    dis.SetHeavyQuarkXScheme(HeavyQuarkX::MassDependentX);
+    const double x_mass_dependent = xbj * (Q2 + 4.0 * m * m) / Q2;
+    const double Y_mass_dependent = dis.EvolutionRapidity_dipole(xbj, Q2, m);
+    const double expected_mass_dependent = std::log(1.0 / x_mass_dependent);
+    ASSERT_ALMOST_EQUAL(Y_mass_dependent, expected_mass_dependent, 1e-12);
+
+    // Non-zero mass should make x larger in MassDependentX and thus reduce Y.
+    ASSERT_TRUE(Y_mass_dependent < Y_mass_independent);
+
+    // For zero mass both schemes are equivalent.
+    dis.SetHeavyQuarkXScheme(HeavyQuarkX::MassIndependentX);
+    const double Y_mass0_independent = dis.EvolutionRapidity_dipole(xbj, Q2, 0.0);
+    dis.SetHeavyQuarkXScheme(HeavyQuarkX::MassDependentX);
+    const double Y_mass0_dependent = dis.EvolutionRapidity_dipole(xbj, Q2, 0.0);
+    ASSERT_ALMOST_EQUAL(Y_mass0_dependent, Y_mass0_independent, 1e-12);
+}
+
+/*
  * Test RunningCouplinScale function
  */
 TEST(RUNNING_COUPLING_SCALE)

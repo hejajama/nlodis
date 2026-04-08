@@ -89,12 +89,29 @@ double NLODIS::EvolutionRapidity_qqg(double xbj, double Q2, double z2) const
     return std::log(W2*z2/config.Q0sqr);
 }
 
-double NLODIS::EvolutionRapidity_dipole(double xbj, double Q2) const
+
+double NLODIS::EvolutionRapidity_dipole(double xbj, double Q2, double quark_mass) const
 {
-    // By default, we evaluate the dipole amplitude at the same rapidity as in the 
-    // LO contribution, i.e. Y=ln(1/xbj). 
-    // This is not a unique choice, and other choices are possible. 
-    double X = xbj;
+
+    auto W2FromX = [](double Q2, double x) { return Q2/x; };
+
+    double X;
+
+    if (config.heavy_quark_x_scheme == HeavyQuarkX::MassIndependentX)
+    {
+        // X = x_bj
+        X = Q2 / (Q2 + W2FromX(Q2, xbj));
+    }
+    else if (config.heavy_quark_x_scheme == HeavyQuarkX::MassDependentX)
+    {
+        // X = (Q^2 + 4m^2)/(Q^2 + W^2)
+        X = (Q2 + 4.0*SQR(quark_mass)) / (Q2 + W2FromX(Q2, xbj));
+    }
+    else
+    {
+        throw std::runtime_error("NLODIS::EvolutionRapidity_dipole: unknown HeavyQuarkX scheme");
+    }
+
     return std::log(1.0/X);
 }
 
@@ -295,7 +312,7 @@ int integrand_dip_massive(const int *ndim, const double x[], const int *ncomp, d
     double alphabar=nlodis.Alphas(x01)*Constants::CF/M_PI;
 
 
-    double evolution_rapidity = nlodis.EvolutionRapidity_dipole(xbj, Q2); 
+    double evolution_rapidity = nlodis.EvolutionRapidity_dipole(xbj, Q2, mf); 
 
     double dipole = nlodis.GetDipole().DipoleAmplitude(x01,evolution_rapidity);
 
@@ -691,7 +708,7 @@ void NLODIS::PrintConfiguration(const std::string& lineprefix) const
     // Subtraction Scheme
     std::cout << lineprefix << "Subtraction Scheme: ";
     if (config.scheme == SubtractionScheme::UNSUB) {
-        std::cout << "Unsubstracted (UNSUB)" << std::endl;
+        std::cout << "Unsubtracted (UNSUB)" << std::endl;
     } else {
         std::cout << "Unknown" << std::endl;
     }
@@ -712,6 +729,15 @@ void NLODIS::PrintConfiguration(const std::string& lineprefix) const
         std::cout << "Smallest dipole" << std::endl;
     } else if (config.rc_scheme == RunningCouplingScheme::PARENT) {
         std::cout << "Parent dipole" << std::endl;
+    } else {
+        std::cout << "Unknown" << std::endl;
+    }
+
+    std::cout << lineprefix << "Heavy quark x scheme: ";
+    if (config.heavy_quark_x_scheme == HeavyQuarkX::MassIndependentX) {
+        std::cout << "MassIndependentX, x = x_Bj = Q^2/(Q^2 + W^2)" << std::endl;
+    } else if (config.heavy_quark_x_scheme == HeavyQuarkX::MassDependentX) {
+        std::cout << "MassDependentX, x= (Q^2 + 4m^2)/(Q^2 + W^2)" << std::endl;
     } else {
         std::cout << "Unknown" << std::endl;
     }
