@@ -93,7 +93,7 @@ double NLODIS::EvolutionRapidity_qqg(double xbj, double Q2, double z2) const
 double NLODIS::EvolutionRapidity_dipole(double xbj, double Q2, double quark_mass) const
 {
 
-    auto W2FromX = [](double Q2, double x) { return Q2/x; };
+    auto W2FromX = [](double Q2, double x) { return (1.-x)*Q2/x; };
 
     double X;
 
