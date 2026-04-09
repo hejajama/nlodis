@@ -287,8 +287,9 @@ TEST(EVOLUTION_RAPIDITY)
 /*
  * Test scheme-dependent EvolutionRapidity_dipole
  *
- * MassIndependentX: x = xbj, so Y = log(1/xbj)
- * MassDependentX: x = xbj*(Q2 + 4m^2)/Q2, so Y = log(1/x)
+ * Current implementation uses W^2 = (1-xbj)Q^2/xbj and defines
+ * X via X = Q^2/(Q^2+W^2) (mass independent) or
+ * X = (Q^2+4m^2)/(Q^2+W^2) (mass dependent).
  */
 TEST(EVOLUTION_RAPIDITY_DIPOLE_HEAVYQUARKX_SCHEME)
 {
@@ -297,14 +298,16 @@ TEST(EVOLUTION_RAPIDITY_DIPOLE_HEAVYQUARKX_SCHEME)
     const double Q2 = 10.0;
     const double xbj = 1e-3;
     const double m = 1.4;
+    const double W2 = (1.0 - xbj) * Q2 / xbj;
 
     dis.SetHeavyQuarkXScheme(HeavyQuarkX::MassIndependentX);
     const double Y_mass_independent = dis.EvolutionRapidity_dipole(xbj, Q2, m);
-    const double expected_mass_independent = std::log(1.0 / xbj);
+    const double x_mass_independent = Q2 / (Q2 + W2);
+    const double expected_mass_independent = std::log(1.0 / x_mass_independent);
     ASSERT_ALMOST_EQUAL(Y_mass_independent, expected_mass_independent, 1e-12);
 
     dis.SetHeavyQuarkXScheme(HeavyQuarkX::MassDependentX);
-    const double x_mass_dependent = xbj * (Q2 + 4.0 * m * m) / Q2;
+    const double x_mass_dependent = (Q2 + 4.0 * m * m) / (Q2 + W2);
     const double Y_mass_dependent = dis.EvolutionRapidity_dipole(xbj, Q2, m);
     const double expected_mass_dependent = std::log(1.0 / x_mass_dependent);
     ASSERT_ALMOST_EQUAL(Y_mass_dependent, expected_mass_dependent, 1e-12);
