@@ -14,7 +14,7 @@ git checkout v1.0.0
 ## Citation
 When you use this code, please cite the following publications:
 
-- [1] H. Hänninen, H. Mäntysaari and J. Penttala, "A numerical implementation of the NLO DIS structure functions in the dipole picture", Submitted to SciPost Physics Codebases, arXiv:2604.xxxxx
+- [1] H. Hänninen, H. Mäntysaari and J. Penttala, "A numerical implementation of the NLO DIS structure functions in the dipole picture", Submitted to SciPost Physics Codebases, [arXiv:2604.09071](https://arxiv.org/abs/2604.09071)
 - [2] H. Hänninen, H. Mäntysaari and J. Penttala, "NLO DIS in dipole picture" (software), Zenodo [doi:10.5281/zenodo.19367635](https://doi.org/10.5281/zenodo.19367635)
 
 
