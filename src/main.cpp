@@ -22,6 +22,7 @@ struct ModelConfig {
     RunningCouplingScheme rc_scheme;
     int nf=-1;
     Order order;
+    double maxr=9999;
 };
 
 static RunningCouplingScheme ParseRunningCouplingScheme(const std::string& s) {
@@ -145,6 +146,11 @@ int main(int argc, char* argv[]) {
         {
             // Note: only vegas is currently supported
             dis.SetMCIntegrationMethod(value);
+        }
+        else if (flag == "--maxr")
+        {
+            cfg.maxr=std::stod(value);
+            dis.SetMaxR(std::stod(value));
         }
 
         else {

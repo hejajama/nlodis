@@ -196,6 +196,8 @@ class NLODIS
          * @return Maximum dipole size in GeV^-1
          */
         double GetMaxR() const noexcept { return config.maxr; }
+
+        void SetMaxR(double maxr) { config.maxr = maxr; }
         
         /**
          * @brief Coordinate space running coupling constant
