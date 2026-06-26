@@ -14,7 +14,7 @@ git checkout v1.0.0
 ## Citation
 When you use this code, please cite the following publications:
 
-- [1] H. Hänninen, H. Mäntysaari and J. Penttala, "A numerical implementation of the NLO DIS structure functions in the dipole picture", Submitted to SciPost Physics Codebases, arXiv:2604.xxxxx
+- [1] H. Hänninen, H. Mäntysaari and J. Penttala, "A numerical implementation of the NLO DIS structure functions in the dipole picture", Submitted to SciPost Physics Codebases, [https://arxiv.org/abs/2604.09071](arXiv:2604.09071) 
 - [2] H. Hänninen, H. Mäntysaari and J. Penttala, "NLO DIS in dipole picture" (software), Zenodo [doi:10.5281/zenodo.19367635](https://doi.org/10.5281/zenodo.19367635)
 
 
@@ -49,18 +49,52 @@ An example program is provided and described in the published article [1], and c
 
 ```./build/bin/nlodis```
 
-See [./src/main.cpp](./src/main.cpp) for the source code. A simple example program is implemented in [./src/simple_example.cpp](./src/simple_example.cpp) and automatically compiled.
+See [./src/main.cpp](./src/main.cpp) for the source code. 
+
+A simple example program is implemented in [./src/simple_example.cpp](./src/simple_example.cpp) and automatically compiled. It computes $F_2$ at $x=10^{-3}, Q^2=8.5$ GeV$^2$:
+```bash
+./build/bin/simple_example
+=== NLODIS Configuration Summary ===
+Order: NLO
+Subtraction Scheme: Unsubtracted (UNSUB)
+Nc Scheme: Finite Nc
+Running Coupling Scale: Smallest dipole
+Heavy quark x scheme: MassIndependentX, x = x_Bj = Q^2/(Q^2 + W^2)
+IR Freezing Scheme: Smooth
+Maximum dipole size (maxr): 30 GeV^-1
+Running coupling C^2 factor: 1.74
+Non-perturbative scale (Q0^2): 1 GeV^2
+Proton transverse area: 23.3192 GeV^-2 = 9.08067 mb
+Quark flavors and masses:
+  light, m=0.005 GeV (e=0.816497)
+  c, m=1.24 GeV (e=0.666667)
+Active flavors for running coupling: determined from quark list
+Dipole: Data read from file nlobkdatafiles/zenodo.15552940/balsd/bk_map.dat, minr: 1e-06 GeV^(-1), maxr: 27.5255 GeV^(-1), rpoints: 200 initial rapidity 0, maximum rapidity 15.44 Q_{s,0}^2(initial rapidity) = 0.223376 GeV^2, Q_{s,0}^2(Y=ln 1/0.01) = 0.195612 GeV^2 [ N(r^2=2/Q_s^2) = 0.393469]
+Cuba integration method: vegas, maxeval 2000000, relaccuracy 0.001 cores not set (using default)
+===================================
+
+F_2(Q^2=8.5 GeV^2, xbj=0.001) = 0.875895
+``` 
+Using default Monte Carlo integration settings, this takes $\mathcal{O}(2)$ minutes on a typical laptop (tested  using MacBook Pro from 2022).
 
 Before using this program, the user is encourated to verify that the current version passes unit tests by running
 
 ```./bin/nlodis_tests```
 
-in the `build` directory.
+in the `build` directory. This runs unit tests implemented in [src/tests](./src/tests) folder (see different .cpp files). In order to compute $F_L$, one should change 
+```c++
+double F2 = dis.F2(Q2,xbj);
+```
+to
+```c++
+double F2 = dis.F2(Q2,xbj);
+```
+The different options that the user can control (e.g. running coupling prescription, dipole amplitude etc) are documented in [arXiv:2604.09071](https://arxiv.org/abs/2604.09071).
 
 
 ### Note about numerical accuracy
 The aligned jet contribution gives a large logarithm $\sim \ln Q^2/m_f^2$ for the transverse cross section. This (the dipole contribution) is numerically challenging to evaluate if $Q^2/m_f^2$ is large. As such, in
-the large $Q^2$ region one should always check numerical stability. This can be done, e.g., by running the code with 10 times larger `--mcintpoints`.
+the large $Q^2$ region one should always check numerical stability. This can be done, e.g., by running the code with 10 times larger `--mcintpoints` (default value is `2e6`).
 
 ### Documentation 
 
