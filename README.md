@@ -33,8 +33,15 @@ The NLO DIS calculation in the dipole picture with massive quarks, implemented i
 
 
 ## Compilation
-1. Dependencies: CMake and [GNU Scientific Library (GSL)](https://www.gnu.org/software/gsl/). The code also uses the [Cuba library](https://feynarts.de/cuba/) for multidimensional numerical integration. Cuba-4.2.2 is included in this code package and compiled automatically.
-1. Do `mkdir build; cd build; cmake ..; make`
+1. Dependencies: CMake and [GNU Scientific Library (GSL)](https://www.gnu.org/software/gsl/). The code also uses the [Cuba library](https://feynarts.de/cuba/) for multidimensional numerical integration. Cuba 4.2.2 is included in this code package and compiled automatically.
+2. Run `mkdir build; cd build; cmake ..; make`
+
+The following binary files are created in `build/bin`:
+
+* `nlodis` The main program supporting different command-line options that control different parameters.
+* `simple_example` A simple example that computes only $F_2$ using specific settings.
+* `nlodis_tests` Runs the unit tests.
+
 
 
 ## Usage
@@ -44,14 +51,74 @@ For further instructions, see Ref. [1].
 
 
 
-### Example program
+### Example programs
 An example program is provided and described in the published article [1], and can be executed after compilation with:
 
 ```./build/bin/nlodis```
+This command prints all available command line arguments. For example, results for the DIS structure functions computed also in  C. Casuga, H. Hänninen, H. Mäntysaari, [Phys. Rev. D112 (2025) 3, 034003](https://doi.org/10.1103/54zd-hyvg), [arXiv:2506.00487](https://arxiv.org/abs/2506.00487) can be reproduced by running
+```bash
+./build/bin/nlodis --datafile nlobkdatafiles/zenodo.15552940/balsd/bk_map.dat --light_mass 0.01 --charm_mass 1.24 --proton_area 9.08 --C2 1.74 --nf 3 --rc_scheme SMALLEST --runmode F2FL_GRID
+# NLODIS code, git commit 1c2d7699312cf6376ba616393464c25fc0f0ac1e local repo DIRTY
+# === NLODIS Configuration Summary ===
+# Order: NLO
+# Subtraction Scheme: Unsubtracted (UNSUB)
+# Nc Scheme: Finite Nc
+# Running Coupling Scale: Smallest dipole
+# Heavy quark x scheme: MassIndependentX, x = x_Bj = Q^2/(Q^2 + W^2)
+# IR Freezing Scheme: Smooth
+# Maximum dipole size (maxr): 30 GeV^-1
+# Running coupling C^2 factor: 1.74
+# Non-perturbative scale (Q0^2): 1 GeV^2
+# Proton transverse area: 23.3192 GeV^-2 = 9.08067 mb
+# Quark flavors and masses:
+#   light, m=0.01 GeV (e=0.816497)
+#   c, m=1.24 GeV (e=0.666667)
+# Active flavors for running coupling: 3
+# Dipole: Data read from file nlobkdatafiles/zenodo.15552940/balsd/bk_map.dat, minr: 1e-06 GeV^(-1), maxr: 27.5255 GeV^(-1), rpoints: 200 initial rapidity 0, maximum rapidity 15.44 Q_{s,0}^2(initial rapidity) = 0.223376 GeV^2, Q_{s,0}^2(Y=ln 1/0.01) = 0.195612 GeV^2 [ N(r^2=2/Q_s^2) = 0.393469]
+# Cuba integration method: vegas, maxeval 2000000, relaccuracy 0.001 cores not set (using default)
+# ===================================
+
+fit,x,Q2,F2 light,FL light,F2 charm,FL charm,F2_LO
+nlodis,1e-05,4.5,1.18962,0.249,0.264725,0.0287347,0.772196
+nlodis,1.5e-05,4.5,1.12249,0.233622,0.242647,0.0264337,0.725053
+nlodis,2.25e-05,4.5,1.05884,0.218707,0.221591,0.0242573,0.679988
+...
+```
+Here we use the fit with Balitsky+smallest dipole running coupling prescription shipped also as a part of this program. The output is in CSV format. Note that the parameter values provided here match Table I of the above mentioned publication (actually in that paper results are obtained with 0 GeV mass for the light quark, but this program only works with a finite value).
+
+Similarly $F_L$ in HERA kinematics can be calculated by using ``--runmode HERA_FL``:
+```bash
+ % ./build/bin/nlodis --datafile nlobkdatafiles/zenodo.15552940/balsd/bk_map.dat --light_mass 0.01 --charm_mass 1.24 --proton_area 9.08 --C2 1.74 --nf 3 --rc_scheme SMALLEST --runmode HERA_FL  
+# NLODIS code, git commit 1c2d7699312cf6376ba616393464c25fc0f0ac1e local repo DIRTY
+# === NLODIS Configuration Summary ===
+# Order: NLO
+# Subtraction Scheme: Unsubtracted (UNSUB)
+# Nc Scheme: Finite Nc
+# Running Coupling Scale: Smallest dipole
+# Heavy quark x scheme: MassIndependentX, x = x_Bj = Q^2/(Q^2 + W^2)
+# IR Freezing Scheme: Smooth
+# Maximum dipole size (maxr): 30 GeV^-1
+# Running coupling C^2 factor: 1.74
+# Non-perturbative scale (Q0^2): 1 GeV^2
+# Proton transverse area: 23.3192 GeV^-2 = 9.08067 mb
+# Quark flavors and masses:
+#   light, m=0.01 GeV (e=0.816497)
+#   c, m=1.24 GeV (e=0.666667)
+# Active flavors for running coupling: 3
+# Dipole: Data read from file nlobkdatafiles/zenodo.15552940/balsd/bk_map.dat, minr: 1e-06 GeV^(-1), maxr: 27.5255 GeV^(-1), rpoints: 200 initial rapidity 0, maximum rapidity 15.44 Q_{s,0}^2(initial rapidity) = 0.223376 GeV^2, Q_{s,0}^2(Y=ln 1/0.01) = 0.195612 GeV^2 [ N(r^2=2/Q_s^2) = 0.393469]
+# Cuba integration method: vegas, maxeval 2000000, relaccuracy 0.001 cores not set (using default)
+# ===================================
+
+fit,x,Q2,FL
+nlodis,2.8e-05,1.5,0.133064
+nlodis,4.3e-05,2,0.146917
+nlodis,5.9e-05,2.5,0.156624
+...
+```
 
 See [./src/main.cpp](./src/main.cpp) for the source code. 
 
-A simple example program is implemented in [./src/simple_example.cpp](./src/simple_example.cpp) and automatically compiled. It computes $F_2$ at $x=10^{-3}, Q^2=8.5$ GeV$^2$:
+A simple example program is also implemented in [./src/simple_example.cpp](./src/simple_example.cpp) and automatically compiled. It computes $F_2$ at $x=10^{-3}, Q^2=8.5$ GeV$^2$:
 ```bash
 ./build/bin/simple_example
 === NLODIS Configuration Summary ===

@@ -168,13 +168,6 @@ int main(int argc, char* argv[]) {
             return 1;
         }
     }
-
-    if (print_header) {
-        if (runmode == RunMode::F2FL_GRID)
-            std::cout << "fit,x,Q2,F2 light,FL light,F2 charm,FL charm,F2_LO" << std::endl;
-        else if (runmode == RunMode::HERA_FL)
-            std::cout << "fit,x,Q2,FL" << std::endl;
-    }
  
     dis.SetDipole(std::make_unique<BKDipole>(cfg.datafile));
     dis.SetRunningCouplingC2(cfg.c2_alpha);
@@ -195,6 +188,13 @@ int main(int argc, char* argv[]) {
         throw std::runtime_error("Dipole is not BKDipole");
     }
     dis.PrintConfiguration("# ");
+
+    if (print_header) {
+        if (runmode == RunMode::F2FL_GRID)
+            std::cout << "fit,x,Q2,F2 light,FL light,F2 charm,FL charm,F2_LO" << std::endl;
+        else if (runmode == RunMode::HERA_FL)
+            std::cout << "fit,x,Q2,FL" << std::endl;
+    }
 
     Quark light(Quark::Type::LIGHT, cfg.light_mass);
     Quark charm(Quark::Type::C, cfg.charm_mass);
